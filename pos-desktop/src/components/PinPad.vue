@@ -1,21 +1,11 @@
 <template>
   <div class="pinpad">
     <div class="pinpad-dots">
-      <div
-        v-for="i in 4"
-        :key="i"
-        class="pinpad-dot"
-        :class="{ filled: pin.length >= i }"
-      />
+      <div v-for="i in 4" :key="i" class="pinpad-dot" :class="{ filled: pin.length >= i }" />
     </div>
     <div class="pinpad-grid">
-      <button
-        v-for="key in keys"
-        :key="key"
-        class="pinpad-key"
-        :class="{ 'key-delete': key === 'del' }"
-        @click="handleKey(key)"
-      >
+      <button v-for="key in keys" :key="key" class="pinpad-key" :class="{ 'key-delete': key === 'del' }"
+        @click="handleKey(key)">
         <span v-if="key === 'del'">⌫</span>
         <span v-else>{{ key }}</span>
       </button>
@@ -75,6 +65,7 @@ function handleKey(key) {
   background: var(--gradient-hero);
   border-color: transparent;
   box-shadow: 0 0 12px var(--accent-glow);
+  border: none
 }
 
 .pinpad-grid {
