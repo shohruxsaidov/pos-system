@@ -176,7 +176,6 @@ async function handleBarcodeEnter() {
 function addToCart(product) {
   if (!product.is_active) return
   cart.addItem(product)
-  toast.add({ severity: 'success', summary: 'Добавлено', detail: product.name, life: 1000 })
 }
 
 async function handlePayment(paymentData) {
