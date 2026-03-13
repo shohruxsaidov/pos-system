@@ -284,7 +284,7 @@ function exportCSV() {
 }
 
 .card-header {
-  padding: 12px 0;
+  padding: 12px;
 }
 
 .card-title {
