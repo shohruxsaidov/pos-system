@@ -1,5 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/1",
+  "identifier": "com.marketpos.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -9,7 +10,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "identifier": "com.marketpos.app",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -25,7 +25,7 @@
         "width": 1280,
         "height": 800,
         "resizable": true,
-        "fullscreen": false,
+        "fullscreen": true,
         "decorations": false
       }
     ],
