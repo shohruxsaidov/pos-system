@@ -10,7 +10,7 @@
         <span class="text-secondary">Transaction:</span>
         <span class="font-mono text-accent">{{ transactionData.transaction?.ref_no }}</span>
         <span class="text-secondary">Total:</span>
-        <span class="font-mono">₱{{ formatAmount(transactionData.transaction?.total) }}</span>
+        <span class="font-mono">{{ formatAmount(transactionData.transaction?.total) }}</span>
       </div>
 
       <!-- Selectable Items -->
@@ -27,7 +27,7 @@
           <Column field="product_name" header="Product" />
           <Column field="unit_price" header="Price">
             <template #body="{ data }">
-              <span class="font-mono">₱{{ formatAmount(data.unit_price) }}</span>
+              <span class="font-mono">{{ formatAmount(data.unit_price) }}</span>
             </template>
           </Column>
           <Column field="qty_refundable" header="Max Qty" />
@@ -46,7 +46,7 @@
           <Column header="Subtotal">
             <template #body="{ data }">
               <span class="font-mono">
-                ₱{{ formatAmount((refundQtys[data.product_id] || 0) * data.unit_price) }}
+                {{ formatAmount((refundQtys[data.product_id] || 0) * data.unit_price) }}
               </span>
             </template>
           </Column>
@@ -56,7 +56,7 @@
       <div class="refund-total">
         <span class="text-secondary">Total Refund:</span>
         <span class="font-mono gradient-text" style="font-size:22px;font-weight:700">
-          ₱{{ formatAmount(refundTotal) }}
+          {{ formatAmount(refundTotal) }}
         </span>
       </div>
 

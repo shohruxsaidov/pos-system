@@ -58,7 +58,7 @@
       <div class="total-display">
         <span class="text-secondary">Total Cost</span>
         <span class="font-mono gradient-text" style="font-size:22px;font-weight:700">
-          ₱{{ formatAmount(totalCost) }}
+          {{ formatAmount(totalCost) }}
         </span>
       </div>
       <button class="confirm-btn" :disabled="items.length === 0 || confirming" @click="confirmReceipt">
@@ -228,7 +228,7 @@ async function confirmReceipt() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
 
-    toast.add({ severity: 'success', summary: 'Receipt Confirmed', detail: `${data.ref_no} — ₱${formatAmount(data.total_cost)}`, life: 4000 })
+    toast.add({ severity: 'success', summary: 'Receipt Confirmed', detail: `${data.ref_no} — ${formatAmount(data.total_cost)}`, life: 4000 })
     items.value = []
     supplier.value = ''
     notes.value = ''

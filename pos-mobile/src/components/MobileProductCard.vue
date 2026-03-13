@@ -7,7 +7,7 @@
         <div class="product-category text-muted">{{ product.category_name || 'Uncategorized' }}</div>
       </div>
       <div class="card-right">
-        <div class="product-price font-mono">₱{{ formatPrice(product.price) }}</div>
+        <div class="product-price font-mono">{{ formatPrice(product.price) }}</div>
         <div :class="['stock-badge', stockClass]">{{ stockLabel }}</div>
       </div>
     </div>

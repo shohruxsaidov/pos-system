@@ -13,5 +13,5 @@ INSERT INTO settings (key, value) VALUES
   ('telegram_owner_ids', '[]'),
   ('receipt_footer', 'Thank you for shopping!'),
   ('tax_rate', '0'),
-  ('currency_symbol', '₱')
+  ('currency_symbol', '')
 ON CONFLICT (key) DO NOTHING;

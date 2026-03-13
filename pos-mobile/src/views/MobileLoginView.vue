@@ -160,6 +160,7 @@ async function handleLogin() {
   background: var(--gradient-hero);
   border-color: transparent;
   box-shadow: 0 0 12px var(--accent-glow);
+  border: none;
 }
 
 .pin-grid {
