@@ -2,7 +2,7 @@
   <Dialog
     v-model:visible="visible"
     modal
-    header="Print Label"
+    header="Печать этикетки"
     :style="{ width: '480px' }"
   >
     <div class="print-content">
@@ -16,7 +16,7 @@
 
       <div class="print-fields">
         <div class="field-group">
-          <label class="field-label">Label Size</label>
+          <label class="field-label">Размер этикетки</label>
           <SelectButton
             v-model="size"
             :options="['58mm', '80mm']"
@@ -24,7 +24,7 @@
         </div>
 
         <div class="field-group">
-          <label class="field-label">Copies</label>
+          <label class="field-label">Копии</label>
           <div class="copies-control">
             <Button
               icon="pi pi-minus"
@@ -45,8 +45,8 @@
     </div>
 
     <template #footer>
-      <Button label="Cancel" class="p-button-secondary" @click="visible = false" />
-      <Button label="Print" icon="pi pi-print" class="touch-lg" @click="print" style="flex:1" />
+      <Button label="Отмена" class="p-button-secondary" @click="visible = false" />
+      <Button label="Печать" icon="pi pi-print" class="touch-lg" @click="print" style="flex:1" />
     </template>
   </Dialog>
 </template>

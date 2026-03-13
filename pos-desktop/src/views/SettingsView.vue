@@ -1,16 +1,16 @@
 <template>
   <div class="settings-view">
     <div class="view-header">
-      <h1 class="view-title">Settings</h1>
+      <h1 class="view-title">Настройки</h1>
     </div>
 
     <Tabs v-model:value="activeTab">
       <TabList>
-        <Tab value="general">General</Tab>
-        <Tab value="users">Users</Tab>
+        <Tab value="general">Общие</Tab>
+        <Tab value="users">Пользователи</Tab>
         <Tab value="telegram">Telegram</Tab>
-        <Tab value="warehouse">Warehouse</Tab>
-        <Tab value="audit">Audit Log</Tab>
+        <Tab value="warehouse">Склад</Tab>
+        <Tab value="audit">Журнал аудита</Tab>
       </TabList>
 
       <TabPanels>
@@ -18,26 +18,26 @@
         <TabPanel value="general">
           <div class="settings-section">
             <div class="field-group">
-              <label class="field-label">Store Name</label>
+              <label class="field-label">Название магазина</label>
               <InputText v-model="settings.store_name" class="w-field" />
             </div>
             <div class="field-group">
-              <label class="field-label">Currency Symbol</label>
+              <label class="field-label">Символ валюты</label>
               <InputText v-model="settings.currency_symbol" class="w-field" style="width:100px" />
             </div>
             <div class="field-group">
-              <label class="field-label">Low Stock Threshold</label>
+              <label class="field-label">Порог низкого запаса</label>
               <InputText v-model="settings.low_stock_threshold" type="number" style="width:120px" />
             </div>
             <div class="field-group">
-              <label class="field-label">Tax Rate (%)</label>
+              <label class="field-label">Ставка налога (%)</label>
               <InputText v-model="settings.tax_rate" type="number" style="width:120px" />
             </div>
             <div class="field-group">
-              <label class="field-label">Receipt Footer</label>
+              <label class="field-label">Подпись чека</label>
               <InputText v-model="settings.receipt_footer" class="w-field" />
             </div>
-            <Button label="Save Settings" :loading="saving" @click="saveSettings" style="width:180px" />
+            <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" style="width:180px" />
           </div>
         </TabPanel>
 
@@ -45,17 +45,17 @@
         <TabPanel value="users">
           <div class="users-section">
             <div class="section-header">
-              <h3>System Users</h3>
-              <Button label="Add User" icon="pi pi-plus" @click="openCreateUser" />
+              <h3>Пользователи системы</h3>
+              <Button label="Добавить пользователя" icon="pi pi-plus" @click="openCreateUser" />
             </div>
             <DataTable :value="users" :loading="loadingUsers">
-              <Column field="name" header="Name" />
-              <Column field="role" header="Role" style="width:120px">
+              <Column field="name" header="Имя" />
+              <Column field="role" header="Роль" style="width:120px">
                 <template #body="{ data }">
                   <Tag :value="data.role" :severity="roleSeverity(data.role)" />
                 </template>
               </Column>
-              <Column field="is_active" header="Active" style="width:80px">
+              <Column field="is_active" header="Активен" style="width:80px">
                 <template #body="{ data }">
                   <i :class="data.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'"
                      :style="{ color: data.is_active ? 'var(--success)' : 'var(--danger)' }" />
@@ -69,28 +69,28 @@
             </DataTable>
           </div>
 
-          <Dialog v-model:visible="showUserDialog" modal :header="editingUser ? 'Edit User' : 'New User'" :style="{ width: '420px' }">
+          <Dialog v-model:visible="showUserDialog" modal :header="editingUser ? 'Редактировать пользователя' : 'Новый пользователь'" :style="{ width: '420px' }">
             <div class="user-form">
               <div class="field-group">
-                <label class="field-label">Name</label>
+                <label class="field-label">Имя</label>
                 <InputText v-model="userForm.name" class="w-full" />
               </div>
               <div class="field-group">
-                <label class="field-label">Role</label>
+                <label class="field-label">Роль</label>
                 <Select v-model="userForm.role" :options="['cashier','manager','admin','warehouse']" class="w-full" />
               </div>
               <div class="field-group">
-                <label class="field-label">PIN (4 digits)</label>
+                <label class="field-label">PIN (4 цифры)</label>
                 <InputOtp v-model="userForm.pin" :length="4" mask />
               </div>
               <div class="field-group" v-if="editingUser">
-                <label class="field-label">Active</label>
+                <label class="field-label">Активен</label>
                 <ToggleSwitch v-model="userForm.is_active" />
               </div>
             </div>
             <template #footer>
-              <Button label="Cancel" class="p-button-secondary" @click="showUserDialog = false" />
-              <Button :label="editingUser ? 'Save' : 'Create'" :loading="saving" @click="saveUser" style="flex:1" />
+              <Button label="Отмена" class="p-button-secondary" @click="showUserDialog = false" />
+              <Button :label="editingUser ? 'Сохранить' : 'Создать'" :loading="saving" @click="saveUser" style="flex:1" />
             </template>
           </Dialog>
         </TabPanel>
@@ -99,28 +99,28 @@
         <TabPanel value="telegram">
           <div class="settings-section">
             <div class="field-group">
-              <label class="field-label">Enable Telegram Notifications</label>
+              <label class="field-label">Включить уведомления Telegram</label>
               <ToggleSwitch v-model="telegramEnabled" @change="settings.telegram_enabled = telegramEnabled ? 'true' : 'false'" />
             </div>
             <div class="field-group">
-              <label class="field-label">Bot Token</label>
+              <label class="field-label">Токен бота</label>
               <InputText v-model="settings.telegram_bot_token" class="w-field" placeholder="123456:ABCdef..." />
             </div>
             <div class="field-group">
-              <label class="field-label">Chat ID</label>
+              <label class="field-label">ID чата</label>
               <InputText v-model="settings.telegram_chat_id" class="w-field" placeholder="-100123456789" />
             </div>
             <div class="field-group">
-              <label class="field-label">Owner Telegram IDs (JSON array)</label>
+              <label class="field-label">Telegram ID владельца (JSON массив)</label>
               <InputText v-model="settings.telegram_owner_ids" class="w-field" placeholder='[123456789]' />
             </div>
             <div class="field-group">
-              <label class="field-label">EOD Report Time</label>
+              <label class="field-label">Время итогового отчёта</label>
               <InputText v-model="settings.eod_time" style="width:120px" placeholder="23:00" />
             </div>
             <div class="actions-row">
-              <Button label="Save Settings" :loading="saving" @click="saveSettings" />
-              <Button label="Send Test Message" class="p-button-secondary" :loading="testing" @click="testTelegram" />
+              <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" />
+              <Button label="Отправить тест" class="p-button-secondary" :loading="testing" @click="testTelegram" />
             </div>
             <div v-if="telegramStatus" class="status-msg" :class="telegramStatus.type">
               {{ telegramStatus.msg }}
@@ -131,8 +131,8 @@
         <!-- Warehouse QR -->
         <TabPanel value="warehouse">
           <div class="warehouse-section">
-            <h3 class="section-title">Warehouse Mobile Access</h3>
-            <p class="section-desc">Scan this QR code with the warehouse staff's phone to access the mobile system.</p>
+            <h3 class="section-title">Мобильный доступ склада</h3>
+            <p class="section-desc">Отсканируйте QR-код телефоном сотрудника склада для доступа к мобильной системе.</p>
 
             <div class="qr-card">
               <canvas ref="qrCanvas" class="qr-canvas" />
@@ -140,8 +140,8 @@
             </div>
 
             <div class="qr-actions">
-              <Button label="Refresh URL" icon="pi pi-refresh" class="p-button-secondary" @click="refreshMobileUrl" />
-              <Button label="Print QR" icon="pi pi-print" class="p-button-secondary" @click="printQR" />
+              <Button label="Обновить URL" icon="pi pi-refresh" class="p-button-secondary" @click="refreshMobileUrl" />
+              <Button label="Печать QR" icon="pi pi-print" class="p-button-secondary" @click="printQR" />
             </div>
           </div>
         </TabPanel>
@@ -150,25 +150,25 @@
         <TabPanel value="audit">
           <div class="audit-section">
             <div class="audit-filters">
-              <Select v-model="auditFilter.action" :options="auditActions" placeholder="Action" style="width:160px" />
-              <DatePicker v-model="auditFilter.from" placeholder="From" />
-              <DatePicker v-model="auditFilter.to" placeholder="To" />
-              <Button label="Filter" @click="loadAudit" />
+              <Select v-model="auditFilter.action" :options="auditActions" placeholder="Действие" style="width:160px" />
+              <DatePicker v-model="auditFilter.from" placeholder="От" />
+              <DatePicker v-model="auditFilter.to" placeholder="До" />
+              <Button label="Фильтр" @click="loadAudit" />
             </div>
             <DataTable :value="auditLogs" :loading="loadingAudit" scrollable scroll-height="flex">
-              <Column field="created_at" header="Time" style="width:150px">
+              <Column field="created_at" header="Время" style="width:150px">
                 <template #body="{ data }">
                   <span class="font-mono" style="font-size:12px">{{ formatDateTime(data.created_at) }}</span>
                 </template>
               </Column>
-              <Column field="action" header="Action" style="width:150px">
+              <Column field="action" header="Действие" style="width:150px">
                 <template #body="{ data }">
                   <Tag :value="data.action" :severity="actionSeverity(data.action)" />
                 </template>
               </Column>
-              <Column field="actor_name" header="Actor" style="width:130px" />
-              <Column field="target_name" header="Target" />
-              <Column header="Details" style="width:50px">
+              <Column field="actor_name" header="Исполнитель" style="width:130px" />
+              <Column field="target_name" header="Объект" />
+              <Column header="Детали" style="width:50px">
                 <template #body="{ data }">
                   <Button
                     v-if="data.details"
@@ -182,7 +182,7 @@
             </DataTable>
           </div>
 
-          <Dialog v-model:visible="showDetails" modal header="Audit Details" :style="{ width: '500px' }">
+          <Dialog v-model:visible="showDetails" modal header="Детали аудита" :style="{ width: '500px' }">
             <pre class="details-json">{{ JSON.stringify(selectedLog?.details, null, 2) }}</pre>
           </Dialog>
         </TabPanel>
@@ -264,9 +264,9 @@ async function saveSettings() {
   saving.value = true
   try {
     await api.put('/api/settings', settings.value)
-    toast.add({ severity: 'success', summary: 'Settings saved', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Настройки сохранены', life: 2000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
   }
@@ -277,7 +277,7 @@ async function testTelegram() {
   telegramStatus.value = null
   try {
     await api.post('/api/notifications/test-telegram', {})
-    telegramStatus.value = { type: 'success-msg', msg: 'Test message sent successfully!' }
+    telegramStatus.value = { type: 'success-msg', msg: 'Тест-сообщение успешно отправлено!' }
   } catch (e) {
     telegramStatus.value = { type: 'error-msg', msg: e.message }
   } finally {
@@ -314,11 +314,11 @@ async function saveUser() {
     } else {
       await api.post('/api/settings/users', userForm.value)
     }
-    toast.add({ severity: 'success', summary: 'User saved', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Пользователь сохранён', life: 2000 })
     showUserDialog.value = false
     await loadUsers()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
   }
@@ -339,7 +339,7 @@ async function loadMobileUrl() {
 
 async function refreshMobileUrl() {
   await loadMobileUrl()
-  toast.add({ severity: 'info', summary: 'URL refreshed', life: 2000 })
+  toast.add({ severity: 'info', summary: 'URL обновлён', life: 2000 })
 }
 
 function printQR() {

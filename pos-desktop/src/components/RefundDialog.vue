@@ -2,20 +2,20 @@
   <Dialog
     v-model:visible="visible"
     modal
-    header="Process Refund"
+    header="Оформить возврат"
     :style="{ width: '680px' }"
   >
     <div class="refund-content" v-if="transactionData">
       <div class="refund-info">
-        <span class="text-secondary">Transaction:</span>
+        <span class="text-secondary">Транзакция:</span>
         <span class="font-mono text-accent">{{ transactionData.transaction?.ref_no }}</span>
-        <span class="text-secondary">Total:</span>
+        <span class="text-secondary">Итого:</span>
         <span class="font-mono">{{ formatAmount(transactionData.transaction?.total) }}</span>
       </div>
 
       <!-- Selectable Items -->
       <div class="items-section">
-        <label class="section-label">Select Items to Refund</label>
+        <label class="section-label">Выберите товары для возврата</label>
         <DataTable
           :value="transactionData.items"
           v-model:selection="selectedItems"
@@ -24,14 +24,14 @@
           scroll-height="240px"
         >
           <Column selectionMode="multiple" style="width:50px" />
-          <Column field="product_name" header="Product" />
-          <Column field="unit_price" header="Price">
+          <Column field="product_name" header="Товар" />
+          <Column field="unit_price" header="Цена">
             <template #body="{ data }">
               <span class="font-mono">{{ formatAmount(data.unit_price) }}</span>
             </template>
           </Column>
-          <Column field="qty_refundable" header="Max Qty" />
-          <Column header="Refund Qty">
+          <Column field="qty_refundable" header="Макс. кол-во" />
+          <Column header="Кол-во возврата">
             <template #body="{ data }">
               <InputNumber
                 v-model="refundQtys[data.product_id]"
@@ -43,7 +43,7 @@
               />
             </template>
           </Column>
-          <Column header="Subtotal">
+          <Column header="Сумма">
             <template #body="{ data }">
               <span class="font-mono">
                 {{ formatAmount((refundQtys[data.product_id] || 0) * data.unit_price) }}
@@ -54,7 +54,7 @@
       </div>
 
       <div class="refund-total">
-        <span class="text-secondary">Total Refund:</span>
+        <span class="text-secondary">Сумма возврата:</span>
         <span class="font-mono gradient-text" style="font-size:22px;font-weight:700">
           {{ formatAmount(refundTotal) }}
         </span>
@@ -62,32 +62,32 @@
 
       <!-- Reason -->
       <div class="field-group">
-        <label class="field-label">Reason</label>
+        <label class="field-label">Причина</label>
         <Select
           v-model="reason"
           :options="reasons"
-          placeholder="Select reason"
+          placeholder="Выберите причину"
           class="w-full"
         />
       </div>
 
       <!-- Manager PIN -->
       <div class="field-group">
-        <label class="field-label">Manager PIN Authorization</label>
+        <label class="field-label">Авторизация PIN менеджера</label>
         <InputOtp v-model="managerPin" :length="4" mask />
-        <p class="hint-text">Enter manager or admin PIN to authorize</p>
+        <p class="hint-text">Введите PIN менеджера или администратора</p>
       </div>
     </div>
 
     <div v-else class="loading-state">
       <i class="pi pi-spin pi-spinner" style="font-size:32px;color:var(--accent-1)" />
-      <span>Loading transaction...</span>
+      <span>Загрузка транзакции...</span>
     </div>
 
     <template #footer>
-      <Button label="Cancel" class="p-button-secondary touch-lg" @click="visible = false" />
+      <Button label="Отмена" class="p-button-secondary touch-lg" @click="visible = false" />
       <Button
-        label="Process Refund"
+        label="Оформить возврат"
         icon="pi pi-replay"
         class="touch-lg"
         :disabled="!canRefund"
@@ -130,12 +130,12 @@ const managerPin = ref('')
 const processing = ref(false)
 
 const reasons = [
-  'Wrong item',
-  'Damaged product',
-  'Customer changed mind',
-  'Overcharge',
-  'Expired product',
-  'Other'
+  'Неверный товар',
+  'Повреждённый товар',
+  'Клиент передумал',
+  'Переплата',
+  'Просроченный товар',
+  'Другое'
 ]
 
 watch([visible, () => props.transactionId], async ([vis, id]) => {

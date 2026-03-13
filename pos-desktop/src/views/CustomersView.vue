@@ -94,14 +94,14 @@
           <InputText v-model="form.email" class="w-full" placeholder="email@example.com" />
         </div>
         <div class="field-group" v-if="editingCustomer">
-          <label class="field-label">Loyalty Points</label>
+          <label class="field-label">Баллы лояльности</label>
           <InputText v-model="form.loyalty_points" type="number" class="w-full" />
         </div>
       </div>
       <template #footer>
         <div style="display:flex;gap:10px;padding:16px">
-          <Button label="Cancel" class="p-button-secondary" @click="showDrawer = false" />
-          <Button :label="editingCustomer ? 'Save Changes' : 'Add Customer'" :loading="saving" @click="saveCustomer" style="flex:1" />
+          <Button label="Отмена" class="p-button-secondary" @click="showDrawer = false" />
+          <Button :label="editingCustomer ? 'Сохранить' : 'Добавить клиента'" :loading="saving" @click="saveCustomer" style="flex:1" />
         </div>
       </template>
     </Drawer>
@@ -149,7 +149,7 @@ async function loadCustomers() {
     customers.value = data
     total.value = data.length
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     loading.value = false
   }
@@ -185,28 +185,28 @@ async function saveCustomer() {
   try {
     if (editingCustomer.value) {
       await api.put(`/api/customers/${editingCustomer.value.id}`, form.value)
-      toast.add({ severity: 'success', summary: 'Updated', life: 2000 })
+      toast.add({ severity: 'success', summary: 'Обновлено', life: 2000 })
     } else {
       await api.post('/api/customers', form.value)
-      toast.add({ severity: 'success', summary: 'Customer Added', life: 2000 })
+      toast.add({ severity: 'success', summary: 'Клиент добавлен', life: 2000 })
     }
     showDrawer.value = false
     await loadCustomers()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
   }
 }
 
 async function deleteCustomer(customer) {
-  if (!confirm(`Delete ${customer.name}?`)) return
+  if (!confirm(`Удалить ${customer.name}?`)) return
   try {
     await api.delete(`/api/customers/${customer.id}`)
-    toast.add({ severity: 'success', summary: 'Deleted', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Удалено', life: 2000 })
     await loadCustomers()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
 }
 
