@@ -9,7 +9,8 @@
         <Tab value="general">Общие</Tab>
         <Tab value="users">Пользователи</Tab>
         <Tab value="telegram">Telegram</Tab>
-        <Tab value="warehouse">Склад</Tab>
+        <Tab value="warehouses">Склады</Tab>
+        <Tab value="warehouse">QR Склад</Tab>
         <Tab value="audit">Журнал аудита</Tab>
       </TabList>
 
@@ -55,21 +56,30 @@
                   <Tag :value="data.role" :severity="roleSeverity(data.role)" />
                 </template>
               </Column>
+              <Column header="Склад" style="width:140px">
+                <template #body="{ data }">
+                  <span style="font-size:13px;color:var(--text-secondary)">
+                    {{warehouses.find(w => w.id === data.warehouse_id)?.name || '—'}}
+                  </span>
+                </template>
+              </Column>
               <Column field="is_active" header="Активен" style="width:80px">
                 <template #body="{ data }">
                   <i :class="data.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'"
-                     :style="{ color: data.is_active ? 'var(--success)' : 'var(--danger)' }" />
+                    :style="{ color: data.is_active ? 'var(--success)' : 'var(--danger)' }" />
                 </template>
               </Column>
               <Column header="" style="width:80px">
                 <template #body="{ data }">
-                  <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEditUser(data)" />
+                  <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
+                    @click="openEditUser(data)" />
                 </template>
               </Column>
             </DataTable>
           </div>
 
-          <Dialog v-model:visible="showUserDialog" modal :header="editingUser ? 'Редактировать пользователя' : 'Новый пользователь'" :style="{ width: '420px' }">
+          <Dialog v-model:visible="showUserDialog" modal
+            :header="editingUser ? 'Редактировать пользователя' : 'Новый пользователь'" :style="{ width: '420px' }">
             <div class="user-form">
               <div class="field-group">
                 <label class="field-label">Имя</label>
@@ -77,7 +87,12 @@
               </div>
               <div class="field-group">
                 <label class="field-label">Роль</label>
-                <Select v-model="userForm.role" :options="['cashier','manager','admin','warehouse']" class="w-full" />
+                <Select v-model="userForm.role" :options="['cashier', 'manager', 'admin', 'warehouse']" class="w-full" />
+              </div>
+              <div class="field-group" v-if="userForm.role !== 'admin'">
+                <label class="field-label">Склад</label>
+                <Select v-model="userForm.warehouse_id" :options="warehouses" option-label="name" option-value="id"
+                  placeholder="Выбрать склад" class="w-full" />
               </div>
               <div class="field-group">
                 <label class="field-label">PIN (4 цифры)</label>
@@ -90,7 +105,8 @@
             </div>
             <template #footer>
               <Button label="Отмена" class="p-button-secondary" @click="showUserDialog = false" />
-              <Button :label="editingUser ? 'Сохранить' : 'Создать'" :loading="saving" @click="saveUser" style="flex:1" />
+              <Button :label="editingUser ? 'Сохранить' : 'Создать'" :loading="saving" @click="saveUser"
+                style="flex:1" />
             </template>
           </Dialog>
         </TabPanel>
@@ -100,7 +116,8 @@
           <div class="settings-section">
             <div class="field-group">
               <label class="field-label">Включить уведомления Telegram</label>
-              <ToggleSwitch v-model="telegramEnabled" @change="settings.telegram_enabled = telegramEnabled ? 'true' : 'false'" />
+              <ToggleSwitch v-model="telegramEnabled"
+                @change="settings.telegram_enabled = telegramEnabled ? 'true' : 'false'" />
             </div>
             <div class="field-group">
               <label class="field-label">Токен бота</label>
@@ -126,6 +143,51 @@
               {{ telegramStatus.msg }}
             </div>
           </div>
+        </TabPanel>
+
+        <!-- Warehouses Management -->
+        <TabPanel value="warehouses">
+          <div class="users-section">
+            <div class="section-header">
+              <h3>Склады</h3>
+              <Button label="Добавить склад" icon="pi pi-plus" @click="openCreateWarehouse" />
+            </div>
+            <DataTable :value="warehouses" :loading="loadingWarehouses">
+              <Column field="id" header="ID" style="width:60px" />
+              <Column field="name" header="Название" />
+              <Column field="is_active" header="Активен" style="width:90px">
+                <template #body="{ data }">
+                  <i :class="data.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'"
+                    :style="{ color: data.is_active ? 'var(--success)' : 'var(--danger)' }" />
+                </template>
+              </Column>
+              <Column header="" style="width:80px">
+                <template #body="{ data }">
+                  <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
+                    @click="openEditWarehouse(data)" />
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+
+          <Dialog v-model:visible="showWarehouseDialog" modal
+            :header="editingWarehouse ? 'Редактировать склад' : 'Новый склад'" :style="{ width: '380px' }">
+            <div class="user-form">
+              <div class="field-group">
+                <label class="field-label">Название</label>
+                <InputText v-model="warehouseForm.name" class="w-full" />
+              </div>
+              <div class="field-group" v-if="editingWarehouse">
+                <label class="field-label">Активен</label>
+                <ToggleSwitch v-model="warehouseForm.is_active" />
+              </div>
+            </div>
+            <template #footer>
+              <Button label="Отмена" class="p-button-secondary" @click="showWarehouseDialog = false" />
+              <Button :label="editingWarehouse ? 'Сохранить' : 'Создать'" :loading="saving" @click="saveWarehouse"
+                style="flex:1" />
+            </template>
+          </Dialog>
         </TabPanel>
 
         <!-- Warehouse QR -->
@@ -170,13 +232,8 @@
               <Column field="target_name" header="Объект" />
               <Column header="Детали" style="width:50px">
                 <template #body="{ data }">
-                  <Button
-                    v-if="data.details"
-                    icon="pi pi-eye"
-                    class="p-button-secondary"
-                    style="height:32px;width:32px"
-                    @click="viewDetails(data)"
-                  />
+                  <Button v-if="data.details" icon="pi pi-eye" class="p-button-secondary" style="height:32px;width:32px"
+                    @click="viewDetails(data)" />
                 </template>
               </Column>
             </DataTable>
@@ -229,7 +286,13 @@ const users = ref([])
 const loadingUsers = ref(false)
 const showUserDialog = ref(false)
 const editingUser = ref(null)
-const userForm = ref({ name: '', role: 'cashier', pin: '', is_active: true })
+const userForm = ref({ name: '', role: 'cashier', pin: '', is_active: true, warehouse_id: null })
+
+const warehouses = ref([])
+const loadingWarehouses = ref(false)
+const showWarehouseDialog = ref(false)
+const editingWarehouse = ref(null)
+const warehouseForm = ref({ name: '', is_active: true })
 
 const mobileUrl = ref('')
 const qrCanvas = ref(null)
@@ -246,6 +309,7 @@ const auditActions = [null, 'login', 'logout', 'sale', 'void', 'refund', 'stock_
 onMounted(async () => {
   await loadSettings()
   await loadUsers()
+  await loadWarehouses()
   await loadMobileUrl()
 })
 
@@ -257,7 +321,7 @@ async function loadSettings() {
   try {
     settings.value = await api.get('/api/settings')
     telegramEnabled.value = settings.value.telegram_enabled === 'true'
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function saveSettings() {
@@ -289,14 +353,14 @@ async function loadUsers() {
   loadingUsers.value = true
   try {
     users.value = await api.get('/api/settings/users')
-  } catch (e) {} finally {
+  } catch (e) { } finally {
     loadingUsers.value = false
   }
 }
 
 function openCreateUser() {
   editingUser.value = null
-  userForm.value = { name: '', role: 'cashier', pin: '', is_active: true }
+  userForm.value = { name: '', role: 'cashier', pin: '', is_active: true, warehouse_id: null }
   showUserDialog.value = true
 }
 
@@ -304,6 +368,45 @@ function openEditUser(user) {
   editingUser.value = user
   userForm.value = { ...user, pin: '' }
   showUserDialog.value = true
+}
+
+async function loadWarehouses() {
+  loadingWarehouses.value = true
+  try {
+    warehouses.value = await api.get('/api/warehouses')
+  } catch (e) { } finally {
+    loadingWarehouses.value = false
+  }
+}
+
+function openCreateWarehouse() {
+  editingWarehouse.value = null
+  warehouseForm.value = { name: '', is_active: true }
+  showWarehouseDialog.value = true
+}
+
+function openEditWarehouse(wh) {
+  editingWarehouse.value = wh
+  warehouseForm.value = { ...wh }
+  showWarehouseDialog.value = true
+}
+
+async function saveWarehouse() {
+  saving.value = true
+  try {
+    if (editingWarehouse.value) {
+      await api.put(`/api/warehouses/${editingWarehouse.value.id}`, warehouseForm.value)
+    } else {
+      await api.post('/api/warehouses', warehouseForm.value)
+    }
+    toast.add({ severity: 'success', summary: 'Склад сохранён', life: 2000 })
+    showWarehouseDialog.value = false
+    await loadWarehouses()
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
+  } finally {
+    saving.value = false
+  }
 }
 
 async function saveUser() {
@@ -334,7 +437,7 @@ async function loadMobileUrl() {
         color: { dark: '#e2e2f5', light: '#22223a' }
       })
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function refreshMobileUrl() {
@@ -358,7 +461,7 @@ async function loadAudit() {
     if (auditFilter.value.to) params.set('to', auditFilter.value.to.toISOString())
     const data = await api.get(`/api/audit?${params}&limit=100`)
     auditLogs.value = data.data || data
-  } catch (e) {} finally {
+  } catch (e) { } finally {
     loadingAudit.value = false
   }
 }
@@ -392,10 +495,14 @@ function actionSeverity(action) {
   height: 100%;
   padding: 20px;
   gap: 16px;
-  overflow: hidden;
+  overflow: auto;
 }
 
-.view-title { font-size: 24px; font-weight: 800; color: var(--text-primary); }
+.view-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
 
 .settings-section {
   display: flex;
@@ -405,22 +512,83 @@ function actionSeverity(action) {
   max-width: 560px;
 }
 
-.users-section { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; }
-.section-header { display: flex; justify-content: space-between; align-items: center; }
-.section-header h3 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.users-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
 
-.field-group { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
-.w-field { width: 380px; }
-.w-full { width: 100%; }
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-.actions-row { display: flex; gap: 10px; }
-.success-msg { color: var(--success); padding: 10px; background: var(--success-bg); border-radius: 8px; }
-.error-msg { color: var(--danger); padding: 10px; background: var(--danger-bg); border-radius: 8px; }
+.section-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
 
-.warehouse-section { padding: 16px 0; max-width: 400px; }
-.section-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
-.section-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.w-field {
+  width: 380px;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.actions-row {
+  display: flex;
+  gap: 10px;
+}
+
+.success-msg {
+  color: var(--success);
+  padding: 10px;
+  background: var(--success-bg);
+  border-radius: 8px;
+}
+
+.error-msg {
+  color: var(--danger);
+  padding: 10px;
+  background: var(--danger-bg);
+  border-radius: 8px;
+}
+
+.warehouse-section {
+  padding: 16px 0;
+  max-width: 400px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
 
 .qr-card {
   background: var(--bg-surface);
@@ -434,12 +602,33 @@ function actionSeverity(action) {
   margin-bottom: 16px;
 }
 
-.qr-canvas { border-radius: 8px; }
-.qr-url { font-size: 12px; color: var(--text-secondary); }
-.qr-actions { display: flex; gap: 10px; }
+.qr-canvas {
+  border-radius: 8px;
+}
 
-.audit-section { display: flex; flex-direction: column; gap: 12px; height: 100%; }
-.audit-filters { display: flex; gap: 10px; align-items: center; padding: 8px 0; }
+.qr-url {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.qr-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.audit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.audit-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+}
 
 .details-json {
   font-family: var(--font-mono);
@@ -452,5 +641,9 @@ function actionSeverity(action) {
   max-height: 400px;
 }
 
-.user-form { display: flex; flex-direction: column; gap: 16px; }
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 </style>

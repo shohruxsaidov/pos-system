@@ -55,7 +55,7 @@ export default async function settingsRoutes(fastify) {
         return reply.code(403).send({ error: "Insufficient permissions" });
       }
       const { rows } = await pool.query(
-        "SELECT id, name, role, is_active FROM users ORDER BY name",
+        "SELECT id, name, role, is_active, warehouse_id FROM users ORDER BY name",
       );
       return rows;
     },
@@ -69,14 +69,14 @@ export default async function settingsRoutes(fastify) {
       if (!["manager", "admin"].includes(req.user.role)) {
         return reply.code(403).send({ error: "Insufficient permissions" });
       }
-      const { name, pin, role } = req.body;
+      const { name, pin, role, warehouse_id } = req.body;
       if (!name || !pin || !role) {
         return reply.code(400).send({ error: "name, pin, role required" });
       }
       const pin_hash = await argon.hash(String(pin));
       const { rows } = await pool.query(
-        "INSERT INTO users (name, pin_hash, role) VALUES ($1,$2,$3) RETURNING id, name, role, is_active",
-        [name, pin_hash, role],
+        "INSERT INTO users (name, pin_hash, role, warehouse_id) VALUES ($1,$2,$3,$4) RETURNING id, name, role, is_active, warehouse_id",
+        [name, pin_hash, role, warehouse_id || null],
       );
       await logAudit({
         action: "user_create",
@@ -96,7 +96,7 @@ export default async function settingsRoutes(fastify) {
       if (!["manager", "admin"].includes(req.user.role)) {
         return reply.code(403).send({ error: "Insufficient permissions" });
       }
-      const { name, pin, role, is_active } = req.body;
+      const { name, pin, role, is_active, warehouse_id } = req.body;
       const { rows: existing } = await pool.query(
         "SELECT * FROM users WHERE id=$1",
         [req.params.id],
@@ -108,12 +108,13 @@ export default async function settingsRoutes(fastify) {
       if (pin) pin_hash = await argon.hash(String(pin));
 
       const { rows } = await pool.query(
-        "UPDATE users SET name=$1, pin_hash=$2, role=$3, is_active=$4 WHERE id=$5 RETURNING id, name, role, is_active",
+        "UPDATE users SET name=$1, pin_hash=$2, role=$3, is_active=$4, warehouse_id=$5 WHERE id=$6 RETURNING id, name, role, is_active, warehouse_id",
         [
           name ?? existing[0].name,
           pin_hash,
           role ?? existing[0].role,
           is_active ?? existing[0].is_active,
+          warehouse_id !== undefined ? (warehouse_id || null) : existing[0].warehouse_id,
           req.params.id,
         ],
       );

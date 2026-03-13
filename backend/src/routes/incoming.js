@@ -29,11 +29,11 @@ export default async function incomingRoutes(fastify) {
     if (!user) return reply.code(401).send({ error: "Invalid PIN" });
 
     const token = fastify.jwt.sign(
-      { id: user.id, name: user.name, role: user.role },
+      { id: user.id, name: user.name, role: user.role, warehouse_id: user.warehouse_id },
       { expiresIn: "12h" },
     );
 
-    return { token, user: { id: user.id, name: user.name, role: user.role } };
+    return { token, user: { id: user.id, name: user.name, role: user.role, warehouse_id: user.warehouse_id } };
   });
 
   // POST /api/incoming — confirm receipt
@@ -49,6 +49,7 @@ export default async function incomingRoutes(fastify) {
       if (!items?.length)
         return reply.code(400).send({ error: "items required" });
 
+      const warehouseId = req.user.warehouse_id || 1;
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -57,11 +58,9 @@ export default async function incomingRoutes(fastify) {
         let totalCost = 0;
 
         const { rows: receiptRows } = await client.query(
-          `
-        INSERT INTO incoming_receipts (ref_no, received_by, supplier, notes, total_cost)
-        VALUES ($1,$2,$3,$4,0) RETURNING *
-      `,
-          [refNo, req.user.id, supplier || null, notes || null],
+          `INSERT INTO incoming_receipts (ref_no, received_by, supplier, notes, total_cost, warehouse_id)
+           VALUES ($1,$2,$3,$4,0,$5) RETURNING *`,
+          [refNo, req.user.id, supplier || null, notes || null, warehouseId],
         );
         const receipt = receiptRows[0];
 
@@ -70,10 +69,8 @@ export default async function incomingRoutes(fastify) {
           totalCost += subtotal;
 
           await client.query(
-            `
-          INSERT INTO incoming_items (receipt_id, product_id, product_name, qty_received, cost_per_unit, expiry_date, subtotal)
-          VALUES ($1,$2,$3,$4,$5,$6,$7)
-        `,
+            `INSERT INTO incoming_items (receipt_id, product_id, product_name, qty_received, cost_per_unit, expiry_date, subtotal)
+             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
             [
               receipt.id,
               item.product_id || null,
@@ -86,9 +83,18 @@ export default async function incomingRoutes(fastify) {
           );
 
           if (item.product_id) {
+            // Update cost on products table
             await client.query(
-              "UPDATE products SET stock_qty=stock_qty+$1, cost=$2, updated_at=NOW() WHERE id=$3",
-              [item.qty_received, item.cost_per_unit || 0, item.product_id],
+              "UPDATE products SET cost=$1, updated_at=NOW() WHERE id=$2",
+              [item.cost_per_unit || 0, item.product_id],
+            );
+            // Add stock to this warehouse
+            await client.query(
+              `INSERT INTO warehouse_stock (warehouse_id, product_id, stock_qty, updated_at)
+               VALUES ($1, $2, $3, NOW())
+               ON CONFLICT (warehouse_id, product_id)
+               DO UPDATE SET stock_qty = warehouse_stock.stock_qty + $4, updated_at = NOW()`,
+              [warehouseId, item.product_id, item.qty_received, item.qty_received],
             );
           }
         }
@@ -108,6 +114,7 @@ export default async function incomingRoutes(fastify) {
             supplier,
             total_cost: totalCost,
             item_count: items.length,
+            warehouse_id: warehouseId,
           },
           ip: req.ip,
         });
@@ -133,16 +140,16 @@ export default async function incomingRoutes(fastify) {
     async (req) => {
       const { page = 1, limit = 50 } = req.query;
       const offset = (page - 1) * limit;
+      const warehouseId = req.user.warehouse_id || 1;
 
       const { rows } = await pool.query(
-        `
-      SELECT r.*, u.name as received_by_name
-      FROM incoming_receipts r
-      LEFT JOIN users u ON u.id=r.received_by
-      ORDER BY r.created_at DESC
-      LIMIT $1 OFFSET $2
-    `,
-        [limit, offset],
+        `SELECT r.*, u.name as received_by_name
+         FROM incoming_receipts r
+         LEFT JOIN users u ON u.id=r.received_by
+         WHERE r.warehouse_id=$1
+         ORDER BY r.created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [warehouseId, limit, offset],
       );
 
       return rows;
@@ -155,12 +162,10 @@ export default async function incomingRoutes(fastify) {
     { onRequest: [fastify.authenticate] },
     async (req, reply) => {
       const { rows } = await pool.query(
-        `
-      SELECT r.*, u.name as received_by_name
-      FROM incoming_receipts r
-      LEFT JOIN users u ON u.id=r.received_by
-      WHERE r.id=$1
-    `,
+        `SELECT r.*, u.name as received_by_name
+         FROM incoming_receipts r
+         LEFT JOIN users u ON u.id=r.received_by
+         WHERE r.id=$1`,
         [req.params.id],
       );
       if (!rows[0]) return reply.code(404).send({ error: "Receipt not found" });

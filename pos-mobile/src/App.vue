@@ -6,11 +6,11 @@
     <nav v-if="store.isLoggedIn" class="mobile-bottom-nav">
       <RouterLink to="/incoming" class="mobile-nav-item" active-class="active">
         <i class="pi pi-inbox mobile-nav-icon" />
-        <span class="mobile-nav-label">Incoming</span>
+        <span class="mobile-nav-label">Приёмка</span>
       </RouterLink>
       <RouterLink to="/inventory" class="mobile-nav-item" active-class="active">
         <i class="pi pi-list mobile-nav-icon" />
-        <span class="mobile-nav-label">Inventory</span>
+        <span class="mobile-nav-label">Инвентарь</span>
       </RouterLink>
     </nav>
 

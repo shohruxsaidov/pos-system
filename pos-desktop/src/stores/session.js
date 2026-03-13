@@ -6,6 +6,7 @@ export const useSessionStore = defineStore('session', () => {
   const token = ref(localStorage.getItem('pos_token') || '')
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
+  const warehouseId = computed(() => user.value?.warehouse_id || 1)
 
   function login(userData, jwt) {
     user.value = userData
@@ -21,5 +22,5 @@ export const useSessionStore = defineStore('session', () => {
     localStorage.removeItem('pos_token')
   }
 
-  return { user, token, isLoggedIn, login, logout }
+  return { user, token, isLoggedIn, warehouseId, login, logout }
 })

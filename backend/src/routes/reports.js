@@ -3,7 +3,10 @@ import { pool } from '../db/connection.js'
 export default async function reportRoutes(fastify) {
   // GET /api/reports/daily
   fastify.get('/api/reports/daily', { onRequest: [fastify.authenticate] }, async (req) => {
-    const { date = new Date().toISOString().split('T')[0] } = req.query
+    const { date = new Date().toISOString().split('T')[0], warehouse_id } = req.query
+    const wid = warehouse_id ? parseInt(warehouse_id) : null
+
+    const whFilter = wid ? `AND warehouse_id = ${wid}` : ''
 
     const { rows: summary } = await pool.query(`
       SELECT
@@ -16,7 +19,7 @@ export default async function reportRoutes(fastify) {
         MIN(created_at) as first_sale,
         MAX(created_at) as last_sale
       FROM transactions
-      WHERE DATE(created_at) = $1 AND status != 'voided'
+      WHERE DATE(created_at) = $1 AND status != 'voided' ${whFilter}
     `, [date])
 
     const { rows: byHour } = await pool.query(`
@@ -25,14 +28,14 @@ export default async function reportRoutes(fastify) {
         COUNT(*) as count,
         COALESCE(SUM(total), 0) as sales
       FROM transactions
-      WHERE DATE(created_at) = $1 AND status != 'voided'
+      WHERE DATE(created_at) = $1 AND status != 'voided' ${whFilter}
       GROUP BY hour ORDER BY hour
     `, [date])
 
     const { rows: byMethod } = await pool.query(`
       SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total), 0) as total
       FROM transactions
-      WHERE DATE(created_at) = $1 AND status != 'voided'
+      WHERE DATE(created_at) = $1 AND status != 'voided' ${whFilter}
       GROUP BY payment_method
     `, [date])
 
@@ -46,9 +49,12 @@ export default async function reportRoutes(fastify) {
 
   // GET /api/reports/products
   fastify.get('/api/reports/products', { onRequest: [fastify.authenticate] }, async (req) => {
-    const { from, to, limit = 20 } = req.query
+    const { from, to, limit = 20, warehouse_id } = req.query
     const fromDate = from || new Date().toISOString().split('T')[0]
     const toDate = to || fromDate
+    const wid = warehouse_id ? parseInt(warehouse_id) : null
+
+    const whFilter = wid ? `AND t.warehouse_id = ${wid}` : ''
 
     const { rows } = await pool.query(`
       SELECT
@@ -61,7 +67,7 @@ export default async function reportRoutes(fastify) {
       FROM transaction_items ti
       JOIN products p ON p.id = ti.product_id
       JOIN transactions t ON t.id = ti.transaction_id
-      WHERE DATE(t.created_at) BETWEEN $1 AND $2 AND t.status != 'voided'
+      WHERE DATE(t.created_at) BETWEEN $1 AND $2 AND t.status != 'voided' ${whFilter}
       GROUP BY p.id, p.name, p.barcode, p.price, p.cost
       ORDER BY total_qty DESC
       LIMIT $3
@@ -72,7 +78,10 @@ export default async function reportRoutes(fastify) {
 
   // GET /api/reports/cashiers
   fastify.get('/api/reports/cashiers', { onRequest: [fastify.authenticate] }, async (req) => {
-    const { date = new Date().toISOString().split('T')[0] } = req.query
+    const { date = new Date().toISOString().split('T')[0], warehouse_id } = req.query
+    const wid = warehouse_id ? parseInt(warehouse_id) : null
+
+    const whFilter = wid ? `AND t.warehouse_id = ${wid}` : ''
 
     const { rows } = await pool.query(`
       SELECT
@@ -83,7 +92,7 @@ export default async function reportRoutes(fastify) {
         MIN(t.created_at) as first_sale,
         MAX(t.created_at) as last_sale
       FROM users u
-      LEFT JOIN transactions t ON t.cashier_id = u.id AND DATE(t.created_at) = $1 AND t.status != 'voided'
+      LEFT JOIN transactions t ON t.cashier_id = u.id AND DATE(t.created_at) = $1 AND t.status != 'voided' ${whFilter}
       WHERE u.is_active = true AND u.role IN ('cashier','manager','admin')
       GROUP BY u.id, u.name, u.role
       ORDER BY total_sales DESC
@@ -94,34 +103,38 @@ export default async function reportRoutes(fastify) {
 
   // GET /api/reports/inventory
   fastify.get('/api/reports/inventory', { onRequest: [fastify.authenticate] }, async (req) => {
-    const { status } = req.query
+    const { status, warehouse_id } = req.query
+    const wid = warehouse_id ? parseInt(warehouse_id) : (req.user.warehouse_id || 1)
 
     let where = 'WHERE p.is_active = true'
-    if (status === 'low') where += ' AND p.stock_qty > 0 AND p.stock_qty <= 5'
-    else if (status === 'out') where += ' AND p.stock_qty = 0'
-    else if (status === 'oversold') where += ' AND p.stock_qty < 0'
+    if (status === 'low') where += ' AND COALESCE(ws.stock_qty, 0) > 0 AND COALESCE(ws.stock_qty, 0) <= 5'
+    else if (status === 'out') where += ' AND COALESCE(ws.stock_qty, 0) = 0'
+    else if (status === 'oversold') where += ' AND ws.stock_qty < 0'
 
     const { rows } = await pool.query(`
       SELECT
-        p.id, p.name, p.barcode, p.stock_qty, p.cost, p.price, p.unit,
+        p.id, p.name, p.barcode, COALESCE(ws.stock_qty, 0) as stock_qty, p.cost, p.price, p.unit,
         c.name as category_name,
-        p.stock_qty * p.cost as inventory_value
+        COALESCE(ws.stock_qty, 0) * p.cost as inventory_value
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
+      LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
       ${where}
-      ORDER BY p.stock_qty ASC
-    `)
+      ORDER BY COALESCE(ws.stock_qty, 0) ASC
+    `, [wid])
 
     const { rows: summary } = await pool.query(`
       SELECT
         COUNT(*) as total_products,
-        SUM(CASE WHEN stock_qty > 5 THEN 1 ELSE 0 END) as in_stock,
-        SUM(CASE WHEN stock_qty > 0 AND stock_qty <= 5 THEN 1 ELSE 0 END) as low_stock,
-        SUM(CASE WHEN stock_qty = 0 THEN 1 ELSE 0 END) as out_of_stock,
-        SUM(CASE WHEN stock_qty < 0 THEN 1 ELSE 0 END) as oversold,
-        COALESCE(SUM(stock_qty * cost), 0) as total_inventory_value
-      FROM products WHERE is_active = true
-    `)
+        SUM(CASE WHEN COALESCE(ws.stock_qty, 0) > 5 THEN 1 ELSE 0 END) as in_stock,
+        SUM(CASE WHEN COALESCE(ws.stock_qty, 0) > 0 AND COALESCE(ws.stock_qty, 0) <= 5 THEN 1 ELSE 0 END) as low_stock,
+        SUM(CASE WHEN COALESCE(ws.stock_qty, 0) = 0 THEN 1 ELSE 0 END) as out_of_stock,
+        SUM(CASE WHEN ws.stock_qty < 0 THEN 1 ELSE 0 END) as oversold,
+        COALESCE(SUM(COALESCE(ws.stock_qty, 0) * p.cost), 0) as total_inventory_value
+      FROM products p
+      LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
+      WHERE p.is_active = true
+    `, [wid])
 
     return { products: rows, summary: summary[0] }
   })

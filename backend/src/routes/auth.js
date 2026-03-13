@@ -20,7 +20,7 @@ export default async function authRoutes(fastify) {
     if (!valid) return reply.code(401).send({ error: "Invalid PIN" });
 
     const token = fastify.jwt.sign(
-      { id: user.id, name: user.name, role: user.role },
+      { id: user.id, name: user.name, role: user.role, warehouse_id: user.warehouse_id },
       { expiresIn: "12h" },
     );
 
@@ -30,7 +30,7 @@ export default async function authRoutes(fastify) {
       ip: req.ip,
     });
 
-    return { token, user: { id: user.id, name: user.name, role: user.role } };
+    return { token, user: { id: user.id, name: user.name, role: user.role, warehouse_id: user.warehouse_id } };
   });
 
   fastify.get("/api/auth/users", async (req, reply) => {

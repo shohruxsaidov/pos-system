@@ -14,8 +14,8 @@
           </button>
         </div>
         <div class="numpad-actions">
-          <button class="numpad-cancel" @click="$emit('close')">Cancel</button>
-          <button class="numpad-confirm" @click="confirm">Done</button>
+          <button class="numpad-cancel" @click="$emit('close')">Отмена</button>
+          <button class="numpad-confirm" @click="confirm">Готово</button>
         </div>
       </div>
     </div>
@@ -28,7 +28,7 @@ import { ref, watch } from 'vue'
 const props = defineProps({
   visible: Boolean,
   modelValue: { type: [String, Number], default: '' },
-  label: { type: String, default: 'Enter value' },
+  label: { type: String, default: 'Введите значение' },
   integer: Boolean
 })
 

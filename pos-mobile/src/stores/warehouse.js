@@ -10,6 +10,7 @@ export const useWarehouseStore = defineStore('warehouse', () => {
   const receipts = ref([])
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
+  const warehouseId = computed(() => user.value?.warehouse_id || 1)
 
   function login(userData, jwt) {
     user.value = userData
@@ -46,5 +47,5 @@ export const useWarehouseStore = defineStore('warehouse', () => {
     })
   }
 
-  return { token, user, products, receipts, isLoggedIn, login, logout, fetchProducts, fetchReceipts, authFetch }
+  return { token, user, products, receipts, isLoggedIn, warehouseId, login, logout, fetchProducts, fetchReceipts, authFetch }
 })

@@ -2,33 +2,33 @@
   <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Product Not Found</h3>
+        <h3>Товар не найден</h3>
         <button class="close-btn" @click="$emit('close')">✕</button>
       </div>
 
       <div class="modal-body">
-        <p class="text-secondary">Barcode <span class="font-mono text-accent">{{ barcode }}</span> not found in the system.</p>
-        <p class="text-secondary" style="margin-top:8px">Add it manually or skip:</p>
+        <p class="text-secondary">Штрихкод <span class="font-mono text-accent">{{ barcode }}</span> не найден в системе.</p>
+        <p class="text-secondary" style="margin-top:8px">Добавьте вручную или пропустите:</p>
 
         <div class="fields">
           <div class="field-group">
-            <label class="field-label">Product Name *</label>
-            <input v-model="form.name" class="text-input" placeholder="Product name" />
+            <label class="field-label">Название *</label>
+            <input v-model="form.name" class="text-input" placeholder="Название товара" />
           </div>
           <div class="field-group">
-            <label class="field-label">Price</label>
+            <label class="field-label">Цена</label>
             <input v-model="form.price" type="number" class="text-input" placeholder="0.00" />
           </div>
           <div class="field-group">
-            <label class="field-label">Unit</label>
-            <input v-model="form.unit" class="text-input" placeholder="pcs" />
+            <label class="field-label">Единица</label>
+            <input v-model="form.unit" class="text-input" placeholder="шт" />
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-skip" @click="$emit('skip')">Skip This Item</button>
-        <button class="btn-create" :disabled="!form.name" @click="create">Create & Add</button>
+        <button class="btn-skip" @click="$emit('skip')">Пропустить</button>
+        <button class="btn-create" :disabled="!form.name" @click="create">Создать и добавить</button>
       </div>
     </div>
   </div>

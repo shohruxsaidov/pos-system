@@ -4,7 +4,7 @@
       <div class="product-info">
         <div class="product-name">{{ product.name }}</div>
         <div class="product-barcode font-mono">{{ product.barcode || '—' }}</div>
-        <div class="product-category text-muted">{{ product.category_name || 'Uncategorized' }}</div>
+        <div class="product-category text-muted">{{ product.category_name || 'Без категории' }}</div>
       </div>
       <div class="card-right">
         <div class="product-price font-mono">{{ formatPrice(product.price) }}</div>
@@ -15,11 +15,11 @@
     <div class="card-actions">
       <button class="action-btn adjust-btn" @click="$emit('adjust')">
         <i class="pi pi-chart-line" />
-        <span>Adjust</span>
+        <span>Коррект.</span>
       </button>
       <button class="action-btn print-btn" @click="$emit('print')">
         <i class="pi pi-print" />
-        <span>Print</span>
+        <span>Печать</span>
       </button>
     </div>
   </div>
@@ -33,10 +33,10 @@ defineEmits(['adjust', 'print'])
 
 const stockLabel = computed(() => {
   const q = props.product.stock_qty
-  if (q < 0) return `Oversold (${q})`
-  if (q === 0) return 'Out of Stock'
-  if (q <= 5) return `Low (${q})`
-  return `${q} in stock`
+  if (q < 0) return `Дефицит (${q})`
+  if (q === 0) return 'Нет в наличии'
+  if (q <= 5) return `Мало (${q})`
+  return `${q} в наличии`
 })
 
 const stockClass = computed(() => {

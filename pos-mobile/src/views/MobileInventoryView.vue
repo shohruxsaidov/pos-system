@@ -8,7 +8,7 @@
           <input
             v-model="search"
             class="search-input"
-            placeholder="Search or scan..."
+            placeholder="Поиск или сканирование..."
             @input="debouncedFilter"
           />
           <button v-if="search" class="clear-btn" @click="search = ''; filterProducts()">✕</button>
@@ -42,7 +42,7 @@
 
       <div v-else-if="filteredProducts.length === 0" class="empty-state">
         <i class="pi pi-box" style="font-size:40px;color:var(--text-muted)" />
-        <p>No products found</p>
+        <p>Товары не найдены</p>
       </div>
 
       <MobileProductCard
@@ -55,7 +55,7 @@
 
       <!-- Pull to refresh hint -->
       <div class="list-footer text-muted" style="text-align:center;padding:20px;font-size:12px">
-        {{ filteredProducts.length }} products
+        {{ filteredProducts.length }} товаров
       </div>
     </div>
 
@@ -71,12 +71,12 @@
     <div v-if="showPrint" class="print-overlay" @click.self="showPrint = false">
       <div class="print-sheet">
         <div class="sheet-handle" />
-        <h3 style="text-align:center;margin-bottom:16px">Print Label</h3>
+        <h3 style="text-align:center;margin-bottom:16px">Печать этикетки</h3>
         <div class="print-product-name">{{ printProduct?.name }}</div>
         <svg ref="printSvg" style="width:100%;max-width:300px;display:block;margin:0 auto" />
         <div class="print-controls">
           <div class="copies-row">
-            <span class="text-secondary">Copies</span>
+            <span class="text-secondary">Копии</span>
             <div style="display:flex;align-items:center;gap:12px">
               <button class="copies-btn" @click="printCopies = Math.max(1, printCopies-1)">−</button>
               <span class="font-mono" style="font-size:20px;width:32px;text-align:center">{{ printCopies }}</span>
@@ -85,7 +85,7 @@
           </div>
         </div>
         <button class="print-btn" @click="sendPrint">
-          <i class="pi pi-print" /> Print {{ printCopies }} Label{{ printCopies > 1 ? 's' : '' }}
+          <i class="pi pi-print" /> Печать {{ printCopies }} шт.
         </button>
       </div>
     </div>
@@ -120,9 +120,9 @@ const listRef = ref(null)
 let filterTimeout = null
 
 const tabs = [
-  { label: 'All', value: 'all' },
-  { label: 'Low Stock', value: 'low' },
-  { label: 'Oversold', value: 'oversold' }
+  { label: 'Все', value: 'all' },
+  { label: 'Мало', value: 'low' },
+  { label: 'Дефицит', value: 'oversold' }
 ]
 
 const filteredProducts = computed(() => {
@@ -159,7 +159,7 @@ async function loadProducts() {
     const res = await store.authFetch('/api/inventory/mobile')
     allProducts.value = await res.json()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     loading.value = false
   }
@@ -198,10 +198,10 @@ async function applyAdjustment({ delta, reason }) {
     const product = allProducts.value.find(p => p.id === adjustProduct.value.id)
     if (product) product.stock_qty += delta
 
-    toast.add({ severity: 'success', summary: 'Stock adjusted', detail: `${delta > 0 ? '+' : ''}${delta}`, life: 2000 })
+    toast.add({ severity: 'success', summary: 'Остаток скорректирован', detail: `${delta > 0 ? '+' : ''}${delta}`, life: 2000 })
     showAdjust.value = false
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
 }
 
@@ -235,10 +235,10 @@ async function sendPrint() {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
-    toast.add({ severity: 'success', summary: 'Print sent to desktop', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Печать отправлена', life: 2000 })
     showPrint.value = false
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Print failed', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка печати', detail: e.message, life: 3000 })
   }
 }
 </script>

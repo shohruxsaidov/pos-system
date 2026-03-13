@@ -3,14 +3,14 @@
     <!-- Header -->
     <div class="view-header">
       <div>
-        <h1 class="view-title">Receive Stock</h1>
+        <h1 class="view-title">Приёмка товара</h1>
         <div class="reader-status" :class="{ ready: readerReady }">
           <div class="reader-dot" />
-          {{ readerReady ? 'Reader Ready' : 'Focus to enable reader' }}
+          {{ readerReady ? 'Сканер готов' : 'Нажмите для активации' }}
         </div>
       </div>
       <div class="header-right">
-        <span class="item-count font-mono">{{ items.length }} items</span>
+        <span class="item-count font-mono">{{ items.length }} позиций</span>
         <button class="logout-btn" @click="logout">
           <i class="pi pi-sign-out" />
         </button>
@@ -33,15 +33,15 @@
 
     <!-- Supplier / Notes -->
     <div class="receipt-meta">
-      <input v-model="supplier" class="meta-input" placeholder="Supplier name (optional)" />
-      <input v-model="notes" class="meta-input" placeholder="Notes (optional)" />
+      <input v-model="supplier" class="meta-input" placeholder="Поставщик (необязательно)" />
+      <input v-model="notes" class="meta-input" placeholder="Примечания (необязательно)" />
     </div>
 
     <!-- Item Cards -->
     <div class="items-list" @click="focusBarcodeInput">
       <div v-if="items.length === 0" class="empty-state">
         <i class="pi pi-barcode" style="font-size:48px;color:var(--text-muted)" />
-        <p>Scan a barcode to add items</p>
+        <p>Отсканируйте штрихкод для добавления</p>
       </div>
       <IncomingItemCard
         v-for="(item, idx) in items"
@@ -56,14 +56,14 @@
     <!-- Footer -->
     <div class="view-footer">
       <div class="total-display">
-        <span class="text-secondary">Total Cost</span>
+        <span class="text-secondary">Итого</span>
         <span class="font-mono gradient-text" style="font-size:22px;font-weight:700">
           {{ formatAmount(totalCost) }}
         </span>
       </div>
       <button class="confirm-btn" :disabled="items.length === 0 || confirming" @click="confirmReceipt">
-        <span v-if="confirming"><i class="pi pi-spin pi-spinner" /> Saving...</span>
-        <span v-else>Confirm Receipt ({{ items.length }} items)</span>
+        <span v-if="confirming"><i class="pi pi-spin pi-spinner" /> Сохранение...</span>
+        <span v-else>Подтвердить приёмку ({{ items.length }} поз.)</span>
       </button>
     </div>
 
@@ -149,7 +149,7 @@ async function handleBarcodeScan() {
     const product = await res.json()
     addProductToList(product)
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
 }
 
@@ -157,7 +157,7 @@ function addProductToList(product) {
   const existing = items.value.find(i => i.product_id === product.id)
   if (existing) {
     existing.qty_received = (existing.qty_received || 0) + 1
-    toast.add({ severity: 'info', summary: 'Qty updated', detail: product.name, life: 1500 })
+    toast.add({ severity: 'info', summary: 'Количество обновлено', detail: product.name, life: 1500 })
   } else {
     items.value.unshift({
       product_id: product.id,
@@ -167,7 +167,7 @@ function addProductToList(product) {
       cost_per_unit: parseFloat(product.cost || 0),
       expiry_date: null
     })
-    toast.add({ severity: 'success', summary: 'Added', detail: product.name, life: 1500 })
+    toast.add({ severity: 'success', summary: 'Добавлено', detail: product.name, life: 1500 })
   }
   focusBarcodeInput()
 }
@@ -193,7 +193,7 @@ function openNumpadForField(idx, field, currentVal) {
   numpadEditIdx.value = idx
   numpadEditField.value = field
   numpadValue.value = String(currentVal || '')
-  numpadLabel.value = field === 'qty' ? 'Quantity Received' : 'Cost per Unit'
+  numpadLabel.value = field === 'qty' ? 'Количество' : 'Цена за единицу'
   numpadInteger.value = field === 'qty'
   numpadVisible.value = true
 }
@@ -207,7 +207,7 @@ function applyNumpadValue(val) {
 }
 
 function openExpiryPicker(idx) {
-  const date = prompt('Enter expiry date (YYYY-MM-DD):')
+  const date = prompt('Введите дату истечения (ГГГГ-ММ-ДД):')
   if (date) items.value[idx].expiry_date = date
 }
 
@@ -228,12 +228,12 @@ async function confirmReceipt() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
 
-    toast.add({ severity: 'success', summary: 'Receipt Confirmed', detail: `${data.ref_no} — ${formatAmount(data.total_cost)}`, life: 4000 })
+    toast.add({ severity: 'success', summary: 'Приёмка подтверждена', detail: `${data.ref_no} — ${formatAmount(data.total_cost)}`, life: 4000 })
     items.value = []
     supplier.value = ''
     notes.value = ''
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Failed', detail: e.message, life: 4000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 4000 })
   } finally {
     confirming.value = false
     focusBarcodeInput()

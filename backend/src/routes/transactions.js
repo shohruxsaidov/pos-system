@@ -19,6 +19,7 @@ export default async function transactionRoutes(fastify) {
       return reply.code(400).send({ error: 'items required' })
     }
 
+    const warehouseId = req.user.warehouse_id || 1
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
@@ -41,24 +42,26 @@ export default async function transactionRoutes(fastify) {
       const total = subtotal - discount + tax
       const refNo = generateRefNo()
 
-      // Insert transaction
+      // Insert transaction with warehouse_id
       const { rows: txnRows } = await client.query(`
-        INSERT INTO transactions (ref_no, customer_id, cashier_id, subtotal, discount, tax, total, payment_method)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
-      `, [refNo, customer_id || null, req.user.id, subtotal, discount, tax, total, payment_method])
+        INSERT INTO transactions (ref_no, customer_id, cashier_id, subtotal, discount, tax, total, payment_method, warehouse_id)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
+      `, [refNo, customer_id || null, req.user.id, subtotal, discount, tax, total, payment_method, warehouseId])
       const txn = txnRows[0]
 
-      // Insert items & deduct stock
+      // Insert items & deduct from warehouse_stock
       for (const item of processedItems) {
         await client.query(`
           INSERT INTO transaction_items (transaction_id, product_id, qty, unit_price, discount, subtotal)
           VALUES ($1,$2,$3,$4,$5,$6)
         `, [txn.id, item.product_id, item.qty, item.unit_price, item.discount || 0, item.itemSubtotal])
 
-        await client.query(
-          'UPDATE products SET stock_qty=stock_qty-$1, updated_at=NOW() WHERE id=$2',
-          [item.qty, item.product_id]
-        )
+        await client.query(`
+          INSERT INTO warehouse_stock (warehouse_id, product_id, stock_qty, updated_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (warehouse_id, product_id)
+          DO UPDATE SET stock_qty = warehouse_stock.stock_qty - $4, updated_at = NOW()
+        `, [warehouseId, item.product_id, -item.qty, item.qty])
       }
 
       // Insert payment
@@ -89,19 +92,21 @@ export default async function transactionRoutes(fastify) {
         action: 'sale',
         actor: req.user,
         target: { type: 'transaction', id: txn.id, name: refNo },
-        details: { total, items: processedItems.length, payment_method },
+        details: { total, items: processedItems.length, payment_method, warehouse_id: warehouseId },
         ip: req.ip
       })
 
       // Post-transaction stock alerts (async, don't block response)
       for (const item of processedItems) {
-        const { rows: updated } = await pool.query('SELECT * FROM products WHERE id=$1', [item.product_id])
-        if (updated[0]) {
-          const { rows: settings } = await pool.query("SELECT value FROM settings WHERE key='low_stock_threshold'")
-          const threshold = parseInt(settings[0]?.value || '5')
-          if (updated[0].stock_qty < 0) sendOversoldAlert(updated[0]).catch(() => {})
-          else if (updated[0].stock_qty <= threshold) sendLowStockAlert(updated[0]).catch(() => {})
-        }
+        const { rows: ws } = await pool.query(
+          'SELECT stock_qty FROM warehouse_stock WHERE warehouse_id=$1 AND product_id=$2',
+          [warehouseId, item.product_id]
+        )
+        const stockQty = ws[0]?.stock_qty ?? 0
+        const { rows: settings } = await pool.query("SELECT value FROM settings WHERE key='low_stock_threshold'")
+        const threshold = parseInt(settings[0]?.value || '5')
+        if (stockQty < 0) sendOversoldAlert({ ...item.product, stock_qty: stockQty }).catch(() => {})
+        else if (stockQty <= threshold) sendLowStockAlert({ ...item.product, stock_qty: stockQty }).catch(() => {})
       }
 
       broadcastStatus().catch(() => {})
@@ -184,17 +189,20 @@ export default async function transactionRoutes(fastify) {
     if (!rows[0]) return reply.code(404).send({ error: 'Transaction not found or cannot be voided' })
 
     const txn = rows[0]
+    const warehouseId = txn.warehouse_id || 1
 
-    // Restore stock
+    // Restore stock to original warehouse
     const { rows: items } = await pool.query(
       'SELECT * FROM transaction_items WHERE transaction_id=$1',
       [id]
     )
     for (const item of items) {
-      await pool.query(
-        'UPDATE products SET stock_qty=stock_qty+$1, updated_at=NOW() WHERE id=$2',
-        [item.qty, item.product_id]
-      )
+      await pool.query(`
+        INSERT INTO warehouse_stock (warehouse_id, product_id, stock_qty, updated_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (warehouse_id, product_id)
+        DO UPDATE SET stock_qty = warehouse_stock.stock_qty + $4, updated_at = NOW()
+      `, [warehouseId, item.product_id, item.qty, item.qty])
     }
 
     await pool.query(
@@ -206,7 +214,7 @@ export default async function transactionRoutes(fastify) {
       action: 'void',
       actor: req.user,
       target: { type: 'transaction', id: txn.id, name: txn.ref_no },
-      details: { total: txn.total },
+      details: { total: txn.total, warehouse_id: warehouseId },
       ip: req.ip
     })
 

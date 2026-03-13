@@ -3,7 +3,7 @@
     <div class="card-header">
       <div class="product-info">
         <div class="product-name">{{ item.product_name }}</div>
-        <div class="product-barcode font-mono">{{ item.barcode || 'No barcode' }}</div>
+        <div class="product-barcode font-mono">{{ item.barcode || 'Без штрихкода' }}</div>
       </div>
       <button class="remove-btn" @click="$emit('remove')">✕</button>
     </div>
@@ -11,7 +11,7 @@
     <div class="card-fields">
       <!-- Qty -->
       <div class="field-group">
-        <label class="field-label">Qty</label>
+        <label class="field-label">Кол-во</label>
         <button class="field-input" @click="$emit('edit-field', 'qty', item.qty_received)">
           <span class="font-mono">{{ item.qty_received || 0 }}</span>
           <i class="pi pi-pencil edit-icon" />
@@ -20,7 +20,7 @@
 
       <!-- Cost -->
       <div class="field-group">
-        <label class="field-label">Cost/Unit</label>
+        <label class="field-label">Цена/ед.</label>
         <button class="field-input" @click="$emit('edit-field', 'cost', item.cost_per_unit)">
           <span class="font-mono">{{ formatAmount(item.cost_per_unit) }}</span>
           <i class="pi pi-pencil edit-icon" />
@@ -29,16 +29,16 @@
 
       <!-- Expiry -->
       <div class="field-group">
-        <label class="field-label">Expiry</label>
+        <label class="field-label">Срок годн.</label>
         <button class="field-input" @click="$emit('edit-expiry')">
-          <span>{{ item.expiry_date || 'None' }}</span>
+          <span>{{ item.expiry_date || 'Нет' }}</span>
           <i class="pi pi-calendar edit-icon" />
         </button>
       </div>
     </div>
 
     <div class="card-subtotal">
-      <span class="text-secondary">Subtotal</span>
+      <span class="text-secondary">Сумма</span>
       <span class="font-mono text-accent" style="font-size:16px;font-weight:700">
         {{ formatAmount((item.qty_received || 0) * (item.cost_per_unit || 0)) }}
       </span>

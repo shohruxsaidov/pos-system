@@ -5,8 +5,8 @@
         <div class="logo-icon">
           <i class="pi pi-box" />
         </div>
-        <h1 class="logo-title">Warehouse</h1>
-        <p class="logo-subtitle">Enter your 4-digit PIN</p>
+        <h1 class="logo-title">Склад</h1>
+        <p class="logo-subtitle">Введите 4-значный PIN</p>
       </div>
 
       <!-- PIN Dots -->
@@ -41,8 +41,8 @@
         :disabled="pin.length < 4 || logging"
         @click="handleLogin"
       >
-        <span v-if="logging"><i class="pi pi-spin pi-spinner" /> Logging in...</span>
-        <span v-else>Login</span>
+        <span v-if="logging"><i class="pi pi-spin pi-spinner" /> Вход...</span>
+        <span v-else>Войти</span>
       </button>
     </div>
   </div>
@@ -84,7 +84,7 @@ async function handleLogin() {
 
     const data = await res.json()
     if (!res.ok) {
-      error.value = data.error || 'Invalid PIN'
+      error.value = data.error || 'Неверный PIN'
       pin.value = ''
       return
     }
@@ -92,7 +92,7 @@ async function handleLogin() {
     store.login(data.user, data.token)
     router.push('/incoming')
   } catch (e) {
-    error.value = 'Connection error'
+    error.value = 'Ошибка подключения'
   } finally {
     logging.value = false
     pin.value = ''

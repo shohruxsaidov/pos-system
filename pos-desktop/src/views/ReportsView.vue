@@ -6,6 +6,16 @@
         <p class="view-subtitle">{{ selectedDate }}</p>
       </div>
       <div class="header-actions">
+        <Select
+          v-if="session.user?.role !== 'cashier'"
+          v-model="selectedWarehouseId"
+          :options="[{ id: null, name: 'Все склады' }, ...warehouses]"
+          option-label="name"
+          option-value="id"
+          placeholder="Склад"
+          style="width:160px"
+          @change="loadAll"
+        />
         <DatePicker v-model="dateFilter" date-format="yy-mm-dd" @date-select="loadAll" />
         <Button label="Экспорт CSV" icon="pi pi-download" class="p-button-secondary" @click="exportCSV" />
       </div>
@@ -123,18 +133,21 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
+import { useSessionStore } from '../stores/session.js'
 import { useToast } from 'primevue/usetoast'
 import RefundDialog from '../components/RefundDialog.vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import DatePicker from 'primevue/datepicker'
+import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Chart from 'primevue/chart'
 import Toast from 'primevue/toast'
 
 const api = useApi()
 const toast = useToast()
+const session = useSessionStore()
 
 const dateFilter = ref(new Date())
 const daily = ref(null)
@@ -143,20 +156,32 @@ const transactions = ref([])
 const loading = ref(false)
 const showRefund = ref(false)
 const refundTxnId = ref(null)
+const warehouses = ref([])
+const selectedWarehouseId = ref(null)
 
 const selectedDate = computed(() => {
   return dateFilter.value?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]
 })
 
-onMounted(loadAll)
+onMounted(async () => {
+  try {
+    warehouses.value = await api.get('/api/warehouses')
+    // Cashier defaults to their own warehouse
+    if (session.user?.role === 'cashier') {
+      selectedWarehouseId.value = session.user.warehouse_id || null
+    }
+  } catch (e) {}
+  await loadAll()
+})
 
 async function loadAll() {
   loading.value = true
   try {
     const date = selectedDate.value
+    const wq = selectedWarehouseId.value ? `&warehouse_id=${selectedWarehouseId.value}` : ''
     const [dailyData, topData, txnData] = await Promise.all([
-      api.get(`/api/reports/daily?date=${date}`),
-      api.get(`/api/reports/products?from=${date}&to=${date}`),
+      api.get(`/api/reports/daily?date=${date}${wq}`),
+      api.get(`/api/reports/products?from=${date}&to=${date}${wq}`),
       api.get(`/api/transactions?from=${date}T00:00:00&to=${date}T23:59:59&limit=100`)
     ])
     daily.value = dailyData

@@ -152,10 +152,13 @@ export default async function refundRoutes(fastify) {
             ],
           );
 
-          // Restock
+          // Restock to original transaction's warehouse
           await client.query(
-            "UPDATE products SET stock_qty=stock_qty+$1, updated_at=NOW() WHERE id=$2",
-            [item.qty_returned, item.product_id],
+            `INSERT INTO warehouse_stock (warehouse_id, product_id, stock_qty, updated_at)
+             VALUES ($1, $2, $3, NOW())
+             ON CONFLICT (warehouse_id, product_id)
+             DO UPDATE SET stock_qty = warehouse_stock.stock_qty + $4, updated_at = NOW()`,
+            [txn.warehouse_id || 1, item.product_id, item.qty_returned, item.qty_returned],
           );
         }
 

@@ -71,13 +71,19 @@ async function seedDefaultUsers(client) {
     { name: "Warehouse", pin: "9999", role: "warehouse" },
   ];
 
+  // Ensure warehouse 1 exists before seeding users
+  await client.query(
+    "INSERT INTO warehouses (id, name) VALUES (1, 'Main Warehouse') ON CONFLICT (id) DO NOTHING"
+  );
+
   for (const u of defaultUsers) {
     const hash = await argon.hash(u.pin);
     const result = await argon.verify(hash, u.pin);
     console.log(`Hashing PIN for ${u.name}:(verification: ${result})`);
+    const warehouseId = u.role !== 'admin' ? 1 : null;
     await client.query(
-      "INSERT INTO users (name, pin_hash, role, is_active) VALUES ($1,$2,$3,true)",
-      [u.name, hash, u.role],
+      "INSERT INTO users (name, pin_hash, role, is_active, warehouse_id) VALUES ($1,$2,$3,true,$4)",
+      [u.name, hash, u.role, warehouseId],
     );
     console.log(`[migrate] Created user: ${u.name} (${u.role}) PIN: ${u.pin}`);
   }

@@ -4,20 +4,20 @@
       <div class="adjust-sheet">
         <div class="sheet-handle" />
         <div class="sheet-header">
-          <h3>Adjust Stock</h3>
+          <h3>Корректировка остатка</h3>
           <div class="product-label">{{ product?.name }}</div>
           <div class="current-stock">
-            Current: <span class="font-mono">{{ product?.stock_qty }}</span>
+            Текущий: <span class="font-mono">{{ product?.stock_qty }}</span>
           </div>
         </div>
 
         <!-- Add / Remove toggle -->
         <div class="toggle-row">
           <button :class="['toggle-btn', { active: mode === 'add' }]" @click="mode = 'add'">
-            <i class="pi pi-plus" /> Add
+            <i class="pi pi-plus" /> Добавить
           </button>
           <button :class="['toggle-btn', { active: mode === 'remove' }]" @click="mode = 'remove'">
-            <i class="pi pi-minus" /> Remove
+            <i class="pi pi-minus" /> Убрать
           </button>
         </div>
 
@@ -30,21 +30,21 @@
 
         <!-- Reason -->
         <div class="field-group">
-          <label class="field-label">Reason</label>
+          <label class="field-label">Причина</label>
           <select class="reason-select" v-model="reason">
-            <option value="" disabled>Select reason...</option>
+            <option value="" disabled>Выберите причину...</option>
             <option v-for="r in reasons" :key="r" :value="r">{{ r }}</option>
           </select>
         </div>
 
         <button class="confirm-btn" :disabled="!qty || !reason" @click="confirm">
-          Apply Adjustment
+          Применить
         </button>
 
         <BottomNumPad
           :visible="showNumpad"
           v-model="qty"
-          label="Adjustment Quantity"
+          label="Количество"
           :integer="true"
           @close="showNumpad = false"
           @confirm="showNumpad = false"
@@ -66,7 +66,7 @@ const qty = ref('')
 const reason = ref('')
 const showNumpad = ref(false)
 
-const reasons = ['Receiving correction', 'Damaged', 'Count correction', 'Return to supplier', 'Other']
+const reasons = ['Корректировка приёмки', 'Повреждение', 'Корректировка инвентаризации', 'Возврат поставщику', 'Другое']
 
 function confirm() {
   if (!qty.value || !reason.value) return
