@@ -1,5 +1,5 @@
 import { pool } from '../db/connection.js'
-import { broadcastToDesktop } from '../services/statusService.js'
+import { printLabel } from '../services/printService.js'
 import { logAudit } from '../services/auditService.js'
 
 function generateBarcode(productId) {
@@ -19,20 +19,20 @@ export default async function barcodeRoutes(fastify) {
 
     if (!barcode) return reply.code(400).send({ error: 'barcode required' })
 
-    const sent = broadcastToDesktop({
-      type: 'print_label',
-      payload: { product_id, barcode, product_name, price, copies, size }
-    })
-
-    if (!sent) {
-      return reply.code(503).send({ error: 'Desktop app not connected' })
+    try {
+      await printLabel({ barcode, product_name, price, copies, size })
+    } catch (err) {
+      if (err.message === 'Printer not connected' || err.code === 'ECONNREFUSED') {
+        return reply.code(503).send({ error: 'Printer not connected' })
+      }
+      return reply.code(500).send({ error: err.message })
     }
 
     await logAudit({
       action: 'barcode_print',
       actor: req.user,
       target: { type: 'product', id: product_id, name: product_name },
-      details: { barcode, copies, size, source: 'mobile' },
+      details: { barcode, copies, size, source: req.user?.role === 'warehouse' ? 'mobile' : 'desktop' },
       ip: req.ip
     })
 

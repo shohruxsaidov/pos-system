@@ -69,13 +69,6 @@ export const useStatusStore = defineStore("status", () => {
             missedPings.value = 0;
             server.value = "ok";
           }
-
-          // Handle print label from mobile
-          if (msg.type === "print_label") {
-            window.dispatchEvent(
-              new CustomEvent("pos:print_label", { detail: msg.payload }),
-            );
-          }
         } catch (e) {
           console.error("[ws] Parse error:", e);
         }
