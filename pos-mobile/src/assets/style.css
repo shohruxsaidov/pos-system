@@ -1,0 +1,68 @@
+/* Shared design tokens — identical to pos-desktop */
+:root {
+  --bg-base:        #1a1a27;
+  --bg-sidebar:     #13131e;
+  --bg-surface:     #22223a;
+  --bg-elevated:    #1e1e32;
+  --bg-input:       #2a2a45;
+  --bg-hover:       #2e2e4a;
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-focus:   rgba(123,104,238,0.60);
+  --accent-1: #7b68ee; --accent-2: #9d4edd; --accent-3: #c77dff;
+  --accent-glow: rgba(123,104,238,0.28);
+  --hero-1: #4e54c8; --hero-2: #7b68ee; --hero-3: #8f94fb;
+  --success:    #00d4aa; --success-bg: rgba(0,212,170,0.10);  --success-border: rgba(0,212,170,0.25);
+  --warning:    #ffb02e; --warning-bg: rgba(255,176,46,0.10); --warning-border: rgba(255,176,46,0.25);
+  --danger:     #ff5c5c; --danger-bg:  rgba(255,92,92,0.12);  --danger-border: rgba(255,92,92,0.25);
+  --text-primary:   #e2e2f5; --text-secondary: #9898bb;
+  --text-muted:     #55557a; --text-accent:    #b39dff;
+  --gradient-accent: linear-gradient(135deg, #7b68ee, #9d4edd, #c77dff);
+  --gradient-hero:   linear-gradient(135deg, #4e54c8, #7b68ee, #8f94fb);
+  --gradient-card:   linear-gradient(145deg, #252540, #1e1e32);
+  --gradient-mesh:
+    radial-gradient(ellipse 70% 40% at 50% 0%,  rgba(78,84,200,0.18)  0%, transparent 65%),
+    radial-gradient(ellipse 40% 25% at 85% 15%, rgba(157,78,221,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 30% 20% at 10% 80%, rgba(123,104,238,0.08) 0%, transparent 50%);
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --touch-base: 56px;
+  --touch-lg: 72px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  background-image: var(--gradient-mesh);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app { height: 100vh; display: flex; flex-direction: column; }
+
+.font-mono { font-family: var(--font-mono) !important; }
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-accent { color: var(--text-accent); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
+.gradient-text {
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }

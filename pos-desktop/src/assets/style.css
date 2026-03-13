@@ -1,0 +1,460 @@
+/* ============================================================
+   POS Market — ClickUp Dark Design System
+   ============================================================ */
+
+:root {
+  /* Backgrounds */
+  --bg-base:        #1a1a27;
+  --bg-sidebar:     #13131e;
+  --bg-surface:     #22223a;
+  --bg-elevated:    #1e1e32;
+  --bg-input:       #2a2a45;
+  --bg-hover:       #2e2e4a;
+
+  /* Borders */
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-focus:   rgba(123,104,238,0.60);
+
+  /* Accent — ClickUp purple */
+  --accent-1: #7b68ee;
+  --accent-2: #9d4edd;
+  --accent-3: #c77dff;
+  --accent-glow: rgba(123,104,238,0.28);
+
+  /* Hero CTA gradient */
+  --hero-1: #4e54c8;
+  --hero-2: #7b68ee;
+  --hero-3: #8f94fb;
+
+  /* Semantic */
+  --success:    #00d4aa;
+  --success-bg: rgba(0,212,170,0.10);
+  --success-border: rgba(0,212,170,0.25);
+  --warning:    #ffb02e;
+  --warning-bg: rgba(255,176,46,0.10);
+  --warning-border: rgba(255,176,46,0.25);
+  --danger:     #ff5c5c;
+  --danger-bg:  rgba(255,92,92,0.12);
+  --danger-border: rgba(255,92,92,0.25);
+
+  /* Text */
+  --text-primary:   #e2e2f5;
+  --text-secondary: #9898bb;
+  --text-muted:     #55557a;
+  --text-accent:    #b39dff;
+
+  /* Gradients */
+  --gradient-accent: linear-gradient(135deg, #7b68ee, #9d4edd, #c77dff);
+  --gradient-hero:   linear-gradient(135deg, #4e54c8, #7b68ee, #8f94fb);
+  --gradient-card:   linear-gradient(145deg, #252540, #1e1e32);
+  --gradient-mesh:
+    radial-gradient(ellipse 70% 40% at 50% 0%,  rgba(78,84,200,0.18)  0%, transparent 65%),
+    radial-gradient(ellipse 40% 25% at 85% 15%, rgba(157,78,221,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 30% 20% at 10% 80%, rgba(123,104,238,0.08) 0%, transparent 50%);
+
+  /* Shadows */
+  --shadow-card:   0 4px 24px rgba(0,0,0,0.35);
+  --shadow-accent: 0 4px 20px rgba(123,104,238,0.35);
+  --shadow-sm:     0 2px 8px rgba(0,0,0,0.25);
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Touch sizes */
+  --touch-base: 56px;
+  --touch-lg:   72px;
+}
+
+/* ============================================================
+   Global Reset
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  background-image: var(--gradient-mesh);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   PrimeVue Overrides — Dark Theme
+   ============================================================ */
+
+/* Input / Select */
+.p-inputtext,
+.p-select .p-select-label,
+.p-inputnumber input,
+.p-inputotp-input {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+  border-radius: 12px !important;
+  font-family: var(--font-sans) !important;
+}
+
+.p-inputtext,
+.p-select {
+  height: var(--touch-base) !important;
+  font-size: 16px !important;
+}
+
+.p-inputtext:focus,
+.p-select.p-focus {
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+
+/* Select dropdown */
+.p-select {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px !important;
+}
+
+.p-select-overlay {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px !important;
+}
+
+.p-select-option {
+  height: 52px !important;
+  color: var(--text-primary) !important;
+  padding: 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.p-select-option:hover,
+.p-select-option.p-focus {
+  background: var(--bg-hover) !important;
+}
+
+.p-select-option.p-selected {
+  background: var(--accent-glow) !important;
+  color: var(--text-accent) !important;
+}
+
+/* Buttons */
+.p-button {
+  height: var(--touch-base) !important;
+  border-radius: 12px !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.p-button-primary,
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-secondary):not(.p-button-danger):not(.p-button-success):not(.p-button-warn) {
+  background: var(--gradient-hero) !important;
+  color: #fff !important;
+  box-shadow: var(--shadow-accent) !important;
+}
+
+.p-button-primary:hover {
+  filter: brightness(1.1) !important;
+}
+
+.p-button.touch-lg {
+  height: var(--touch-lg) !important;
+  font-size: 18px !important;
+}
+
+.p-button-secondary {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+.p-button-danger {
+  background: var(--danger-bg) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-border) !important;
+}
+
+.p-button-success {
+  background: var(--success-bg) !important;
+  color: var(--success) !important;
+  border: 1px solid var(--success-border) !important;
+}
+
+/* DataTable */
+.p-datatable {
+  font-family: var(--font-sans) !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+  border-top: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 12px 16px !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  transition: background 0.12s !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--bg-hover) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  color: var(--text-primary) !important;
+  padding: 12px 16px !important;
+  border: none !important;
+}
+
+/* Dialog */
+.p-dialog {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+}
+
+.p-dialog .p-dialog-header {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  padding: 20px 24px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+}
+
+.p-dialog .p-dialog-content {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  padding: 20px 24px !important;
+}
+
+.p-dialog .p-dialog-footer {
+  background: transparent !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  padding: 16px 24px !important;
+}
+
+/* Drawer */
+.p-drawer {
+  background: var(--bg-elevated) !important;
+  border-left: 1px solid var(--border-default) !important;
+}
+
+.p-drawer-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-drawer-content {
+  background: transparent !important;
+}
+
+/* Tag / Badge */
+.p-tag {
+  border-radius: 8px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+/* SelectButton */
+.p-selectbutton .p-button {
+  background: var(--bg-input) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 10px !important;
+}
+
+.p-selectbutton .p-button.p-selected,
+.p-selectbutton .p-button.p-highlight {
+  background: var(--gradient-hero) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+/* ToggleSwitch */
+.p-toggleswitch {
+  width: 64px !important;
+  height: 36px !important;
+}
+
+/* OTP Input */
+.p-inputotp-input {
+  width: 64px !important;
+  height: 64px !important;
+  font-size: 24px !important;
+  text-align: center !important;
+  border-radius: 12px !important;
+}
+
+/* Card */
+.p-card {
+  background: var(--gradient-card) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-card:hover {
+  border-color: rgba(123,104,238,0.40) !important;
+}
+
+/* Toast */
+.p-toast .p-toast-message {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px !important;
+  color: var(--text-primary) !important;
+}
+
+/* Tabs */
+.p-tabs .p-tablist {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.p-tabs .p-tab {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+  font-weight: 500 !important;
+}
+
+.p-tabs .p-tab.p-tab-active {
+  color: var(--text-accent) !important;
+}
+
+.p-tabs .p-tabpanels {
+  background: transparent !important;
+}
+
+/* DatePicker */
+.p-datepicker {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px !important;
+  color: var(--text-primary) !important;
+}
+
+/* Progress Bar */
+.p-progressbar {
+  background: var(--bg-input) !important;
+  border-radius: 8px !important;
+  height: 8px !important;
+}
+
+.p-progressbar .p-progressbar-value {
+  background: var(--gradient-hero) !important;
+  border-radius: 8px !important;
+}
+
+/* ============================================================
+   Utility Classes
+   ============================================================ */
+.font-mono { font-family: var(--font-mono) !important; }
+.text-primary { color: var(--text-primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-accent { color: var(--text-accent) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-danger { color: var(--danger) !important; }
+
+.bg-surface { background: var(--bg-surface) !important; }
+.bg-elevated { background: var(--bg-elevated) !important; }
+
+.gradient-text {
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card {
+  background: var(--gradient-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: rgba(123,104,238,0.40); }
+
+/* Stock badges */
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.stock-badge.success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.stock-badge.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+}
+
+.stock-badge.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+.stock-badge.danger.glow {
+  box-shadow: 0 0 12px var(--danger-bg);
+  animation: pulse-danger 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { box-shadow: 0 0 12px var(--danger-bg); }
+  50% { box-shadow: 0 0 20px rgba(255,92,92,0.4); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--accent-1); }

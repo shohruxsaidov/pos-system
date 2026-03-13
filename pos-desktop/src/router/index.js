@@ -1,0 +1,64 @@
+import { createRouter, createWebHashHistory } from 'vue-router'
+import { useSessionStore } from '../stores/session.js'
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/pos'
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('../views/LoginView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/pos',
+    name: 'pos',
+    component: () => import('../views/POSView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/inventory',
+    name: 'inventory',
+    component: () => import('../views/InventoryView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/reports',
+    name: 'reports',
+    component: () => import('../views/ReportsView.vue'),
+    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+  },
+  {
+    path: '/customers',
+    name: 'customers',
+    component: () => import('../views/CustomersView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('../views/SettingsView.vue'),
+    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+  }
+]
+
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes
+})
+
+router.beforeEach((to) => {
+  const session = useSessionStore()
+
+  if (to.meta.requiresAuth !== false && !session.isLoggedIn) {
+    return { name: 'login' }
+  }
+
+  if (to.meta.roles && !to.meta.roles.includes(session.user?.role)) {
+    return { name: 'pos' }
+  }
+})
+
+export default router
