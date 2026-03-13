@@ -4,23 +4,23 @@
 
 :root {
   /* Backgrounds */
-  --bg-base:        #1a1a27;
-  --bg-sidebar:     #13131e;
-  --bg-surface:     #22223a;
-  --bg-elevated:    #1e1e32;
-  --bg-input:       #2a2a45;
-  --bg-hover:       #2e2e4a;
+  --bg-base: #1a1a27;
+  --bg-sidebar: #13131e;
+  --bg-surface: #22223a;
+  --bg-elevated: #1e1e32;
+  --bg-input: #2a2a45;
+  --bg-hover: #2e2e4a;
 
   /* Borders */
-  --border-subtle:  rgba(255,255,255,0.06);
-  --border-default: rgba(255,255,255,0.10);
-  --border-focus:   rgba(123,104,238,0.60);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-focus: rgba(123, 104, 238, 0.6);
 
   /* Accent — ClickUp purple */
   --accent-1: #7b68ee;
   --accent-2: #9d4edd;
   --accent-3: #c77dff;
-  --accent-glow: rgba(123,104,238,0.28);
+  --accent-glow: rgba(123, 104, 238, 0.28);
 
   /* Hero CTA gradient */
   --hero-1: #4e54c8;
@@ -28,55 +28,70 @@
   --hero-3: #8f94fb;
 
   /* Semantic */
-  --success:    #00d4aa;
-  --success-bg: rgba(0,212,170,0.10);
-  --success-border: rgba(0,212,170,0.25);
-  --warning:    #ffb02e;
-  --warning-bg: rgba(255,176,46,0.10);
-  --warning-border: rgba(255,176,46,0.25);
-  --danger:     #ff5c5c;
-  --danger-bg:  rgba(255,92,92,0.12);
-  --danger-border: rgba(255,92,92,0.25);
+  --success: #00d4aa;
+  --success-bg: rgba(0, 212, 170, 0.1);
+  --success-border: rgba(0, 212, 170, 0.25);
+  --warning: #ffb02e;
+  --warning-bg: rgba(255, 176, 46, 0.1);
+  --warning-border: rgba(255, 176, 46, 0.25);
+  --danger: #ff5c5c;
+  --danger-bg: rgba(255, 92, 92, 0.12);
+  --danger-border: rgba(255, 92, 92, 0.25);
 
   /* Text */
-  --text-primary:   #e2e2f5;
+  --text-primary: #e2e2f5;
   --text-secondary: #9898bb;
-  --text-muted:     #55557a;
-  --text-accent:    #b39dff;
+  --text-muted: #55557a;
+  --text-accent: #b39dff;
 
   /* Gradients */
   --gradient-accent: linear-gradient(135deg, #7b68ee, #9d4edd, #c77dff);
-  --gradient-hero:   linear-gradient(135deg, #4e54c8, #7b68ee, #8f94fb);
-  --gradient-card:   linear-gradient(145deg, #252540, #1e1e32);
+  --gradient-hero: linear-gradient(135deg, #4e54c8, #7b68ee, #8f94fb);
+  --gradient-card: linear-gradient(145deg, #252540, #1e1e32);
   --gradient-mesh:
-    radial-gradient(ellipse 70% 40% at 50% 0%,  rgba(78,84,200,0.18)  0%, transparent 65%),
-    radial-gradient(ellipse 40% 25% at 85% 15%, rgba(157,78,221,0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 30% 20% at 10% 80%, rgba(123,104,238,0.08) 0%, transparent 50%);
+    radial-gradient(
+      ellipse 70% 40% at 50% 0%,
+      rgba(78, 84, 200, 0.18) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 40% 25% at 85% 15%,
+      rgba(157, 78, 221, 0.12) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 30% 20% at 10% 80%,
+      rgba(123, 104, 238, 0.08) 0%,
+      transparent 50%
+    );
 
   /* Shadows */
-  --shadow-card:   0 4px 24px rgba(0,0,0,0.35);
-  --shadow-accent: 0 4px 20px rgba(123,104,238,0.35);
-  --shadow-sm:     0 2px 8px rgba(0,0,0,0.25);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-accent: 0 4px 20px rgba(123, 104, 238, 0.35);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
 
   /* Typography */
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
   /* Touch sizes */
   --touch-base: 56px;
-  --touch-lg:   72px;
+  --touch-lg: 72px;
 }
 
 /* ============================================================
    Global Reset
    ============================================================ */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
@@ -168,7 +183,9 @@ body {
 }
 
 .p-button-primary,
-.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-secondary):not(.p-button-danger):not(.p-button-success):not(.p-button-warn) {
+.p-button:not(.p-button-outlined):not(.p-button-text):not(
+    .p-button-secondary
+  ):not(.p-button-danger):not(.p-button-success):not(.p-button-warn) {
   background: var(--gradient-hero) !important;
   color: #fff !important;
   box-shadow: var(--shadow-accent) !important;
@@ -239,7 +256,7 @@ body {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border-default) !important;
   border-radius: 20px !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
 }
 
 .p-dialog .p-dialog-header {
@@ -327,7 +344,7 @@ body {
 }
 
 .p-card:hover {
-  border-color: rgba(123,104,238,0.40) !important;
+  border-color: rgba(123, 104, 238, 0.4) !important;
 }
 
 /* Toast */
@@ -381,17 +398,37 @@ body {
 /* ============================================================
    Utility Classes
    ============================================================ */
-.font-mono { font-family: var(--font-mono) !important; }
-.text-primary { color: var(--text-primary) !important; }
-.text-secondary { color: var(--text-secondary) !important; }
-.text-muted { color: var(--text-muted) !important; }
-.text-accent { color: var(--text-accent) !important; }
-.text-success { color: var(--success) !important; }
-.text-warning { color: var(--warning) !important; }
-.text-danger { color: var(--danger) !important; }
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+.text-primary {
+  color: var(--text-primary) !important;
+}
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+.text-muted {
+  color: var(--text-muted) !important;
+}
+.text-accent {
+  color: var(--text-accent) !important;
+}
+.text-success {
+  color: var(--success) !important;
+}
+.text-warning {
+  color: var(--warning) !important;
+}
+.text-danger {
+  color: var(--danger) !important;
+}
 
-.bg-surface { background: var(--bg-surface) !important; }
-.bg-elevated { background: var(--bg-elevated) !important; }
+.bg-surface {
+  background: var(--bg-surface) !important;
+}
+.bg-elevated {
+  background: var(--bg-elevated) !important;
+}
 
 .gradient-text {
   background: var(--gradient-hero);
@@ -408,7 +445,9 @@ body {
   transition: border-color 0.2s;
 }
 
-.card:hover { border-color: rgba(123,104,238,0.40); }
+.card:hover {
+  border-color: rgba(123, 104, 238, 0.4);
+}
 
 /* Stock badges */
 .stock-badge {
@@ -446,15 +485,42 @@ body {
 }
 
 @keyframes pulse-danger {
-  0%, 100% { box-shadow: 0 0 12px var(--danger-bg); }
-  50% { box-shadow: 0 0 20px rgba(255,92,92,0.4); }
+  0%,
+  100% {
+    box-shadow: 0 0 12px var(--danger-bg);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 92, 92, 0.4);
+  }
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 ::-webkit-scrollbar-thumb {
   background: var(--border-default);
   border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-1); }
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-1);
+}
+
+.p-togglebutton {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px !important;
+}
+
+.p-togglebutton-checked .p-togglebutton-content {
+  background: var(--gradient-hero) !important;
+  color: #fff;
+}
+
+.p-togglebutton {
+  height: var(--touch-base) !important;
+}

@@ -89,9 +89,8 @@ const processing = ref(false)
 const showNumpad = ref(false)
 
 const methods = [
-  { label: '💵 Cash', value: 'cash' },
-  { label: '💳 Card', value: 'card' },
-  { label: '📱 GCash', value: 'gcash' }
+  { label: 'Наличные', value: 'cash' },
+  { label: 'Карта', value: 'card' },
 ]
 
 watch(visible, (v) => {
