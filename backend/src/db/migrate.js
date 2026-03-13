@@ -74,7 +74,7 @@ async function seedDefaultUsers(client) {
   for (const u of defaultUsers) {
     const hash = await argon.hash(u.pin);
     const result = await argon.verify(hash, u.pin);
-    console.log(`Hashing PIN for ${u.name}: ${hash} (verification: ${result})`);
+    console.log(`Hashing PIN for ${u.name}:(verification: ${result})`);
     await client.query(
       "INSERT INTO users (name, pin_hash, role, is_active) VALUES ($1,$2,$3,true)",
       [u.name, hash, u.role],
