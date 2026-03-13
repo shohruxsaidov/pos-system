@@ -22,9 +22,7 @@
       scroll-height="flex"
       class="inventory-table"
       row-hover
-      v-model:selection="selectedProducts"
     >
-      <Column selection-mode="multiple" style="width:50px" />
       <Column field="barcode" header="Штрихкод" style="width:140px">
         <template #body="{ data }">
           <span class="font-mono" style="font-size:12px">{{ data.barcode || '—' }}</span>
@@ -168,7 +166,6 @@ const saving = ref(false)
 const search = ref('')
 const categoryFilter = ref(null)
 const stockFilter = ref(null)
-const selectedProducts = ref([])
 const showDrawer = ref(false)
 const showStockAdjust = ref(false)
 const showPrintLabel = ref(false)

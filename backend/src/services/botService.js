@@ -239,6 +239,27 @@ export async function startBot() {
   polling = true;
   console.log("[bot] Starting Telegram long-poll bot...");
 
+  // Register commands so they appear in Telegram UI
+  await fetch(`https://api.telegram.org/bot${botToken}/setMyCommands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      commands: [
+        { command: "today",    description: "Today's sales summary" },
+        { command: "week",     description: "Last 7 days totals" },
+        { command: "month",    description: "This month totals" },
+        { command: "sales",    description: "Sales on a date: /sales YYYY-MM-DD" },
+        { command: "stock",    description: "Oversold & low stock alerts" },
+        { command: "top",      description: "Top 10 products today" },
+        { command: "cashiers", description: "Per-cashier breakdown today" },
+        { command: "refunds",  description: "Today's refunds" },
+        { command: "txn",      description: "Transaction detail: /txn REF" },
+        { command: "status",   description: "System health & mobile URL" },
+        { command: "help",     description: "Show all commands" },
+      ],
+    }),
+  }).catch((e) => console.error("[bot] setMyCommands failed:", e.message));
+
   while (polling) {
     try {
       const res = await fetch(
