@@ -1,11 +1,5 @@
 <template>
-  <Dialog
-    v-model:visible="visible"
-    modal
-    header="Payment"
-    :style="{ width: '520px' }"
-    :closable="!processing"
-  >
+  <Dialog v-model:visible="visible" modal header="Payment" :style="{ width: '520px' }" :closable="!processing">
     <div class="payment-content">
       <!-- Order Summary -->
       <div class="payment-summary">
@@ -28,13 +22,8 @@
       <!-- Payment Method -->
       <div class="field-group">
         <label class="field-label">Payment Method</label>
-        <SelectButton
-          v-model="method"
-          :options="methods"
-          option-label="label"
-          option-value="value"
-          class="method-selector"
-        />
+        <SelectButton v-model="method" :options="methods" option-label="label" option-value="value"
+          class="method-selector" />
       </div>
       <!-- Receipt Toggle -->
       <div class="receipt-toggle">
@@ -44,20 +33,9 @@
     </div>
 
     <template #footer>
-      <Button
-        label="Отмена"
-        class="p-button-secondary touch-lg"
-        @click="close"
-        :disabled="processing"
-      />
-      <Button
-        label="Подтвердить"
-        class="touch-lg"
-        :loading="processing"
-        :disabled="!canConfirm"
-        @click="confirm"
-        style="flex:1"
-      />
+      <Button label="Отмена" class="p-button-secondary touch-lg" @click="close" :disabled="processing" />
+      <Button label="Подтвердить" class="touch-lg" :loading="processing" :disabled="!canConfirm" @click="confirm"
+        style="flex:1" />
     </template>
   </Dialog>
 </template>
@@ -109,9 +87,6 @@ const change = computed(() => {
 })
 
 const canConfirm = computed(() => {
-  if (method.value === 'cash') {
-    return parseFloat(tendered.value) >= cart.total
-  }
   return true
 })
 

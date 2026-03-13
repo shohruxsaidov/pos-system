@@ -10,13 +10,8 @@
       </div>
 
       <nav class="sidebar-nav">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="nav-item"
-          active-class="nav-item--active"
-        >
+        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="nav-item"
+          active-class="nav-item--active">
           <i :class="item.icon" class="nav-icon" />
           <span class="nav-label">{{ item.label }}</span>
         </RouterLink>
@@ -30,12 +25,7 @@
             <div class="user-role">{{ session.user?.role }}</div>
           </div>
         </div>
-        <Button
-          icon="pi pi-sign-out"
-          class="p-button-secondary logout-btn"
-          @click="logout"
-          v-tooltip.right="'Выйти'"
-        />
+        <Button icon="pi pi-sign-out" class="p-button-secondary logout-btn" @click="logout" v-tooltip.right="'Выйти'" />
       </div>
     </aside>
 
@@ -92,10 +82,8 @@ function logout() {
   overflow: hidden;
 }
 
-.app-shell > .main-content {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
+.app-shell>.main-content {
+  overflow: auto;
 }
 
 /* When sidebar is present, layout changes */
@@ -104,11 +92,11 @@ function logout() {
   flex-wrap: wrap;
 }
 
-.app-shell:has(.sidebar) > .main-content {
+.app-shell:has(.sidebar)>.main-content {
   flex: 1;
 }
 
-.app-shell:has(.sidebar) > :last-child {
+.app-shell:has(.sidebar)> :last-child {
   width: 100%;
   flex-shrink: 0;
 }
@@ -120,7 +108,8 @@ function logout() {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  min-height: calc(100vh - 40px); /* Account for status bar height */
+  min-height: calc(100vh - 40px);
+  /* Account for status bar height */
 }
 
 .sidebar-brand {
@@ -225,7 +214,9 @@ function logout() {
   flex-shrink: 0;
 }
 
-.user-info { overflow: hidden; }
+.user-info {
+  overflow: hidden;
+}
 
 .user-name {
   font-size: 13px;
@@ -256,6 +247,7 @@ function logout() {
   overflow: auto;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 40px); /* Account for status bar height */ 
+  max-height: calc(100vh - 40px);
+  /* Account for status bar height */
 }
 </style>

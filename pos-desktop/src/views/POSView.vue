@@ -6,92 +6,44 @@
       <div class="pos-search">
         <IconField>
           <InputIcon class="pi pi-barcode" />
-          <InputText
-            ref="searchRef"
-            v-model="searchQuery"
-            placeholder="Сканировать штрихкод или найти товар..."
-            class="w-full"
-            @keydown.enter="handleBarcodeEnter"
-            @input="debouncedSearch"
-            inputmode="none"
-          />
+          <InputText ref="searchRef" v-model="searchQuery" placeholder="Сканировать штрихкод или найти товар..."
+            class="w-full" @keydown.enter="handleBarcodeEnter" @input="debouncedSearch" inputmode="none" />
         </IconField>
-        <Button
-          icon="pi pi-refresh"
-          class="p-button-secondary"
-          @click="loadProducts"
-          style="height:56px;width:56px"
-        />
+        <Button icon="pi pi-refresh" class="p-button-secondary" @click="loadProducts" style="height:56px;width:56px" />
       </div>
 
       <!-- Category Filter -->
       <div class="category-tabs">
-        <button
-          class="cat-tab"
-          :class="{ active: !selectedCategory }"
-          @click="selectedCategory = null; loadProducts()"
-        >Все</button>
-        <button
-          v-for="cat in categories"
-          :key="cat.id"
-          class="cat-tab"
-          :class="{ active: selectedCategory === cat.id }"
-          @click="selectedCategory = cat.id; loadProducts()"
-        >{{ cat.name }}</button>
+        <button class="cat-tab" :class="{ active: !selectedCategory }"
+          @click="selectedCategory = null; loadProducts()">Все</button>
+        <button v-for="cat in categories" :key="cat.id" class="cat-tab" :class="{ active: selectedCategory === cat.id }"
+          @click="selectedCategory = cat.id; loadProducts()">{{ cat.name }}</button>
+      </div>
+      <div class="products-area">
+        <div v-for="item in products" :key="item.id" class="product-card"
+          :class="{ 'out-of-stock': item.stock_qty <= 0 }" @click="addToCart(item)">
+          <div class="product-name">{{ item.name }}</div>
+          <div class="product-price font-mono">{{ formatPrice(item.price) }}</div>
+          <div class="product-stock" :class="stockClass(item.stock_qty)">
+            {{ stockLabel(item.stock_qty) }}
+          </div>
+        </div>
       </div>
 
-      <!-- Product Grid -->
-      <div class="products-area">
-        <VirtualScroller
-          :items="products"
-          :itemSize="[130, 3]"
-          class="product-scroller"
-          :pt="{ content: { style: 'display:flex;flex-wrap:wrap;gap:10px;padding:10px' } }"
-        >
-          <template #item="{ item }">
-            <div
-              class="product-card"
-              :class="{ 'out-of-stock': item.stock_qty <= 0 }"
-              @click="addToCart(item)"
-            >
-              <div class="product-name">{{ item.name }}</div>
-              <div class="product-price font-mono">{{ formatPrice(item.price) }}</div>
-              <div class="product-stock" :class="stockClass(item.stock_qty)">
-                {{ stockLabel(item.stock_qty) }}
-              </div>
-            </div>
-          </template>
-        </VirtualScroller>
-      </div>
     </div>
 
     <!-- Right: Cart -->
     <div class="pos-cart">
       <div class="cart-header">
         <h2 class="cart-title">Корзина</h2>
-        <Tag
-          v-if="cart.itemCount > 0"
-          :value="`${cart.itemCount} поз.`"
-          class="cart-count"
-        />
-        <Button
-          v-if="cart.itemCount > 0"
-          icon="pi pi-trash"
-          class="p-button-danger"
-          style="height:40px;width:40px"
-          @click="cart.clear()"
-          v-tooltip="'Очистить корзину'"
-        />
+        <Tag v-if="cart.itemCount > 0" :value="`${cart.itemCount} поз.`" class="cart-count" />
+        <Button v-if="cart.itemCount > 0" icon="pi pi-trash" class="p-button-danger" style="height:40px;width:40px"
+          @click="cart.clear()" v-tooltip="'Очистить корзину'" />
       </div>
 
       <!-- Cart Items -->
       <div class="cart-items">
-        <DataTable
-          :value="cart.items"
-          scrollable
-          scroll-height="flex"
-          class="cart-table"
-        >
+        <DataTable :value="cart.items" scrollable scroll-height="flex" class="cart-table">
           <Column field="name" header="Товар" />
           <Column field="unit_price" header="Цена" style="width:90px">
             <template #body="{ data }">
@@ -139,21 +91,13 @@
           </div>
         </div>
 
-        <Button
-          label="Оплатить"
-          :disabled="cart.itemCount === 0"
-          class="touch-lg pay-btn"
-          icon="pi pi-credit-card"
-          @click="showPayment = true"
-        />
+        <Button label="Оплатить" :disabled="cart.itemCount === 0" class="touch-lg pay-btn" icon="pi pi-credit-card"
+          @click="showPayment = true" />
       </div>
     </div>
 
     <!-- Payment Modal -->
-    <PaymentModal
-      v-model="showPayment"
-      @paid="handlePayment"
-    />
+    <PaymentModal v-model="showPayment" @paid="handlePayment" />
 
     <Toast />
   </div>
@@ -209,7 +153,7 @@ async function loadProducts() {
 async function loadCategories() {
   try {
     categories.value = await api.get('/api/categories')
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function debouncedSearch() {
@@ -305,7 +249,9 @@ function stockClass(qty) {
   padding-bottom: 4px;
 }
 
-.category-tabs::-webkit-scrollbar { height: 3px; }
+.category-tabs::-webkit-scrollbar {
+  height: 3px;
+}
 
 .cat-tab {
   padding: 6px 14px;
@@ -320,15 +266,18 @@ function stockClass(qty) {
   transition: all 0.15s;
 }
 
-.cat-tab.active, .cat-tab:hover {
+.cat-tab.active,
+.cat-tab:hover {
   background: var(--accent-glow);
   color: var(--text-accent);
   border-color: var(--accent-1);
 }
 
 .products-area {
-  flex: 1;
-  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  overflow-y: auto;
 }
 
 .product-scroller {
@@ -336,8 +285,9 @@ function stockClass(qty) {
   width: 100%;
 }
 
+
 .product-card {
-  width: calc(33.33% - 8px);
+  width: 180px;
   min-width: 140px;
   background: var(--gradient-card);
   border: 1px solid var(--border-subtle);
@@ -348,12 +298,13 @@ function stockClass(qty) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  height: 102px;
 }
 
 .product-card:hover {
-  border-color: rgba(123,104,238,0.5);
+  border-color: rgba(123, 104, 238, 0.5);
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .product-card.out-of-stock {
@@ -385,10 +336,24 @@ function stockClass(qty) {
   align-self: flex-start;
 }
 
-.badge-success { background: var(--success-bg); color: var(--success); }
-.badge-warning { background: var(--warning-bg); color: var(--warning); }
-.badge-danger { background: var(--danger-bg); color: var(--danger); }
-.badge-danger.glow { animation: pulse-danger 2s infinite; }
+.badge-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.badge-danger.glow {
+  animation: pulse-danger 2s infinite;
+}
 
 /* Cart */
 .pos-cart {
@@ -443,9 +408,15 @@ function stockClass(qty) {
   justify-content: center;
 }
 
-.qty-btn:hover { background: var(--bg-hover); }
+.qty-btn:hover {
+  background: var(--bg-hover);
+}
 
-.qty-value { width: 28px; text-align: center; font-size: 14px; }
+.qty-value {
+  width: 28px;
+  text-align: center;
+  font-size: 14px;
+}
 
 .remove-btn {
   width: 28px;
@@ -484,7 +455,11 @@ function stockClass(qty) {
   font-size: 16px;
 }
 
-.pay-btn { width: 100%; }
+.pay-btn {
+  width: 100%;
+}
 
-.w-full { width: 100%; }
+.w-full {
+  width: 100%;
+}
 </style>
