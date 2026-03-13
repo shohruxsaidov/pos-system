@@ -1,46 +1,55 @@
-import { desktopClients, getStatusPayload } from '../services/statusService.js'
+import { desktopClients, getStatusPayload } from "../services/statusService.js";
 
 export default async function statusRoutes(fastify) {
   // WebSocket /ws/status
-  fastify.get('/ws/status', { websocket: true }, async (socket, req) => {
-    console.log('[ws] Client connected:', req.ip)
+  fastify.get("/ws/status", { websocket: true }, async (connection, req) => {
+    // @fastify/websocket may pass either a raw ws socket or a connection wrapper.
+    const socket = connection?.socket ?? connection;
+    console.log("[ws] Client connected:", req.ip);
+
+    if (!socket || typeof socket.send !== "function") {
+      console.error("[ws] Invalid websocket connection object");
+      return;
+    }
 
     // Send initial status
     try {
-      const payload = await getStatusPayload()
-      socket.send(JSON.stringify({ type: 'status', ...payload }))
+      const payload = await getStatusPayload();
+      socket.send(JSON.stringify({ type: "status", ...payload }));
     } catch (e) {
-      console.error('[ws] Failed to send initial status:', e.message)
+      console.error("[ws] Failed to send initial status:", e.message);
     }
 
-    socket.on('message', async (raw) => {
+    socket.on("message", async (raw) => {
       try {
-        const msg = JSON.parse(raw.toString())
+        const msg = JSON.parse(raw.toString());
 
         // Desktop identification
-        if (msg.client === 'desktop' || msg.type === 'identify') {
-          desktopClients.add(socket)
-          console.log('[ws] Desktop client identified')
-          socket.send(JSON.stringify({ type: 'identified', client: 'desktop' }))
+        if (msg.client === "desktop" || msg.type === "identify") {
+          desktopClients.add(socket);
+          console.log("[ws] Desktop client identified");
+          socket.send(
+            JSON.stringify({ type: "identified", client: "desktop" }),
+          );
         }
 
         // Ping / pong
-        if (msg.type === 'ping') {
-          socket.send(JSON.stringify({ type: 'pong', ts: Date.now() }))
+        if (msg.type === "ping") {
+          socket.send(JSON.stringify({ type: "pong", ts: Date.now() }));
         }
       } catch (e) {
         // non-JSON message, ignore
       }
-    })
+    });
 
-    socket.on('close', () => {
-      desktopClients.delete(socket)
-      console.log('[ws] Client disconnected')
-    })
+    socket.on("close", () => {
+      desktopClients.delete(socket);
+      console.log("[ws] Client disconnected");
+    });
 
-    socket.on('error', (err) => {
-      console.error('[ws] Socket error:', err.message)
-      desktopClients.delete(socket)
-    })
-  })
+    socket.on("error", (err) => {
+      console.error("[ws] Socket error:", err.message);
+      desktopClients.delete(socket);
+    });
+  });
 }

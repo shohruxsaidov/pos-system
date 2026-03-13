@@ -9,7 +9,7 @@
           <InputText
             ref="searchRef"
             v-model="searchQuery"
-            placeholder="Scan barcode or search product..."
+            placeholder="Сканировать штрихкод или найти товар..."
             class="w-full"
             @keydown.enter="handleBarcodeEnter"
             @input="debouncedSearch"
@@ -30,7 +30,7 @@
           class="cat-tab"
           :class="{ active: !selectedCategory }"
           @click="selectedCategory = null; loadProducts()"
-        >All</button>
+        >Все</button>
         <button
           v-for="cat in categories"
           :key="cat.id"
@@ -55,7 +55,7 @@
               @click="addToCart(item)"
             >
               <div class="product-name">{{ item.name }}</div>
-              <div class="product-price font-mono">₱{{ formatPrice(item.price) }}</div>
+              <div class="product-price font-mono">{{ formatPrice(item.price) }}</div>
               <div class="product-stock" :class="stockClass(item.stock_qty)">
                 {{ stockLabel(item.stock_qty) }}
               </div>
@@ -68,10 +68,10 @@
     <!-- Right: Cart -->
     <div class="pos-cart">
       <div class="cart-header">
-        <h2 class="cart-title">Cart</h2>
+        <h2 class="cart-title">Корзина</h2>
         <Tag
           v-if="cart.itemCount > 0"
-          :value="`${cart.itemCount} items`"
+          :value="`${cart.itemCount} поз.`"
           class="cart-count"
         />
         <Button
@@ -80,7 +80,7 @@
           class="p-button-danger"
           style="height:40px;width:40px"
           @click="cart.clear()"
-          v-tooltip="'Clear cart'"
+          v-tooltip="'Очистить корзину'"
         />
       </div>
 
@@ -92,13 +92,13 @@
           scroll-height="flex"
           class="cart-table"
         >
-          <Column field="name" header="Product" />
-          <Column field="unit_price" header="Price" style="width:90px">
+          <Column field="name" header="Товар" />
+          <Column field="unit_price" header="Цена" style="width:90px">
             <template #body="{ data }">
-              <span class="font-mono">₱{{ formatPrice(data.unit_price) }}</span>
+              <span class="font-mono">{{ formatPrice(data.unit_price) }}</span>
             </template>
           </Column>
-          <Column header="Qty" style="width:120px">
+          <Column header="Кол-во" style="width:120px">
             <template #body="{ data }">
               <div class="qty-control">
                 <button class="qty-btn" @click="cart.updateQty(data.product_id, data.qty - 1)">−</button>
@@ -107,9 +107,9 @@
               </div>
             </template>
           </Column>
-          <Column header="Total" style="width:90px">
+          <Column header="Итого" style="width:90px">
             <template #body="{ data }">
-              <span class="font-mono">₱{{ formatPrice(data.unit_price * data.qty) }}</span>
+              <span class="font-mono">{{ formatPrice(data.unit_price * data.qty) }}</span>
             </template>
           </Column>
           <Column style="width:44px">
@@ -124,23 +124,23 @@
       <div class="cart-footer">
         <div class="cart-totals">
           <div class="total-row">
-            <span class="text-secondary">Subtotal</span>
-            <span class="font-mono">₱{{ formatPrice(cart.subtotal) }}</span>
+            <span class="text-secondary">Подытог</span>
+            <span class="font-mono">{{ formatPrice(cart.subtotal) }}</span>
           </div>
           <div class="total-row" v-if="cart.discount > 0">
-            <span class="text-secondary">Discount</span>
-            <span class="font-mono text-danger">-₱{{ formatPrice(cart.discount) }}</span>
+            <span class="text-secondary">Скидка</span>
+            <span class="font-mono text-danger">-{{ formatPrice(cart.discount) }}</span>
           </div>
           <div class="total-row grand-total">
-            <span>Total</span>
+            <span>Итого</span>
             <span class="font-mono gradient-text" style="font-size:24px;font-weight:700">
-              ₱{{ formatPrice(cart.total) }}
+              {{ formatPrice(cart.total) }}
             </span>
           </div>
         </div>
 
         <Button
-          label="Pay Now"
+          label="Оплатить"
           :disabled="cart.itemCount === 0"
           class="touch-lg pay-btn"
           icon="pi pi-credit-card"
@@ -202,7 +202,7 @@ async function loadProducts() {
     const data = await api.get(`/api/products?${params}`)
     products.value = data.data || data
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
 }
 
@@ -232,7 +232,7 @@ async function handleBarcodeEnter() {
 function addToCart(product) {
   if (!product.is_active) return
   cart.addItem(product)
-  toast.add({ severity: 'success', summary: 'Added', detail: product.name, life: 1000 })
+  toast.add({ severity: 'success', summary: 'Добавлено', detail: product.name, life: 1000 })
 }
 
 async function handlePayment(paymentData) {
@@ -248,11 +248,11 @@ async function handlePayment(paymentData) {
       payment_reference: paymentData.reference
     })
 
-    toast.add({ severity: 'success', summary: 'Sale Complete', detail: `₱${formatPrice(cart.total)} received`, life: 3000 })
+    toast.add({ severity: 'success', summary: 'Продажа завершена', detail: `${formatPrice(cart.total)} получено`, life: 3000 })
     cart.clear()
     await loadProducts()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Sale Failed', detail: e.message, life: 5000 })
+    toast.add({ severity: 'error', summary: 'Ошибка продажи', detail: e.message, life: 5000 })
   }
 }
 
@@ -261,10 +261,10 @@ function formatPrice(n) {
 }
 
 function stockLabel(qty) {
-  if (qty < 0) return `Oversold (${qty})`
-  if (qty === 0) return 'Out of Stock'
-  if (qty <= 5) return `Low (${qty})`
-  return `${qty} in stock`
+  if (qty < 0) return `Перепродано (${qty})`
+  if (qty === 0) return 'Нет в наличии'
+  if (qty <= 5) return `Мало (${qty})`
+  return `${qty} на складе`
 }
 
 function stockClass(qty) {

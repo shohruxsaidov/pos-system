@@ -3,16 +3,16 @@
     <div class="status-pills">
       <div class="status-pill" :class="serverClass">
         <span class="status-dot" />
-        <span>Server</span>
+        <span>Сервер</span>
       </div>
       <div class="status-pill" :class="dbClass">
         <span class="status-dot" />
-        <span>Database</span>
+        <span>База данных</span>
       </div>
       <div class="status-pill" :class="syncClass">
         <span class="status-dot" />
-        <span v-if="status.syncQueue > 0">Sync: {{ status.syncQueue }} pending</span>
-        <span v-else>Synced</span>
+        <span v-if="status.syncQueue > 0">Синхр.: {{ status.syncQueue }} ожидает</span>
+        <span v-else>Синхронизировано</span>
       </div>
     </div>
     <div class="status-info">
@@ -27,23 +27,23 @@
           <div class="offline-icon">
             <i class="pi pi-wifi" style="font-size:48px;color:var(--danger)" />
           </div>
-          <h2>Server Offline</h2>
-          <p>Cannot connect to backend. Please check if the server is running.</p>
+          <h2>Сервер недоступен</h2>
+          <p>Нет подключения к серверу. Проверьте, запущен ли сервер.</p>
           <div class="offline-status">
             <div class="offline-row">
-              <span>Server:</span>
+              <span>Сервер:</span>
               <span :class="status.server === 'ok' ? 'text-success' : 'text-danger'">
-                {{ status.server === 'ok' ? 'Online' : 'Offline' }}
+                {{ status.server === 'ok' ? 'В сети' : 'Не в сети' }}
               </span>
             </div>
             <div class="offline-row">
-              <span>Database:</span>
+              <span>База данных:</span>
               <span :class="status.db === 'ok' ? 'text-success' : 'text-danger'">
-                {{ status.db === 'ok' ? 'Connected' : 'Error' }}
+                {{ status.db === 'ok' ? 'Подключена' : 'Ошибка' }}
               </span>
             </div>
           </div>
-          <p class="offline-hint">Reconnecting automatically...</p>
+          <p class="offline-hint">Автоматическое переподключение...</p>
         </div>
       </div>
     </Teleport>

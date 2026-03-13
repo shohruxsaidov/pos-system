@@ -11,7 +11,7 @@
         <div class="label-store">{{ storeName }}</div>
         <div class="label-name">{{ product?.name }}</div>
         <svg ref="svgRef" class="label-barcode" />
-        <div class="label-price font-mono">₱{{ formatPrice(product?.price) }}</div>
+        <div class="label-price font-mono">{{ formatPrice(product?.price) }}</div>
       </div>
 
       <div class="print-fields">

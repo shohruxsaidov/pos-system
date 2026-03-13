@@ -11,16 +11,16 @@
       <div class="payment-summary">
         <div class="summary-row">
           <span class="text-secondary">Subtotal</span>
-          <span class="font-mono">₱{{ formatAmount(cart.subtotal) }}</span>
+          <span class="font-mono">{{ formatAmount(cart.subtotal) }}</span>
         </div>
         <div class="summary-row" v-if="cart.discount > 0">
           <span class="text-secondary">Discount</span>
-          <span class="font-mono text-danger">-₱{{ formatAmount(cart.discount) }}</span>
+          <span class="font-mono text-danger">{{ formatAmount(cart.discount) }}</span>
         </div>
         <div class="summary-row total-row">
-          <span class="text-primary" style="font-weight:700">Total</span>
+          <span class="text-primary" style="font-weight:700">Всего</span>
           <span class="font-mono gradient-text" style="font-size:28px;font-weight:700">
-            ₱{{ formatAmount(cart.total) }}
+            {{ formatAmount(cart.total) }}
           </span>
         </div>
       </div>
@@ -36,65 +36,22 @@
           class="method-selector"
         />
       </div>
-
-      <!-- Tendered Amount (Cash only) -->
-      <div v-if="method === 'cash'" class="field-group">
-        <label class="field-label">Tendered Amount</label>
-        <div class="tendered-input">
-          <span class="tendered-prefix">₱</span>
-          <input
-            v-model="tendered"
-            type="text"
-            inputmode="none"
-            class="tendered-field font-mono"
-            placeholder="0.00"
-            @focus="showNumpad = true"
-          />
-        </div>
-        <div v-if="parseFloat(tendered) >= cart.total" class="change-display">
-          <span class="text-secondary">Change</span>
-          <span class="font-mono text-success" style="font-size:20px;font-weight:700">
-            ₱{{ formatAmount(change) }}
-          </span>
-        </div>
-        <div v-else-if="tendered && parseFloat(tendered) < cart.total" class="insufficient">
-          <i class="pi pi-exclamation-triangle" />
-          <span>Insufficient amount</span>
-        </div>
-        <NumPad
-          v-if="showNumpad"
-          v-model="tendered"
-          :show-display="false"
-          style="margin-top:12px"
-        />
-      </div>
-
-      <!-- Reference (Card/GCash) -->
-      <div v-if="method !== 'cash'" class="field-group">
-        <label class="field-label">Reference / Auth Code</label>
-        <InputText
-          v-model="reference"
-          placeholder="Optional reference number"
-          class="w-full"
-        />
-      </div>
-
       <!-- Receipt Toggle -->
       <div class="receipt-toggle">
-        <label class="field-label">Print Receipt</label>
+        <label class="field-label">Печать чека</label>
         <ToggleSwitch v-model="printReceipt" />
       </div>
     </div>
 
     <template #footer>
       <Button
-        label="Cancel"
-        class="p-button-secondary"
+        label="Отмена"
+        class="p-button-secondary touch-lg"
         @click="close"
         :disabled="processing"
       />
       <Button
-        label="Confirm Payment"
+        label="Подтвердить"
         class="touch-lg"
         :loading="processing"
         :disabled="!canConfirm"

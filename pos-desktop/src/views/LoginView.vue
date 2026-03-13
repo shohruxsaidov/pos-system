@@ -7,18 +7,18 @@
           <i class="pi pi-shopping-bag" />
         </div>
         <h1 class="logo-title">Market POS</h1>
-        <p class="logo-subtitle">Point of Sale System</p>
+        <p class="logo-subtitle">Система кассового обслуживания</p>
       </div>
 
       <!-- Cashier Select -->
       <div class="field-group">
-        <label class="field-label">Select Cashier</label>
+        <label class="field-label">Выбрать кассира</label>
         <Select
           v-model="selectedUser"
           :options="users"
           option-label="name"
           option-value="id"
-          placeholder="Choose cashier..."
+          placeholder="Выберите кассира..."
           class="w-full"
           :loading="loadingUsers"
         >
@@ -36,7 +36,7 @@
 
       <!-- PIN Input -->
       <div class="field-group">
-        <label class="field-label">Enter PIN</label>
+        <label class="field-label">Введите PIN</label>
         <PinPad
           v-model="pin"
           @complete="handleLogin"
@@ -49,7 +49,7 @@
       </div>
 
       <Button
-        label="Login"
+        label="Войти"
         :loading="logging"
         :disabled="!selectedUser || pin.length < 4"
         class="touch-lg w-full"
@@ -83,7 +83,7 @@ onMounted(async () => {
     const res = await fetch('http://localhost:3000/api/auth/users')
     users.value = await res.json()
   } catch (e) {
-    error.value = 'Cannot connect to server'
+    error.value = 'Нет соединения с сервером'
   } finally {
     loadingUsers.value = false
   }
@@ -104,7 +104,7 @@ async function handleLogin() {
     const data = await res.json()
 
     if (!res.ok) {
-      error.value = data.error || 'Login failed'
+      error.value = data.error || 'Ошибка входа'
       pin.value = ''
       return
     }
@@ -112,7 +112,7 @@ async function handleLogin() {
     session.login(data.user, data.token)
     router.push('/pos')
   } catch (e) {
-    error.value = 'Connection error. Is the server running?'
+    error.value = 'Ошибка соединения. Сервер запущен?'
   } finally {
     logging.value = false
     pin.value = ''

@@ -2,66 +2,66 @@
   <div class="reports-view">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Reports</h1>
+        <h1 class="view-title">Отчёты</h1>
         <p class="view-subtitle">{{ selectedDate }}</p>
       </div>
       <div class="header-actions">
         <DatePicker v-model="dateFilter" date-format="yy-mm-dd" @date-select="loadAll" />
-        <Button label="Export CSV" icon="pi pi-download" class="p-button-secondary" @click="exportCSV" />
+        <Button label="Экспорт CSV" icon="pi pi-download" class="p-button-secondary" @click="exportCSV" />
       </div>
     </div>
 
     <!-- Summary Cards -->
     <div class="summary-cards" v-if="daily">
       <div class="stat-card">
-        <div class="stat-label">Transactions</div>
+        <div class="stat-label">Транзакции</div>
         <div class="stat-value font-mono gradient-text">{{ daily.summary?.transaction_count || 0 }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Gross Sales</div>
-        <div class="stat-value font-mono gradient-text">₱{{ formatAmount(daily.summary?.gross_sales) }}</div>
+        <div class="stat-label">Валовые продажи</div>
+        <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.gross_sales) }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Net Sales</div>
-        <div class="stat-value font-mono gradient-text">₱{{ formatAmount(daily.summary?.net_sales) }}</div>
+        <div class="stat-label">Чистые продажи</div>
+        <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.net_sales) }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Avg / Transaction</div>
-        <div class="stat-value font-mono gradient-text">₱{{ formatAmount(daily.summary?.avg_transaction) }}</div>
+        <div class="stat-label">Ср. / Транзакция</div>
+        <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.avg_transaction) }}</div>
       </div>
     </div>
 
     <div class="reports-grid">
       <!-- Hourly Chart -->
       <div class="card report-card">
-        <h3 class="card-title">Sales by Hour</h3>
+        <h3 class="card-title">Продажи по часам</h3>
         <Chart type="bar" :data="hourlyChartData" :options="chartOptions" style="height:200px" />
       </div>
 
       <!-- Payment Methods -->
       <div class="card report-card">
-        <h3 class="card-title">Payment Methods</h3>
+        <h3 class="card-title">Способы оплаты</h3>
         <Chart v-if="daily?.by_method?.length" type="doughnut" :data="methodChartData" :options="pieOptions" style="height:200px" />
-        <div v-else class="empty-chart">No data</div>
+        <div v-else class="empty-chart">Нет данных</div>
       </div>
     </div>
 
     <!-- Top Products -->
     <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
       <div class="card-header">
-        <h3 class="card-title">Top Products</h3>
+        <h3 class="card-title">Топ товаров</h3>
       </div>
       <DataTable :value="topProducts" scrollable scroll-height="flex" :loading="loading">
-        <Column field="name" header="Product" />
-        <Column field="total_qty" header="Qty Sold" style="width:100px" />
-        <Column field="total_revenue" header="Revenue" style="width:130px">
+        <Column field="name" header="Товар" />
+        <Column field="total_qty" header="Продано" style="width:100px" />
+        <Column field="total_revenue" header="Выручка" style="width:130px">
           <template #body="{ data }">
-            <span class="font-mono">₱{{ formatAmount(data.total_revenue) }}</span>
+            <span class="font-mono">{{ formatAmount(data.total_revenue) }}</span>
           </template>
         </Column>
-        <Column field="gross_profit" header="Profit" style="width:120px">
+        <Column field="gross_profit" header="Прибыль" style="width:120px">
           <template #body="{ data }">
-            <span class="font-mono text-success">₱{{ formatAmount(data.gross_profit) }}</span>
+            <span class="font-mono text-success">{{ formatAmount(data.gross_profit) }}</span>
           </template>
         </Column>
       </DataTable>
@@ -70,27 +70,27 @@
     <!-- Transactions List (with refund button) -->
     <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
       <div class="card-header">
-        <h3 class="card-title">Transactions</h3>
+        <h3 class="card-title">Транзакции</h3>
       </div>
       <DataTable :value="transactions" scrollable scroll-height="flex" :loading="loading">
-        <Column field="ref_no" header="Ref No">
+        <Column field="ref_no" header="Номер">
           <template #body="{ data }">
             <span class="font-mono" style="font-size:12px">{{ data.ref_no }}</span>
           </template>
         </Column>
-        <Column field="cashier_name" header="Cashier" />
-        <Column field="total" header="Total" style="width:110px">
+        <Column field="cashier_name" header="Кассир" />
+        <Column field="total" header="Итого" style="width:110px">
           <template #body="{ data }">
-            <span class="font-mono">₱{{ formatAmount(data.total) }}</span>
+            <span class="font-mono">{{ formatAmount(data.total) }}</span>
           </template>
         </Column>
-        <Column field="payment_method" header="Method" style="width:90px" />
-        <Column field="status" header="Status" style="width:130px">
+        <Column field="payment_method" header="Способ" style="width:90px" />
+        <Column field="status" header="Статус" style="width:130px">
           <template #body="{ data }">
             <Tag :value="data.status" :severity="statusSeverity(data.status)" />
           </template>
         </Column>
-        <Column field="created_at" header="Time" style="width:100px">
+        <Column field="created_at" header="Время" style="width:100px">
           <template #body="{ data }">
             <span class="font-mono" style="font-size:12px">{{ formatTime(data.created_at) }}</span>
           </template>
@@ -99,7 +99,7 @@
           <template #body="{ data }">
             <Button
               v-if="data.status === 'completed' || data.status === 'partially_refunded'"
-              label="Refund"
+              label="Возврат"
               class="p-button-secondary"
               style="height:32px;font-size:12px"
               @click="openRefund(data)"
@@ -163,7 +163,7 @@ async function loadAll() {
     topProducts.value = topData
     transactions.value = txnData.data || txnData
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     loading.value = false
   }
@@ -174,7 +174,7 @@ const hourlyChartData = computed(() => {
   return {
     labels: hours.map(h => `${String(h.hour).padStart(2,'0')}:00`),
     datasets: [{
-      label: 'Sales',
+      label: 'Продажи',
       data: hours.map(h => parseFloat(h.sales)),
       backgroundColor: 'rgba(123,104,238,0.5)',
       borderColor: '#7b68ee',

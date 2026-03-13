@@ -3,14 +3,14 @@
     <!-- Header -->
     <div class="view-header">
       <div>
-        <h1 class="view-title">Inventory</h1>
-        <p class="view-subtitle">{{ totalProducts }} products</p>
+        <h1 class="view-title">Склад</h1>
+        <p class="view-subtitle">{{ totalProducts }} товаров</p>
       </div>
       <div class="header-actions">
-        <InputText v-model="search" placeholder="Search..." class="search-input" @input="debouncedSearch" />
-        <Select v-model="categoryFilter" :options="[{id:null,name:'All Categories'},...categories]" option-label="name" option-value="id" style="width:180px" />
+        <InputText v-model="search" placeholder="Поиск..." class="search-input" @input="debouncedSearch" />
+        <Select v-model="categoryFilter" :options="[{id:null,name:'Все категории'},...categories]" option-label="name" option-value="id" style="width:180px" />
         <Select v-model="stockFilter" :options="stockFilterOptions" option-label="label" option-value="value" style="width:160px" />
-        <Button label="Add Product" icon="pi pi-plus" @click="openCreate" />
+        <Button label="Добавить товар" icon="pi pi-plus" @click="openCreate" />
       </div>
     </div>
 
@@ -25,112 +25,112 @@
       v-model:selection="selectedProducts"
     >
       <Column selection-mode="multiple" style="width:50px" />
-      <Column field="barcode" header="Barcode" style="width:140px">
+      <Column field="barcode" header="Штрихкод" style="width:140px">
         <template #body="{ data }">
           <span class="font-mono" style="font-size:12px">{{ data.barcode || '—' }}</span>
         </template>
       </Column>
-      <Column field="name" header="Product" sortable />
-      <Column field="category_name" header="Category" style="width:130px" />
-      <Column field="price" header="Price" sortable style="width:100px">
+      <Column field="name" header="Товар" sortable />
+      <Column field="category_name" header="Категория" style="width:130px" />
+      <Column field="price" header="Цена" sortable style="width:100px">
         <template #body="{ data }">
-          <span class="font-mono">₱{{ formatPrice(data.price) }}</span>
+          <span class="font-mono">{{ formatPrice(data.price) }}</span>
         </template>
       </Column>
-      <Column field="cost" header="Cost" style="width:100px">
+      <Column field="cost" header="Себест." style="width:100px">
         <template #body="{ data }">
-          <span class="font-mono text-muted">₱{{ formatPrice(data.cost) }}</span>
+          <span class="font-mono text-muted">{{ formatPrice(data.cost) }}</span>
         </template>
       </Column>
-      <Column field="stock_qty" header="Stock" sortable style="width:140px">
+      <Column field="stock_qty" header="Склад" sortable style="width:140px">
         <template #body="{ data }">
           <div :class="['stock-badge', stockBadgeClass(data.stock_qty)]">
             {{ stockLabel(data.stock_qty) }}
           </div>
         </template>
       </Column>
-      <Column field="unit" header="Unit" style="width:70px" />
-      <Column header="Actions" style="width:200px">
+      <Column field="unit" header="Ед." style="width:70px" />
+      <Column header="Действия" style="width:200px">
         <template #body="{ data }">
           <div class="row-actions">
-            <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Edit'" />
-            <Button icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px" @click="openStockAdjust(data)" v-tooltip="'Adjust Stock'" />
-            <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px" @click="generateBarcode(data)" v-tooltip="'Generate Barcode'" />
-            <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px" @click="openPrintLabel(data)" v-tooltip="'Print Label'" />
-            <Button icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px" @click="deleteProduct(data)" v-tooltip="'Delete'" />
+            <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Редактировать'" />
+            <Button icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px" @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
+            <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px" @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
+            <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px" @click="openPrintLabel(data)" v-tooltip="'Печать этикетки'" />
+            <Button icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px" @click="deleteProduct(data)" v-tooltip="'Удалить'" />
           </div>
         </template>
       </Column>
     </DataTable>
 
     <!-- Create/Edit Drawer -->
-    <Drawer v-model:visible="showDrawer" :header="editingProduct ? 'Edit Product' : 'New Product'" position="right" style="width:480px">
+    <Drawer v-model:visible="showDrawer" :header="editingProduct ? 'Редактировать товар' : 'Новый товар'" position="right" style="width:480px">
       <div class="drawer-form">
         <div class="field-group">
-          <label class="field-label">Product Name *</label>
-          <InputText v-model="form.name" class="w-full" placeholder="Product name" />
+          <label class="field-label">Название товара *</label>
+          <InputText v-model="form.name" class="w-full" placeholder="Название товара" />
         </div>
         <div class="field-group">
-          <label class="field-label">Barcode</label>
-          <InputText v-model="form.barcode" class="w-full" placeholder="Scan or enter barcode" />
+          <label class="field-label">Штрихкод</label>
+          <InputText v-model="form.barcode" class="w-full" placeholder="Сканировать или ввести штрихкод" />
         </div>
         <div class="field-row">
           <div class="field-group">
-            <label class="field-label">Price *</label>
+            <label class="field-label">Цена *</label>
             <InputText v-model="form.price" type="number" class="w-full" placeholder="0.00" />
           </div>
           <div class="field-group">
-            <label class="field-label">Cost</label>
+            <label class="field-label">Себестоимость</label>
             <InputText v-model="form.cost" type="number" class="w-full" placeholder="0.00" />
           </div>
         </div>
         <div class="field-row">
           <div class="field-group">
-            <label class="field-label">Stock Qty</label>
+            <label class="field-label">Кол-во на складе</label>
             <InputText v-model="form.stock_qty" type="number" class="w-full" placeholder="0" />
           </div>
           <div class="field-group">
-            <label class="field-label">Unit</label>
-            <InputText v-model="form.unit" class="w-full" placeholder="pcs" />
+            <label class="field-label">Единица</label>
+            <InputText v-model="form.unit" class="w-full" placeholder="шт" />
           </div>
         </div>
         <div class="field-group">
-          <label class="field-label">Category</label>
-          <Select v-model="form.category_id" :options="categories" option-label="name" option-value="id" placeholder="Select category" class="w-full" />
+          <label class="field-label">Категория</label>
+          <Select v-model="form.category_id" :options="categories" option-label="name" option-value="id" placeholder="Выбрать категорию" class="w-full" />
         </div>
         <div class="field-group">
-          <label class="field-label">Image URL</label>
+          <label class="field-label">URL изображения</label>
           <InputText v-model="form.image_url" class="w-full" placeholder="https://..." />
         </div>
       </div>
 
       <template #footer>
         <div class="drawer-footer">
-          <Button label="Cancel" class="p-button-secondary" @click="showDrawer = false" />
-          <Button :label="editingProduct ? 'Save Changes' : 'Create Product'" :loading="saving" @click="saveProduct" style="flex:1" />
+          <Button label="Отмена" class="p-button-secondary" @click="showDrawer = false" />
+          <Button :label="editingProduct ? 'Сохранить изменения' : 'Создать товар'" :loading="saving" @click="saveProduct" style="flex:1" />
         </div>
       </template>
     </Drawer>
 
     <!-- Stock Adjust Dialog -->
-    <Dialog v-model:visible="showStockAdjust" modal :header="`Adjust Stock — ${adjustingProduct?.name}`" :style="{ width: '420px' }">
+    <Dialog v-model:visible="showStockAdjust" modal :header="`Корректировать склад — ${adjustingProduct?.name}`" :style="{ width: '420px' }">
       <div class="stock-adjust-content">
         <div class="current-stock">
-          <span class="text-secondary">Current Stock</span>
+          <span class="text-secondary">Текущий остаток</span>
           <span class="font-mono" style="font-size:24px;font-weight:700">{{ adjustingProduct?.stock_qty }}</span>
         </div>
         <div class="field-group">
-          <label class="field-label">Adjustment Delta (+ add, − remove)</label>
-          <InputText v-model="adjustDelta" type="number" class="w-full" placeholder="+10 or -5" />
+          <label class="field-label">Изменение запаса (+ добавить, − убрать)</label>
+          <InputText v-model="adjustDelta" type="number" class="w-full" placeholder="+10 или -5" />
         </div>
         <div class="field-group">
-          <label class="field-label">Reason</label>
+          <label class="field-label">Причина</label>
           <Select v-model="adjustReason" :options="adjustReasons" class="w-full" />
         </div>
       </div>
       <template #footer>
-        <Button label="Cancel" class="p-button-secondary" @click="showStockAdjust = false" />
-        <Button label="Apply Adjustment" :disabled="!adjustDelta || !adjustReason" :loading="saving" @click="applyStockAdjust" style="flex:1" />
+        <Button label="Отмена" class="p-button-secondary" @click="showStockAdjust = false" />
+        <Button label="Применить" :disabled="!adjustDelta || !adjustReason" :loading="saving" @click="applyStockAdjust" style="flex:1" />
       </template>
     </Dialog>
 
@@ -176,13 +176,13 @@ const totalProducts = ref(0)
 let searchTimeout = null
 
 const stockFilterOptions = [
-  { label: 'All Stock', value: null },
-  { label: 'Low Stock', value: 'low' },
-  { label: 'Out of Stock', value: 'out' },
-  { label: 'Oversold', value: 'oversold' }
+  { label: 'Все', value: null },
+  { label: 'Мало на складе', value: 'low' },
+  { label: 'Нет в наличии', value: 'out' },
+  { label: 'Перепродано', value: 'oversold' }
 ]
 
-const adjustReasons = ['Receiving correction', 'Damaged', 'Count correction', 'Return to supplier', 'Other']
+const adjustReasons = ['Корректировка приёма', 'Повреждено', 'Корректировка счёта', 'Возврат поставщику', 'Другое']
 
 const defaultForm = () => ({
   name: '', barcode: '', price: '', cost: '', stock_qty: 0,
@@ -208,7 +208,7 @@ async function loadProducts() {
     products.value = data.data || data
     totalProducts.value = data.total || products.value.length
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     loading.value = false
   }
@@ -252,15 +252,15 @@ async function saveProduct() {
   try {
     if (editingProduct.value) {
       await api.put(`/api/products/${editingProduct.value.id}`, form.value)
-      toast.add({ severity: 'success', summary: 'Updated', detail: form.value.name, life: 2000 })
+      toast.add({ severity: 'success', summary: 'Обновлено', detail: form.value.name, life: 2000 })
     } else {
       await api.post('/api/products', form.value)
-      toast.add({ severity: 'success', summary: 'Created', detail: form.value.name, life: 2000 })
+      toast.add({ severity: 'success', summary: 'Создано', detail: form.value.name, life: 2000 })
     }
     showDrawer.value = false
     await loadProducts()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
   }
@@ -273,11 +273,11 @@ async function applyStockAdjust() {
       delta: parseInt(adjustDelta.value),
       reason: adjustReason.value
     })
-    toast.add({ severity: 'success', summary: 'Stock Adjusted', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Склад скорректирован', life: 2000 })
     showStockAdjust.value = false
     await loadProducts()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
   }
@@ -287,24 +287,24 @@ async function generateBarcode(product) {
   try {
     const data = await api.get(`/api/barcode/generate?product_id=${product.id}`)
     if (data.generated) {
-      toast.add({ severity: 'success', summary: 'Barcode Generated', detail: data.barcode, life: 3000 })
+      toast.add({ severity: 'success', summary: 'Штрихкод создан', detail: data.barcode, life: 3000 })
       await loadProducts()
     } else {
-      toast.add({ severity: 'info', summary: 'Already has barcode', detail: data.barcode, life: 2000 })
+      toast.add({ severity: 'info', summary: 'Штрихкод уже есть', detail: data.barcode, life: 2000 })
     }
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
 }
 
 async function deleteProduct(product) {
-  if (!confirm(`Delete "${product.name}"?`)) return
+  if (!confirm(`Удалить "${product.name}"?`)) return
   try {
     await api.delete(`/api/products/${product.id}`)
-    toast.add({ severity: 'success', summary: 'Deleted', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Удалено', life: 2000 })
     await loadProducts()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
 }
 
@@ -317,18 +317,18 @@ async function handlePrint({ product, copies, size }) {
       price: product.price,
       copies, size
     })
-    toast.add({ severity: 'success', summary: 'Print command sent', life: 2000 })
+    toast.add({ severity: 'success', summary: 'Команда печати отправлена', life: 2000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Print failed', detail: e.message, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Ошибка печати', detail: e.message, life: 3000 })
   }
 }
 
 function formatPrice(n) { return parseFloat(n || 0).toFixed(2) }
 function stockLabel(qty) {
-  if (qty < 0) return `Oversold (${qty})`
-  if (qty === 0) return 'Out of Stock'
-  if (qty <= 5) return `Low (${qty})`
-  return `${qty} in stock`
+  if (qty < 0) return `Перепродано (${qty})`
+  if (qty === 0) return 'Нет в наличии'
+  if (qty <= 5) return `Мало (${qty})`
+  return `${qty} на складе`
 }
 function stockBadgeClass(qty) {
   if (qty < 0) return 'danger glow'

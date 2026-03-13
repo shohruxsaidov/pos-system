@@ -2,12 +2,12 @@
   <div class="customers-view">
     <div class="view-header">
       <div>
-        <h1 class="view-title">Customers</h1>
-        <p class="view-subtitle">{{ total }} customers</p>
+        <h1 class="view-title">Клиенты</h1>
+        <p class="view-subtitle">{{ total }} клиентов</p>
       </div>
       <div class="header-actions">
-        <InputText v-model="search" placeholder="Search name or phone..." class="search-input" @input="debouncedSearch" />
-        <Button label="Add Customer" icon="pi pi-plus" @click="openCreate" />
+        <InputText v-model="search" placeholder="Поиск по имени или телефону..." class="search-input" @input="debouncedSearch" />
+        <Button label="Добавить клиента" icon="pi pi-plus" @click="openCreate" />
       </div>
     </div>
 
@@ -21,26 +21,26 @@
       dataKey="id"
     >
       <Column expander style="width:50px" />
-      <Column field="name" header="Name" sortable />
-      <Column field="phone" header="Phone" style="width:150px">
+      <Column field="name" header="Имя" sortable />
+      <Column field="phone" header="Телефон" style="width:150px">
         <template #body="{ data }">
           <span class="font-mono">{{ data.phone || '—' }}</span>
         </template>
       </Column>
-      <Column field="email" header="Email" style="width:200px">
+      <Column field="email" header="Эл. почта" style="width:200px">
         <template #body="{ data }">
           {{ data.email || '—' }}
         </template>
       </Column>
-      <Column field="loyalty_points" header="Loyalty" style="width:200px">
+      <Column field="loyalty_points" header="Лояльность" style="width:200px">
         <template #body="{ data }">
           <div class="loyalty-cell">
             <ProgressBar :value="Math.min(100, (data.loyalty_points / 1000) * 100)" style="height:6px;flex:1" />
-            <span class="font-mono" style="font-size:12px;color:var(--text-accent)">{{ data.loyalty_points }} pts</span>
+            <span class="font-mono" style="font-size:12px;color:var(--text-accent)">{{ data.loyalty_points }} балл.</span>
           </div>
         </template>
       </Column>
-      <Column field="created_at" header="Since" style="width:110px">
+      <Column field="created_at" header="С" style="width:110px">
         <template #body="{ data }">
           <span style="font-size:12px;color:var(--text-muted)">{{ formatDate(data.created_at) }}</span>
         </template>
@@ -55,20 +55,20 @@
       </Column>
       <template #expansion="{ data }">
         <div class="expansion-panel">
-          <h4 class="text-secondary" style="margin-bottom:10px">Purchase History</h4>
+          <h4 class="text-secondary" style="margin-bottom:10px">История покупок</h4>
           <DataTable :value="data.purchase_history || []" :loading="!data.purchase_history">
-            <Column field="ref_no" header="Ref No">
+            <Column field="ref_no" header="Номер">
               <template #body="{ data }">
                 <span class="font-mono" style="font-size:12px">{{ data.ref_no }}</span>
               </template>
             </Column>
-            <Column field="total" header="Total">
+            <Column field="total" header="Итого">
               <template #body="{ data }">
-                <span class="font-mono">₱{{ formatAmount(data.total) }}</span>
+                <span class="font-mono">{{ formatAmount(data.total) }}</span>
               </template>
             </Column>
-            <Column field="payment_method" header="Method" />
-            <Column field="created_at" header="Date">
+            <Column field="payment_method" header="Способ" />
+            <Column field="created_at" header="Дата">
               <template #body="{ data }">
                 <span style="font-size:12px">{{ formatDate(data.created_at) }}</span>
               </template>
@@ -79,18 +79,18 @@
     </DataTable>
 
     <!-- Drawer -->
-    <Drawer v-model:visible="showDrawer" :header="editingCustomer ? 'Edit Customer' : 'New Customer'" position="right" style="width:420px">
+    <Drawer v-model:visible="showDrawer" :header="editingCustomer ? 'Редактировать клиента' : 'Новый клиент'" position="right" style="width:420px">
       <div class="drawer-form">
         <div class="field-group">
-          <label class="field-label">Full Name *</label>
-          <InputText v-model="form.name" class="w-full" placeholder="Customer name" />
+          <label class="field-label">Полное имя *</label>
+          <InputText v-model="form.name" class="w-full" placeholder="Имя клиента" />
         </div>
         <div class="field-group">
-          <label class="field-label">Phone</label>
-          <InputText v-model="form.phone" class="w-full" placeholder="+63..." />
+          <label class="field-label">Телефон</label>
+          <InputText v-model="form.phone" class="w-full" placeholder="+7..." />
         </div>
         <div class="field-group">
-          <label class="field-label">Email</label>
+          <label class="field-label">Эл. почта</label>
           <InputText v-model="form.email" class="w-full" placeholder="email@example.com" />
         </div>
         <div class="field-group" v-if="editingCustomer">

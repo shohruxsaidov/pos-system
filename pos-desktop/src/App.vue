@@ -34,7 +34,7 @@
           icon="pi pi-sign-out"
           class="p-button-secondary logout-btn"
           @click="logout"
-          v-tooltip.right="'Logout'"
+          v-tooltip.right="'Выйти'"
         />
       </div>
     </aside>
@@ -68,12 +68,12 @@ const router = useRouter()
 const navItems = computed(() => {
   const items = [
     { to: '/pos', icon: 'pi pi-shopping-cart', label: 'POS' },
-    { to: '/inventory', icon: 'pi pi-box', label: 'Inventory' },
-    { to: '/customers', icon: 'pi pi-users', label: 'Customers' }
+    { to: '/inventory', icon: 'pi pi-box', label: 'Склад' },
+    { to: '/customers', icon: 'pi pi-users', label: 'Клиенты' }
   ]
   if (['manager', 'admin'].includes(session.user?.role)) {
-    items.push({ to: '/reports', icon: 'pi pi-chart-bar', label: 'Reports' })
-    items.push({ to: '/settings', icon: 'pi pi-cog', label: 'Settings' })
+    items.push({ to: '/reports', icon: 'pi pi-chart-bar', label: 'Отчёты' })
+    items.push({ to: '/settings', icon: 'pi pi-cog', label: 'Настройки' })
   }
   return items
 })
