@@ -85,7 +85,7 @@
     </div>
 
     <template #footer>
-      <Button label="Cancel" class="p-button-secondary" @click="visible = false" />
+      <Button label="Cancel" class="p-button-secondary touch-lg" @click="visible = false" />
       <Button
         label="Process Refund"
         icon="pi pi-replay"

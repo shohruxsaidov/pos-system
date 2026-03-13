@@ -253,8 +253,9 @@ function logout() {
 
 .main-content {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
+  max-height: calc(100vh - 40px); /* Account for status bar height */ 
 }
 </style>

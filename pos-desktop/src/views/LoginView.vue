@@ -122,7 +122,7 @@ async function handleLogin() {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 30px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,7 +134,7 @@ async function handleLogin() {
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: 24px;
-  padding: 40px 36px;
+  padding: 5px 36px 40px;
   width: 380px;
   display: flex;
   flex-direction: column;

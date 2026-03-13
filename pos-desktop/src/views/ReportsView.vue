@@ -47,7 +47,7 @@
     </div>
 
     <!-- Top Products -->
-    <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div class="card" style="margin-bottom: 15px;">
       <div class="card-header">
         <h3 class="card-title">Топ товаров</h3>
       </div>
@@ -239,18 +239,14 @@ function exportCSV() {
 
 <style scoped>
 .reports-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   padding: 20px;
-  gap: 16px;
-  overflow: auto;
 }
 
 .view-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
 }
 
 .view-title { font-size: 24px; font-weight: 800; color: var(--text-primary); }
@@ -261,6 +257,7 @@ function exportCSV() {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
+  margin-bottom: 15px;
 }
 
 .stat-card {
@@ -277,6 +274,7 @@ function exportCSV() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  margin-bottom: 15px;
 }
 
 .report-card {

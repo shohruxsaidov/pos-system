@@ -119,7 +119,7 @@ async function handleLogin() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 15px;
 }
 
 .login-logo { text-align: center; }
@@ -172,8 +172,8 @@ async function handleLogin() {
 }
 
 .pin-key {
-  height: 70px;
-  width: 70px;
+  height: 60px;
+  width: 60px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 50%;
