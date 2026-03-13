@@ -33,6 +33,9 @@
         {{ error }}
       </div>
 
+      <div v-else style="min-height: 44px;">
+      </div>
+
       <button
         class="login-btn"
         :disabled="pin.length < 4 || logging"
@@ -105,12 +108,10 @@ async function handleLogin() {
   justify-content: center;
   background: var(--bg-base);
   background-image: var(--gradient-mesh);
-  padding: 20px;
 }
 
 .login-card {
   background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
   border-radius: 24px;
   padding: 32px 24px;
   width: 100%;
@@ -166,10 +167,12 @@ async function handleLogin() {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   width: 100%;
+  justify-items: center;
 }
 
 .pin-key {
-  height: 76px;
+  height: 70px;
+  width: 70px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 50%;
