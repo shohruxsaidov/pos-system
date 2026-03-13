@@ -111,7 +111,7 @@ async function handleLogin() {
 }
 
 .login-card {
-  background: var(--bg-elevated);
+  /* background: var(--bg-elevated); */
   border-radius: 24px;
   padding: 32px 24px;
   width: 100%;
