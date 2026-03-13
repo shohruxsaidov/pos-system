@@ -117,7 +117,7 @@ body {
 
 /* Input / Select */
 .p-inputtext,
-.p-select .p-select-label,
+.p-select,
 .p-inputnumber input,
 .p-inputotp-input {
   background: var(--bg-input) !important;
@@ -523,4 +523,14 @@ body {
 
 .p-togglebutton {
   height: var(--touch-base) !important;
+}
+
+.p-select-label {
+  border: none !important;
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-radius: 12px !important;
+  font-family: var(--font-sans) !important;
+  display: flex !important;
+  align-items: center !important;
 }
