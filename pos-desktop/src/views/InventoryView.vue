@@ -72,7 +72,10 @@
         </div>
         <div class="field-group">
           <label class="field-label">Штрихкод</label>
-          <InputText v-model="form.barcode" class="w-full" placeholder="Сканировать или ввести штрихкод" />
+          <div class="p-inputgroup">
+            <InputText v-model="form.barcode" class="w-full" placeholder="Сканировать или ввести штрихкод" />
+            <Button icon="pi pi-refresh" class="p-button-secondary" @click="generateBarcodeInForm" v-tooltip="'Сгенерировать штрихкод'" />
+          </div>
         </div>
         <div class="field-row">
           <div class="field-group">
@@ -294,6 +297,27 @@ async function generateBarcode(product) {
     }
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
+  }
+}
+
+async function generateBarcodeInForm() {
+  if (editingProduct.value?.id) {
+    // Existing product — use API to generate and save
+    try {
+      const data = await api.get(`/api/barcode/generate?product_id=${editingProduct.value.id}`)
+      form.value.barcode = data.barcode
+      toast.add({ severity: 'success', summary: 'Штрихкод сгенерирован', detail: data.barcode, life: 3000 })
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
+    }
+  } else {
+    // New product — generate locally (random EAN13)
+    const base = String(Math.floor(Math.random() * 1_000_000_000_000)).padStart(12, '0')
+    let sum = 0
+    base.split('').forEach((d, i) => { sum += parseInt(d) * (i % 2 === 0 ? 1 : 3) })
+    const check = (10 - (sum % 10)) % 10
+    form.value.barcode = base + check
+    toast.add({ severity: 'success', summary: 'Штрихкод сгенерирован', detail: form.value.barcode, life: 3000 })
   }
 }
 
