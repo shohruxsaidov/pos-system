@@ -119,9 +119,7 @@
           @click="showZHistory = !showZHistory" />
       </div>
       <div v-if="showZHistory">
-        <DataTable :value="zReports" :loading="loading" size="small" expandable-row-groups
-          v-model:expanded-rows="expandedZRows" data-key="id">
-          <Column expander style="width:40px" />
+        <DataTable :value="zReports" :loading="loading" size="small" data-key="id">
           <Column field="report_no" header="Отчёт" style="width:130px">
             <template #body="{ data }">
               <span class="font-mono" style="font-size:12px">{{ data.report_no }}</span>

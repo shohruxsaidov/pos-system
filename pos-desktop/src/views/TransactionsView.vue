@@ -41,13 +41,17 @@
       >
         <Column field="ref_no" header="Номер" style="width:180px">
           <template #body="{ data }">
-            <span class="font-mono" style="font-size:12px">{{ data.ref_no }}</span>
+            <span class="font-mono" style="font-size:12px" v-html="highlight(data.ref_no)" />
           </template>
         </Column>
-        <Column field="cashier_name" header="Кассир" />
+        <Column field="cashier_name" header="Кассир">
+          <template #body="{ data }">
+            <span v-html="highlight(data.cashier_name || '')" />
+          </template>
+        </Column>
         <Column field="customer_name" header="Клиент">
           <template #body="{ data }">
-            <span style="color:var(--text-secondary)">{{ data.customer_name || '—' }}</span>
+            <span style="color:var(--text-secondary)" v-html="highlight(data.customer_name || '—')" />
           </template>
         </Column>
         <Column field="total" header="Итого" style="width:120px">
@@ -192,6 +196,12 @@ function statusSeverity(s) {
   return map[s] || 'secondary'
 }
 
+function highlight(text) {
+  if (!search.value || !text) return text
+  const escaped = search.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>')
+}
+
 function exportCSV() {
   const rows = transactions.value.map(t =>
     [t.ref_no, t.cashier_name, t.customer_name || '', t.total, t.payment_method, t.status, t.created_at].join(',')
@@ -222,4 +232,12 @@ function exportCSV() {
 .view-title { font-size: 24px; font-weight: 800; color: var(--text-primary); }
 .view-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 .header-actions { display: flex; gap: 10px; align-items: center; }
+
+:deep(.search-highlight) {
+  background: rgba(255, 214, 0, 0.30);
+  color: #ffd600;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
+}
 </style>

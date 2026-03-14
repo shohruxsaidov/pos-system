@@ -146,7 +146,7 @@ export default async function transactionRoutes(fastify) {
     `, [...params, limit, offset])
 
     const { rows: countRows } = await pool.query(
-      `SELECT COUNT(*) FROM transactions t ${where}`,
+      `SELECT COUNT(*) FROM transactions t LEFT JOIN users u ON u.id=t.cashier_id LEFT JOIN customers c ON c.id=t.customer_id ${where}`,
       params
     )
 
