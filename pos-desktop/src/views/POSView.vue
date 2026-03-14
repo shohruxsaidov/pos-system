@@ -367,7 +367,7 @@ function stockClass(qty) {
 
 
 .product-card {
-  width: 180px;
+  width: 155px;
   min-width: 140px;
   background: var(--gradient-card);
   border: 1px solid var(--border-subtle);
