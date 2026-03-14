@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from './stores/session.js'
 import StatusBar from './components/StatusBar.vue'
@@ -73,6 +73,30 @@ function logout() {
   session.logout()
   router.push('/login')
 }
+
+// Auto-logout after 15 minutes of inactivity
+const INACTIVITY_TIMEOUT = 10
+let inactivityTimer = null
+
+function resetInactivityTimer() {
+  if (!session.isLoggedIn) return
+  clearTimeout(inactivityTimer)
+  inactivityTimer = setTimeout(() => {
+    if (session.isLoggedIn) logout()
+  }, INACTIVITY_TIMEOUT)
+}
+
+const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
+
+onMounted(() => {
+  activityEvents.forEach(e => window.addEventListener(e, resetInactivityTimer, { passive: true }))
+  resetInactivityTimer()
+})
+
+onUnmounted(() => {
+  activityEvents.forEach(e => window.removeEventListener(e, resetInactivityTimer))
+  clearTimeout(inactivityTimer)
+})
 </script>
 
 <style scoped>
