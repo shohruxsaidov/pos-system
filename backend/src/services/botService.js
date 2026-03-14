@@ -51,7 +51,7 @@ async function handleMessage(msg) {
           [today],
         );
         const r = rows[0];
-        reply = `📅 <b>Today (${today})</b>\nTransactions: ${r.count}\nGross Sales: ${parseFloat(r.total).toFixed(2)}\nAvg/Txn: ${parseFloat(r.avg).toFixed(2)}`;
+        reply = `📅 <b>Сегодня (${today})</b>\nТранзакций: ${r.count}\nВыручка: ${parseFloat(r.total).toFixed(2)}\nСредний чек: ${parseFloat(r.avg).toFixed(2)}`;
         break;
       }
       case "/week": {
@@ -60,7 +60,7 @@ async function handleMessage(msg) {
           FROM transactions WHERE created_at >= NOW()-INTERVAL '7 days' AND status!='voided'
         `);
         const r = rows[0];
-        reply = `📅 <b>Last 7 Days</b>\nTransactions: ${r.count}\nTotal Sales: ${parseFloat(r.total).toFixed(2)}`;
+        reply = `📅 <b>Последние 7 дней</b>\nТранзакций: ${r.count}\nВыручка: ${parseFloat(r.total).toFixed(2)}`;
         break;
       }
       case "/month": {
@@ -69,7 +69,7 @@ async function handleMessage(msg) {
           FROM transactions WHERE DATE_TRUNC('month',created_at)=DATE_TRUNC('month',NOW()) AND status!='voided'
         `);
         const r = rows[0];
-        reply = `📅 <b>This Month</b>\nTransactions: ${r.count}\nTotal Sales: ${parseFloat(r.total).toFixed(2)}`;
+        reply = `📅 <b>Этот месяц</b>\nТранзакций: ${r.count}\nВыручка: ${parseFloat(r.total).toFixed(2)}`;
         break;
       }
       case "/sales": {
@@ -82,7 +82,7 @@ async function handleMessage(msg) {
           [date],
         );
         const r = rows[0];
-        reply = `📅 <b>Sales on ${date}</b>\nTransactions: ${r.count}\nTotal: ${parseFloat(r.total).toFixed(2)}`;
+        reply = `📅 <b>Продажи за ${date}</b>\nТранзакций: ${r.count}\nВыручка: ${parseFloat(r.total).toFixed(2)}`;
         break;
       }
       case "/stock": {
@@ -104,11 +104,11 @@ async function handleMessage(msg) {
         );
         const oversoldText = oversold.length
           ? oversold.map((p) => `🚨 ${p.name}: ${p.stock_qty}`).join("\n")
-          : "None";
+          : "Нет";
         const lowText = low.length
           ? low.map((p) => `⚠️ ${p.name}: ${p.stock_qty}`).join("\n")
-          : "None";
-        reply = `📦 <b>Stock Alerts</b>\n\n<b>Oversold:</b>\n${oversoldText}\n\n<b>Low Stock:</b>\n${lowText}`;
+          : "Нет";
+        reply = `📦 <b>Остатки</b>\n\n<b>В минусе:</b>\n${oversoldText}\n\n<b>Мало товара:</b>\n${lowText}`;
         break;
       }
       case "/top": {
@@ -124,12 +124,12 @@ async function handleMessage(msg) {
           [today],
         );
         reply =
-          `🏆 <b>Top Products Today</b>\n\n` +
+          `🏆 <b>Топ товары сегодня</b>\n\n` +
           (rows.length
             ? rows
-                .map((r, i) => `${i + 1}. ${r.name} (${r.qty} sold)`)
+                .map((r, i) => `${i + 1}. ${r.name} (${r.qty} шт.)`)
                 .join("\n")
-            : "No sales today");
+            : "Продаж не было");
         break;
       }
       case "/cashiers": {
@@ -143,15 +143,15 @@ async function handleMessage(msg) {
           [today],
         );
         reply =
-          `👤 <b>Cashiers Today</b>\n\n` +
+          `👤 <b>Кассиры сегодня</b>\n\n` +
           (rows.length
             ? rows
                 .map(
                   (r) =>
-                    `${r.name}: ${r.count} txns · ${parseFloat(r.total).toFixed(2)}`,
+                    `${r.name}: ${r.count} чек(ов) · ${parseFloat(r.total).toFixed(2)}`,
                 )
                 .join("\n")
-            : "No activity");
+            : "Активности нет");
         break;
       }
       case "/refunds": {
@@ -163,7 +163,7 @@ async function handleMessage(msg) {
           [today],
         );
         reply =
-          `↩️ <b>Refunds Today</b>\n\n` +
+          `↩️ <b>Возвраты сегодня</b>\n\n` +
           (rows.length
             ? rows
                 .map(
@@ -171,13 +171,13 @@ async function handleMessage(msg) {
                     `${r.ref_no}: ${parseFloat(r.total_refund_amount).toFixed(2)} — ${r.reason}`,
                 )
                 .join("\n")
-            : "No refunds today");
+            : "Возвратов не было");
         break;
       }
       case "/txn": {
         const ref = args[0];
         if (!ref) {
-          reply = "Usage: /txn TXN-xxxx";
+          reply = "Использование: /txn TXN-xxxx";
           break;
         }
         const { rows } = await pool.query(
@@ -185,7 +185,7 @@ async function handleMessage(msg) {
           [ref],
         );
         if (!rows[0]) {
-          reply = `Transaction ${ref} not found`;
+          reply = `Транзакция ${ref} не найдена`;
           break;
         }
         const t = rows[0];
@@ -195,12 +195,12 @@ async function handleMessage(msg) {
         );
         reply =
           `🧾 <b>${t.ref_no}</b>\n` +
-          `Cashier: ${t.cashier_name}\n` +
-          `Total: ${parseFloat(t.total).toFixed(2)}\n` +
-          `Method: ${t.payment_method}\n` +
-          `Status: ${t.status}\n` +
-          `Date: ${new Date(t.created_at).toLocaleString()}\n\n` +
-          `<b>Items:</b>\n` +
+          `Кассир: ${t.cashier_name}\n` +
+          `Сумма: ${parseFloat(t.total).toFixed(2)}\n` +
+          `Оплата: ${t.payment_method}\n` +
+          `Статус: ${t.status}\n` +
+          `Дата: ${new Date(t.created_at).toLocaleString()}\n\n` +
+          `<b>Товары:</b>\n` +
           items
             .map(
               (i) =>
@@ -215,15 +215,15 @@ async function handleMessage(msg) {
         const { rows: lastSale } = await pool.query(
           "SELECT created_at FROM transactions ORDER BY created_at DESC LIMIT 1",
         );
-        reply = `🖥️ <b>System Status</b>\nServer: 🟢 Online\nDB: ${dbCheck.length ? "🟢 OK" : "🔴 Error"}\nUptime: ${Math.floor(process.uptime() / 60)} min\nMobile: ${mobileUrl}\nLast sale: ${lastSale[0] ? new Date(lastSale[0].created_at).toLocaleString() : "None"}`;
+        reply = `🖥️ <b>Состояние системы</b>\nСервер: 🟢 Работает\nБД: ${dbCheck.length ? "🟢 OK" : "🔴 Ошибка"}\nАптайм: ${Math.floor(process.uptime() / 60)} мин\nМобильный: ${mobileUrl}\nПоследняя продажа: ${lastSale[0] ? new Date(lastSale[0].created_at).toLocaleString() : "Нет"}`;
         break;
       }
       case "/help":
       default:
-        reply = `🤖 <b>POS Bot Commands</b>\n\n/today — Today's summary\n/week — Last 7 days\n/month — This month\n/sales YYYY-MM-DD — Specific date\n/stock — Stock alerts\n/top — Top products today\n/cashiers — Per-cashier breakdown\n/refunds — Today's refunds\n/txn REF — Transaction detail\n/status — System health\n/help — This message`;
+        reply = `🤖 <b>Команды POS бота</b>\n\n/today — Итоги сегодня\n/week — Последние 7 дней\n/month — Этот месяц\n/sales YYYY-MM-DD — Конкретная дата\n/stock — Остатки товаров\n/top — Топ товары сегодня\n/cashiers — По кассирам\n/refunds — Возвраты сегодня\n/txn REF — Детали транзакции\n/status — Состояние системы\n/help — Список команд`;
     }
   } catch (err) {
-    reply = `❌ Error: ${err.message}`;
+    reply = `❌ Ошибка: ${err.message}`;
   }
 
   if (reply) await sendTelegram(botToken, String(chatId), reply);
@@ -245,17 +245,17 @@ export async function startBot() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       commands: [
-        { command: "today",    description: "Today's sales summary" },
-        { command: "week",     description: "Last 7 days totals" },
-        { command: "month",    description: "This month totals" },
-        { command: "sales",    description: "Sales on a date: /sales YYYY-MM-DD" },
-        { command: "stock",    description: "Oversold & low stock alerts" },
-        { command: "top",      description: "Top 10 products today" },
-        { command: "cashiers", description: "Per-cashier breakdown today" },
-        { command: "refunds",  description: "Today's refunds" },
-        { command: "txn",      description: "Transaction detail: /txn REF" },
-        { command: "status",   description: "System health & mobile URL" },
-        { command: "help",     description: "Show all commands" },
+        { command: "today",    description: "Итоги продаж сегодня" },
+        { command: "week",     description: "Итоги за последние 7 дней" },
+        { command: "month",    description: "Итоги за этот месяц" },
+        { command: "sales",    description: "Продажи за дату: /sales YYYY-MM-DD" },
+        { command: "stock",    description: "Остатки: минус и мало товара" },
+        { command: "top",      description: "Топ-10 товаров сегодня" },
+        { command: "cashiers", description: "По кассирам за сегодня" },
+        { command: "refunds",  description: "Возвраты сегодня" },
+        { command: "txn",      description: "Детали транзакции: /txn REF" },
+        { command: "status",   description: "Состояние системы и ссылка на мобильный" },
+        { command: "help",     description: "Список всех команд" },
       ],
     }),
   }).catch((e) => console.error("[bot] setMyCommands failed:", e.message));

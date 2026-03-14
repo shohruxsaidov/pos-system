@@ -39,7 +39,7 @@ export async function sendLowStockAlert(product) {
     const chatId = settings.telegram_chat_id;
     const storeName = settings.store_name || "Store";
 
-    const message = `⚠️ <b>Low Stock Alert</b>\n\nProduct: ${product.name}\nStock: ${product.stock_qty} units\nBranch: ${storeName}\n\nAction needed: reorder`;
+    const message = `⚠️ <b>Мало товара</b>\n\nТовар: ${product.name}\nОстаток: ${product.stock_qty} шт.\nМагазин: ${storeName}\n\nТребуется: заказать товар`;
     await sendTelegram(token, chatId, message);
   } catch (err) {
     console.error("[notify] Low stock alert failed:", err.message);
@@ -54,7 +54,7 @@ export async function sendOversoldAlert(product) {
     const chatId = settings.telegram_chat_id;
     const storeName = settings.store_name || "Store";
 
-    const message = `🚨 <b>Oversold Alert</b>\n\nProduct: ${product.name}\nStock: ${product.stock_qty} (OVERSOLD)\nBranch: ${storeName}\n\nAction needed: receive stock`;
+    const message = `🚨 <b>Товар продан в минус</b>\n\nТовар: ${product.name}\nОстаток: ${product.stock_qty} (МИНУС)\nМагазин: ${storeName}\n\nТребуется: принять товар`;
     await sendTelegram(token, chatId, message);
   } catch (err) {
     console.error("[notify] Oversold alert failed:", err.message);
@@ -98,16 +98,16 @@ export async function sendEODSummary() {
 
     const s = summary[0];
     const topList = topProducts
-      .map((p, i) => `${i + 1}. ${p.name} (${p.total_qty} sold)`)
+      .map((p, i) => `${i + 1}. ${p.name} (${p.total_qty} шт.)`)
       .join("\n");
 
     const message =
-      `📊 <b>End of Day Summary</b>\n\n` +
-      `Branch: ${storeName}\nDate: ${today}\n\n` +
-      `Transactions: ${s.txn_count}\n` +
-      `Net Sales: ${parseFloat(s.net_sales).toFixed(2)}\n` +
-      `Avg/Txn: ${parseFloat(s.avg_txn).toFixed(2)}\n\n` +
-      `<b>Top Products:</b>\n${topList || "No sales today"}`;
+      `📊 <b>Итог дня</b>\n\n` +
+      `Магазин: ${storeName}\nДата: ${today}\n\n` +
+      `Транзакций: ${s.txn_count}\n` +
+      `Выручка: ${parseFloat(s.net_sales).toFixed(2)}\n` +
+      `Средний чек: ${parseFloat(s.avg_txn).toFixed(2)}\n\n` +
+      `<b>Топ товары:</b>\n${topList || "Продаж не было"}`;
 
     await sendTelegram(token, chatId, message);
   } catch (err) {
