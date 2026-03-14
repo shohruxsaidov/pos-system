@@ -266,7 +266,8 @@ async function handlePayment(paymentData) {
       payment_method: paymentData.method,
       tendered: paymentData.tendered,
       change_given: paymentData.change_given,
-      payment_reference: paymentData.reference
+      payment_reference: paymentData.reference,
+      print_receipt: paymentData.printReceipt
     })
 
     toast.add({ severity: 'success', summary: 'Продажа завершена', detail: `${formatPrice(cart.total)} получено`, life: 3000 })

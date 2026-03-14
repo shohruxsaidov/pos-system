@@ -2,6 +2,7 @@ import { pool } from '../db/connection.js'
 import { logAudit } from '../services/auditService.js'
 import { sendLowStockAlert, sendOversoldAlert } from '../services/notificationService.js'
 import { broadcastStatus } from '../services/statusService.js'
+import { printReceipt } from '../services/printService.js'
 
 function generateRefNo() {
   const now = new Date()
@@ -13,7 +14,7 @@ function generateRefNo() {
 export default async function transactionRoutes(fastify) {
   // POST /api/transactions — create sale
   fastify.post('/api/transactions', { onRequest: [fastify.authenticate] }, async (req, reply) => {
-    const { items, customer_id, discount = 0, tax = 0, payment_method = 'cash', tendered, change_given = 0, payment_reference } = req.body
+    const { items, customer_id, discount = 0, tax = 0, payment_method = 'cash', tendered, change_given = 0, payment_reference, print_receipt = false } = req.body
 
     if (!items || !items.length) {
       return reply.code(400).send({ error: 'items required' })
@@ -110,6 +111,12 @@ export default async function transactionRoutes(fastify) {
       }
 
       broadcastStatus().catch(() => {})
+
+      if (print_receipt) {
+        printReceipt(txn.id).catch((err) => {
+          fastify.log.warn(`Receipt print failed: ${err.message}`)
+        })
+      }
 
       return reply.code(201).send({ ...txn, ref_no: refNo })
     } catch (err) {
