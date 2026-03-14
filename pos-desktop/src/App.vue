@@ -58,6 +58,7 @@ const route = useRoute()
 
 const navItems = computed(() => {
   const items = [
+    { to: '/home', icon: 'pi pi-home', label: 'Главная' },
     { to: '/pos', icon: 'pi pi-shopping-cart', label: 'POS' },
     { to: '/inventory', icon: 'pi pi-box', label: 'Склад' },
   ]
@@ -75,7 +76,7 @@ function logout() {
 }
 
 // Auto-logout after 15 minutes of inactivity
-const INACTIVITY_TIMEOUT = 10
+const INACTIVITY_TIMEOUT = 15 * 60 * 1000
 let inactivityTimer = null
 
 function resetInactivityTimer() {

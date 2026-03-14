@@ -110,7 +110,7 @@ async function handleLogin() {
     }
 
     session.login(data.user, data.token)
-    router.push('/pos')
+    router.push('/home')
   } catch (e) {
     error.value = 'Ошибка соединения. Сервер запущен?'
   } finally {

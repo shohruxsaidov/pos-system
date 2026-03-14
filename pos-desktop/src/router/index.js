@@ -4,7 +4,13 @@ import { useSessionStore } from '../stores/session.js'
 const routes = [
   {
     path: '/',
-    redirect: '/pos'
+    redirect: '/home'
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: () => import('../views/HomeView.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',

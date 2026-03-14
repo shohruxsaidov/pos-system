@@ -4,7 +4,7 @@
     <div class="pos-products">
       <!-- Search Bar -->
       <div class="pos-search">
-        <Button icon="pi pi-arrow-left" class="p-button-secondary" @click="router.push('/inventory')"
+        <Button icon="pi pi-arrow-left" class="p-button-secondary" @click="router.push('/')"
           style="height:56px;width:56px" v-tooltip="'Склад'" />
         <IconField style="flex:1">
           <InputIcon class="pi pi-barcode" />
