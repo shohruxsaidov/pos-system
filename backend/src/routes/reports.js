@@ -232,8 +232,8 @@ export default async function reportRoutes(fastify) {
         p.id, p.name, p.barcode, p.price, p.cost,
         SUM(ti.qty) as total_qty,
         SUM(ti.subtotal) as total_revenue,
-        SUM(ti.qty * p.cost) as total_cost,
-        SUM(ti.subtotal) - SUM(ti.qty * p.cost) as gross_profit,
+        SUM(ti.qty * COALESCE(ti.cost_at_sale, p.cost, 0)) as total_cost,
+        SUM(ti.subtotal) - SUM(ti.qty * COALESCE(ti.cost_at_sale, p.cost, 0)) as gross_profit,
         COUNT(DISTINCT ti.transaction_id) as transaction_count
       FROM transaction_items ti
       JOIN products p ON p.id = ti.product_id

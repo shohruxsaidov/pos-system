@@ -53,9 +53,9 @@ export default async function transactionRoutes(fastify) {
       // Insert items & deduct from warehouse_stock
       for (const item of processedItems) {
         await client.query(`
-          INSERT INTO transaction_items (transaction_id, product_id, qty, unit_price, discount, subtotal)
-          VALUES ($1,$2,$3,$4,$5,$6)
-        `, [txn.id, item.product_id, item.qty, item.unit_price, item.discount || 0, item.itemSubtotal])
+          INSERT INTO transaction_items (transaction_id, product_id, qty, unit_price, discount, subtotal, cost_at_sale)
+          VALUES ($1,$2,$3,$4,$5,$6,$7)
+        `, [txn.id, item.product_id, item.qty, item.unit_price, item.discount || 0, item.itemSubtotal, item.product.cost ?? 0])
 
         await client.query(`
           INSERT INTO warehouse_stock (warehouse_id, product_id, stock_qty, updated_at)
