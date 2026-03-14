@@ -23,10 +23,6 @@
               <InputText v-model="settings.store_name" class="w-field" />
             </div>
             <div class="field-group">
-              <label class="field-label">Символ валюты</label>
-              <InputText v-model="settings.currency_symbol" class="w-field" style="width:100px" />
-            </div>
-            <div class="field-group">
               <label class="field-label">Порог низкого запаса</label>
               <InputText v-model="settings.low_stock_threshold" type="number" style="width:120px" />
             </div>
@@ -87,7 +83,8 @@
               </div>
               <div class="field-group">
                 <label class="field-label">Роль</label>
-                <Select v-model="userForm.role" :options="['cashier', 'manager', 'admin', 'warehouse']" class="w-full" />
+                <Select v-model="userForm.role" :options="['cashier', 'manager', 'admin', 'warehouse']"
+                  class="w-full" />
               </div>
               <div class="field-group" v-if="userForm.role !== 'admin'">
                 <label class="field-label">Склад</label>
@@ -142,15 +139,14 @@
             </div>
             <div class="field-group">
               <label class="field-label">Gemini API Key</label>
-              <InputText v-model="settings.gemini_api_key" class="w-field" type="password"
-                placeholder="AIza..." />
+              <InputText v-model="settings.gemini_api_key" class="w-field" type="password" placeholder="AIza..." />
               <span style="font-size:12px;color:var(--text-muted)">
                 ℹ️ Использует gemini-2.5-flash. Добавляет AI-анализ к ежедневному отчёту.
               </span>
               <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
                 <Button label="Тест AI анализа" class="p-button-secondary" icon="pi pi-microchip-ai"
-                  :loading="testingAI" :disabled="!aiSummaryEnabled || !settings.gemini_api_key"
-                  @click="testAISummary" style="align-self:flex-start" />
+                  :loading="testingAI" :disabled="!aiSummaryEnabled || !settings.gemini_api_key" @click="testAISummary"
+                  style="align-self:flex-start" />
                 <div v-if="aiSummaryStatus" class="status-msg" :class="aiSummaryStatus.type">
                   {{ aiSummaryStatus.msg }}
                 </div>

@@ -122,7 +122,7 @@ export default async function transactionRoutes(fastify) {
 
   // GET /api/transactions
   fastify.get('/api/transactions', { onRequest: [fastify.authenticate] }, async (req) => {
-    const { from, to, cashier_id, status, page = 1, limit = 50 } = req.query
+    const { from, to, cashier_id, status, search, page = 1, limit = 50 } = req.query
     const offset = (page - 1) * limit
 
     let where = 'WHERE 1=1'
@@ -133,6 +133,7 @@ export default async function transactionRoutes(fastify) {
     if (to) { where += ` AND t.created_at <= $${pIdx++}`; params.push(to) }
     if (cashier_id) { where += ` AND t.cashier_id=$${pIdx++}`; params.push(cashier_id) }
     if (status) { where += ` AND t.status=$${pIdx++}`; params.push(status) }
+    if (search) { where += ` AND (t.ref_no ILIKE $${pIdx++} OR u.name ILIKE $${pIdx++})`; params.push(`%${search}%`, `%${search}%`) }
 
     const { rows } = await pool.query(`
       SELECT t.*, u.name as cashier_name, c.name as customer_name

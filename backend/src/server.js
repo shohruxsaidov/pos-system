@@ -38,10 +38,23 @@ const PORT = parseInt(process.env.PORT || "3000");
 const JWT_SECRET =
   process.env.JWT_SECRET || "pos-secret-key-change-in-production";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const fastify = Fastify({
-  logger: {
-    level: process.env.NODE_ENV === "production" ? "warn" : "info",
-  },
+  logger: isDev
+    ? {
+        level: "info",
+        transport: {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            translateTime: "HH:MM:ss",
+            ignore: "pid,hostname",
+            messageFormat: "{msg}",
+          },
+        },
+      }
+    : { level: "warn" },
   trustProxy: true,
 });
 

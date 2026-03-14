@@ -339,12 +339,18 @@ export default async function reportRoutes(fastify) {
     const wid = warehouse_id ? parseInt(warehouse_id) : null
     const offset = (page - 1) * limit
 
-    const { rows } = await pool.query(`
-      SELECT * FROM z_reports
-      WHERE warehouse_id IS NOT DISTINCT FROM $1
-      ORDER BY closed_at DESC
-      LIMIT $2 OFFSET $3
-    `, [wid, limit, offset])
+    let rows
+    if (wid !== null) {
+      ;({ rows } = await pool.query(
+        `SELECT * FROM z_reports WHERE warehouse_id = $1 ORDER BY closed_at DESC LIMIT $2 OFFSET $3`,
+        [wid, limit, offset]
+      ))
+    } else {
+      ;({ rows } = await pool.query(
+        `SELECT * FROM z_reports ORDER BY closed_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ))
+    }
 
     return rows
   })
