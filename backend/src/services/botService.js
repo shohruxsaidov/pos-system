@@ -1,5 +1,5 @@
 import { pool } from "../db/connection.js";
-import { sendTelegram } from "./notificationService.js";
+import { sendTelegram, generateAISummary } from "./notificationService.js";
 import { getMobileUrl } from "./networkService.js";
 
 let polling = false;
@@ -209,6 +209,83 @@ async function handleMessage(msg) {
             .join("\n");
         break;
       }
+      case "/summary": {
+        await sendTelegram(botToken, String(chatId), "⏳ Генерирую AI анализ...");
+
+        const { rows: s } = await pool.query(
+          `SELECT COUNT(*) as txn_count, COALESCE(SUM(total),0) as net_sales, COALESCE(AVG(total),0) as avg_txn
+           FROM transactions WHERE DATE(created_at)=$1 AND status!='voided'`,
+          [today]
+        );
+        const { rows: topProducts } = await pool.query(
+          `SELECT p.name, SUM(ti.qty) as total_qty, SUM(ti.subtotal) as revenue
+           FROM transaction_items ti
+           JOIN products p ON p.id=ti.product_id
+           JOIN transactions t ON t.id=ti.transaction_id
+           WHERE DATE(t.created_at)=$1 AND t.status!='voided'
+           GROUP BY p.id, p.name ORDER BY total_qty DESC LIMIT 5`,
+          [today]
+        );
+        const { rows: paymentMethods } = await pool.query(
+          `SELECT payment_method as method, COUNT(*) as count, COALESCE(SUM(total),0) as total
+           FROM transactions WHERE DATE(created_at)=$1 AND status!='voided'
+           GROUP BY payment_method`,
+          [today]
+        );
+        const { rows: refunds } = await pool.query(
+          `SELECT COUNT(*) as count, COALESCE(SUM(total_refund_amount),0) as total
+           FROM refunds WHERE DATE(created_at)=$1`,
+          [today]
+        );
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+        const { rows: yday } = await pool.query(
+          `SELECT COALESCE(SUM(total),0) as net_sales FROM transactions
+           WHERE DATE(created_at)=$1 AND status!='voided'`,
+          [yesterday]
+        );
+        const { rows: lowStock } = await pool.query(
+          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
+           FROM products p
+           JOIN warehouse_stock ws ON ws.product_id=p.id
+           WHERE p.is_active=true
+           GROUP BY p.id, p.name
+           HAVING SUM(ws.stock_qty) > 0 AND SUM(ws.stock_qty) <= 5
+           ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
+        );
+        const { rows: oversold } = await pool.query(
+          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
+           FROM products p
+           JOIN warehouse_stock ws ON ws.product_id=p.id
+           WHERE p.is_active=true
+           GROUP BY p.id, p.name
+           HAVING SUM(ws.stock_qty) < 0
+           ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
+        );
+
+        const { rows: storeRow } = await pool.query(
+          "SELECT value FROM settings WHERE key='store_name'"
+        );
+
+        const aiText = await generateAISummary({
+          date: today,
+          storeName: storeRow[0]?.value || "Store",
+          txnCount: parseInt(s[0].txn_count),
+          netSales: parseFloat(s[0].net_sales),
+          avgTxn: parseFloat(s[0].avg_txn),
+          topProducts: topProducts.map(p => ({ name: p.name, qty: parseInt(p.total_qty), revenue: parseFloat(p.revenue) })),
+          paymentMethods: paymentMethods.map(p => ({ method: p.method, count: parseInt(p.count), total: parseFloat(p.total) })),
+          refundCount: parseInt(refunds[0].count),
+          refundTotal: parseFloat(refunds[0].total),
+          lowStockItems: lowStock.map(p => ({ name: p.name, stock_qty: p.stock_qty })),
+          oversoldItems: oversold.map(p => ({ name: p.name, stock_qty: p.stock_qty })),
+          yesterdayNetSales: parseFloat(yday[0]?.net_sales || 0),
+        });
+
+        reply = aiText
+          ? `🤖 <b>AI Анализ за ${today}</b>\n\n${aiText}`
+          : "❌ AI анализ недоступен — проверьте Gemini API Key и настройки.";
+        break;
+      }
       case "/status": {
         const { rows: dbCheck } = await pool.query("SELECT 1");
         const mobileUrl = getMobileUrl();
@@ -220,7 +297,7 @@ async function handleMessage(msg) {
       }
       case "/help":
       default:
-        reply = `🤖 <b>Команды POS бота</b>\n\n/today — Итоги сегодня\n/week — Последние 7 дней\n/month — Этот месяц\n/sales YYYY-MM-DD — Конкретная дата\n/stock — Остатки товаров\n/top — Топ товары сегодня\n/cashiers — По кассирам\n/refunds — Возвраты сегодня\n/txn REF — Детали транзакции\n/status — Состояние системы\n/help — Список команд`;
+        reply = `🤖 <b>Команды POS бота</b>\n\n/today — Итоги сегодня\n/week — Последние 7 дней\n/month — Этот месяц\n/sales YYYY-MM-DD — Конкретная дата\n/stock — Остатки товаров\n/top — Топ товары сегодня\n/cashiers — По кассирам\n/refunds — Возвраты сегодня\n/txn REF — Детали транзакции\n/status — Состояние системы\n/summary — AI анализ продаж за сегодня\n/help — Список команд`;
     }
   } catch (err) {
     reply = `❌ Ошибка: ${err.message}`;
@@ -255,6 +332,7 @@ export async function startBot() {
         { command: "refunds",  description: "Возвраты сегодня" },
         { command: "txn",      description: "Детали транзакции: /txn REF" },
         { command: "status",   description: "Состояние системы и ссылка на мобильный" },
+        { command: "summary",  description: "AI анализ продаж за сегодня" },
         { command: "help",     description: "Список всех команд" },
       ],
     }),

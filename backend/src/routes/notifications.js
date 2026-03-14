@@ -34,12 +34,12 @@ export default async function notificationRoutes(fastify) {
     }
 
     const { rows } = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('telegram_bot_token','telegram_chat_id','store_name','anthropic_api_key','ai_summary_enabled')"
+      "SELECT key, value FROM settings WHERE key IN ('telegram_bot_token','telegram_chat_id','store_name','gemini_api_key','ai_summary_enabled')"
     )
     const s = Object.fromEntries(rows.map(r => [r.key, r.value]))
 
-    if (!s.anthropic_api_key) {
-      return reply.code(400).send({ error: 'Anthropic API key not configured' })
+    if (!s.gemini_api_key) {
+      return reply.code(400).send({ error: 'Gemini API key not configured' })
     }
     if (s.ai_summary_enabled !== 'true') {
       return reply.code(400).send({ error: 'AI summary is disabled' })

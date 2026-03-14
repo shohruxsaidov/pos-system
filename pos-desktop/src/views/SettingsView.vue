@@ -141,15 +141,15 @@
                 @change="settings.ai_summary_enabled = aiSummaryEnabled ? 'true' : 'false'" />
             </div>
             <div class="field-group">
-              <label class="field-label">Anthropic API Key</label>
-              <InputText v-model="settings.anthropic_api_key" class="w-field" type="password"
-                placeholder="sk-ant-..." />
+              <label class="field-label">Gemini API Key</label>
+              <InputText v-model="settings.gemini_api_key" class="w-field" type="password"
+                placeholder="AIza..." />
               <span style="font-size:12px;color:var(--text-muted)">
-                ℹ️ Использует claude-haiku-4-5. Добавляет AI-анализ к ежедневному отчёту.
+                ℹ️ Использует gemini-2.5-flash. Добавляет AI-анализ к ежедневному отчёту.
               </span>
               <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
                 <Button label="Тест AI анализа" class="p-button-secondary" icon="pi pi-microchip-ai"
-                  :loading="testingAI" :disabled="!aiSummaryEnabled || !settings.anthropic_api_key"
+                  :loading="testingAI" :disabled="!aiSummaryEnabled || !settings.gemini_api_key"
                   @click="testAISummary" style="align-self:flex-start" />
                 <div v-if="aiSummaryStatus" class="status-msg" :class="aiSummaryStatus.type">
                   {{ aiSummaryStatus.msg }}
