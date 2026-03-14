@@ -9,8 +9,6 @@
         <Tab value="general">Общие</Tab>
         <Tab value="users">Пользователи</Tab>
         <Tab value="telegram">Telegram</Tab>
-        <Tab value="warehouses">Склады</Tab>
-        <Tab value="warehouse">QR Склад</Tab>
         <Tab value="audit">Журнал аудита</Tab>
       </TabList>
 
@@ -158,69 +156,6 @@
           </div>
         </TabPanel>
 
-        <!-- Warehouses Management -->
-        <TabPanel value="warehouses">
-          <div class="users-section">
-            <div class="section-header">
-              <h3>Склады</h3>
-              <Button label="Добавить склад" icon="pi pi-plus" @click="openCreateWarehouse" />
-            </div>
-            <DataTable :value="warehouses" :loading="loadingWarehouses">
-              <Column field="id" header="ID" style="width:60px" />
-              <Column field="name" header="Название" />
-              <Column field="is_active" header="Активен" style="width:90px">
-                <template #body="{ data }">
-                  <i :class="data.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'"
-                    :style="{ color: data.is_active ? 'var(--success)' : 'var(--danger)' }" />
-                </template>
-              </Column>
-              <Column header="" style="width:80px">
-                <template #body="{ data }">
-                  <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
-                    @click="openEditWarehouse(data)" />
-                </template>
-              </Column>
-            </DataTable>
-          </div>
-
-          <Dialog v-model:visible="showWarehouseDialog" modal
-            :header="editingWarehouse ? 'Редактировать склад' : 'Новый склад'" :style="{ width: '380px' }">
-            <div class="user-form">
-              <div class="field-group">
-                <label class="field-label">Название</label>
-                <InputText v-model="warehouseForm.name" class="w-full" />
-              </div>
-              <div class="field-group" v-if="editingWarehouse">
-                <label class="field-label">Активен</label>
-                <ToggleSwitch v-model="warehouseForm.is_active" />
-              </div>
-            </div>
-            <template #footer>
-              <Button label="Отмена" class="p-button-secondary" @click="showWarehouseDialog = false" />
-              <Button :label="editingWarehouse ? 'Сохранить' : 'Создать'" :loading="saving" @click="saveWarehouse"
-                style="flex:1" />
-            </template>
-          </Dialog>
-        </TabPanel>
-
-        <!-- Warehouse QR -->
-        <TabPanel value="warehouse">
-          <div class="warehouse-section">
-            <h3 class="section-title">Мобильный доступ склада</h3>
-            <p class="section-desc">Отсканируйте QR-код телефоном сотрудника склада для доступа к мобильной системе.</p>
-
-            <div class="qr-card">
-              <canvas ref="qrCanvas" class="qr-canvas" />
-              <div class="qr-url font-mono">{{ mobileUrl }}</div>
-            </div>
-
-            <div class="qr-actions">
-              <Button label="Обновить URL" icon="pi pi-refresh" class="p-button-secondary" @click="refreshMobileUrl" />
-              <Button label="Печать QR" icon="pi pi-print" class="p-button-secondary" @click="printQR" />
-            </div>
-          </div>
-        </TabPanel>
-
         <!-- Audit Log -->
         <TabPanel value="audit">
           <div class="audit-section">
@@ -297,7 +232,6 @@
 import { ref, onMounted, watch } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
-import QRCode from 'qrcode'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -336,13 +270,6 @@ const editingUser = ref(null)
 const userForm = ref({ name: '', role: 'cashier', pin: '', is_active: true, warehouse_id: null })
 
 const warehouses = ref([])
-const loadingWarehouses = ref(false)
-const showWarehouseDialog = ref(false)
-const editingWarehouse = ref(null)
-const warehouseForm = ref({ name: '', is_active: true })
-
-const mobileUrl = ref('')
-const qrCanvas = ref(null)
 
 const auditLogs = ref([])
 const loadingAudit = ref(false)
@@ -357,7 +284,6 @@ onMounted(async () => {
   await loadSettings()
   await loadUsers()
   await loadWarehouses()
-  await loadMobileUrl()
 })
 
 watch(activeTab, async (tab) => {
@@ -432,42 +358,9 @@ function openEditUser(user) {
 }
 
 async function loadWarehouses() {
-  loadingWarehouses.value = true
   try {
     warehouses.value = await api.get('/api/warehouses')
-  } catch (e) { } finally {
-    loadingWarehouses.value = false
-  }
-}
-
-function openCreateWarehouse() {
-  editingWarehouse.value = null
-  warehouseForm.value = { name: '', is_active: true }
-  showWarehouseDialog.value = true
-}
-
-function openEditWarehouse(wh) {
-  editingWarehouse.value = wh
-  warehouseForm.value = { ...wh }
-  showWarehouseDialog.value = true
-}
-
-async function saveWarehouse() {
-  saving.value = true
-  try {
-    if (editingWarehouse.value) {
-      await api.put(`/api/warehouses/${editingWarehouse.value.id}`, warehouseForm.value)
-    } else {
-      await api.post('/api/warehouses', warehouseForm.value)
-    }
-    toast.add({ severity: 'success', summary: 'Склад сохранён', life: 2000 })
-    showWarehouseDialog.value = false
-    await loadWarehouses()
-  } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
-  } finally {
-    saving.value = false
-  }
+  } catch (e) { }
 }
 
 async function saveUser() {
@@ -486,31 +379,6 @@ async function saveUser() {
   } finally {
     saving.value = false
   }
-}
-
-async function loadMobileUrl() {
-  try {
-    const data = await api.get('/api/settings/mobile-url')
-    mobileUrl.value = data.url
-    if (qrCanvas.value) {
-      await QRCode.toCanvas(qrCanvas.value, data.url, {
-        width: 220, margin: 2,
-        color: { dark: '#e2e2f5', light: '#22223a' }
-      })
-    }
-  } catch (e) { }
-}
-
-async function refreshMobileUrl() {
-  await loadMobileUrl()
-  toast.add({ severity: 'info', summary: 'URL обновлён', life: 2000 })
-}
-
-function printQR() {
-  const w = window.open()
-  w.document.write(`<img src="${qrCanvas.value.toDataURL()}" style="width:220px"><br><code>${mobileUrl.value}</code>`)
-  w.print()
-  w.close()
 }
 
 async function loadAudit() {
@@ -633,49 +501,6 @@ function actionSeverity(action) {
   border-radius: 8px;
 }
 
-.warehouse-section {
-  padding: 16px 0;
-  max-width: 400px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-
-.section-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
-
-.qr-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.qr-canvas {
-  border-radius: 8px;
-}
-
-.qr-url {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.qr-actions {
-  display: flex;
-  gap: 10px;
-}
 
 .audit-section {
   display: flex;
