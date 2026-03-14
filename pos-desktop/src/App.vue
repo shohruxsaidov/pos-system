@@ -31,7 +31,11 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <RouterView />
+      <RouterView v-slot="{ Component, route }">
+        <Transition :name="route.meta.transition || 'page'" mode="out-in">
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </RouterView>
     </main>
 
     <!-- Status Bar (always visible when logged in) -->
@@ -276,5 +280,21 @@ onUnmounted(() => {
   flex-direction: column;
   max-height: calc(100vh - 40px);
   /* Account for status bar height */
+}
+
+/* Page transition */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

@@ -234,7 +234,37 @@
               <DatePicker v-model="auditFilter.to" placeholder="До" />
               <Button label="Фильтр" @click="loadAudit" />
             </div>
-            <DataTable :value="auditLogs" :loading="loadingAudit" scrollable scroll-height="flex">
+            <!-- Skeleton loading -->
+            <DataTable v-if="loadingAudit" :value="Array(8).fill({})" scrollable scroll-height="flex">
+              <Column header="Время" style="width:150px">
+                <template #body>
+                  <Skeleton width="110px" height="16px" />
+                </template>
+              </Column>
+              <Column header="Действие" style="width:150px">
+                <template #body>
+                  <Skeleton width="90px" height="24px" border-radius="12px" />
+                </template>
+              </Column>
+              <Column header="Исполнитель" style="width:130px">
+                <template #body>
+                  <Skeleton width="80px" height="16px" />
+                </template>
+              </Column>
+              <Column header="Объект">
+                <template #body>
+                  <Skeleton width="140px" height="16px" />
+                </template>
+              </Column>
+              <Column header="Детали" style="width:50px">
+                <template #body>
+                  <Skeleton width="32px" height="32px" border-radius="6px" />
+                </template>
+              </Column>
+            </DataTable>
+
+            <!-- Actual data -->
+            <DataTable v-else :value="auditLogs" scrollable scroll-height="flex">
               <Column field="created_at" header="Время" style="width:150px">
                 <template #body="{ data }">
                   <span class="font-mono" style="font-size:12px">{{ formatDateTime(data.created_at) }}</span>
@@ -288,6 +318,7 @@ import Dialog from 'primevue/dialog'
 import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
+import Skeleton from 'primevue/skeleton'
 
 const api = useApi()
 const toast = useToast()

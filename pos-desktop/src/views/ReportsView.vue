@@ -216,8 +216,15 @@ const zReports = ref([])
 const showZHistory = ref(false)
 const expandedZRows = ref({})
 
+function fmtLocalDate(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 const selectedDate = computed(() => {
-  return dateFilter.value?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]
+  return dateFilter.value ? fmtLocalDate(dateFilter.value) : fmtLocalDate(new Date())
 })
 
 const totalGrossProfit = computed(() =>
