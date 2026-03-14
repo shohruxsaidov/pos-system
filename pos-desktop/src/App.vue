@@ -32,7 +32,7 @@
     <!-- Main Content -->
     <main class="main-content">
       <RouterView v-slot="{ Component, route }">
-        <Transition :name="route.meta.transition || 'page'" mode="out-in">
+        <Transition :name="transitionName" mode="out-in">
           <component :is="Component" :key="route.path" />
         </Transition>
       </RouterView>
@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from './stores/session.js'
 import StatusBar from './components/StatusBar.vue'
@@ -59,6 +59,15 @@ import ConfirmDialog from 'primevue/confirmdialog'
 const session = useSessionStore()
 const router = useRouter()
 const route = useRoute()
+
+const transitionName = ref('page')
+router.beforeEach((to, from) => {
+  if (to.path === '/pos' || from.path === '/pos') {
+    transitionName.value = 'fade'
+  } else {
+    transitionName.value = 'page'
+  }
+})
 
 const navItems = computed(() => {
   const items = [
@@ -280,6 +289,17 @@ onUnmounted(() => {
   flex-direction: column;
   max-height: calc(100vh - 40px);
   /* Account for status bar height */
+}
+
+/* Fade transition (to/from POS) */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* Page transition */
