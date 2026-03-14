@@ -98,41 +98,6 @@
       </div>
     </div>
 
-    <!-- Add to Cart Dialog -->
-    <Dialog v-model:visible="showAddDialog" modal :header="`${dialogProduct?.name}: ${dialogProduct?.price}`"
-      :style="{ width: '420px' }" :pt="{ header: { style: 'padding-bottom: 8px' } }">
-      <div class="add-dialog-body">
-        <!-- Field selector row -->
-        <div class="add-fields">
-          <div class="add-field" :class="{ active: activeField === 'qty' }" @click="setActiveField('qty')">
-            <span class="add-field-label">Кол-во</span>
-            <span class="add-field-value font-mono">{{ dialogQty }}</span>
-          </div>
-          <span class="add-field-op">×</span>
-          <div class="add-field" :class="{ active: activeField === 'price' }" @click="setActiveField('price')">
-            <span class="add-field-label">Цена</span>
-            <span class="add-field-value font-mono">{{ dialogPrice }}</span>
-          </div>
-          <span class="add-field-op">=</span>
-          <div class="add-field add-field-total" :class="{ active: activeField === 'total' }"
-            @click="setActiveField('total')">
-            <span class="add-field-label">Сумма</span>
-            <span class="add-field-value font-mono">{{ dialogTotal }}</span>
-          </div>
-        </div>
-
-        <NumPad :model-value="numpadValue" :show-display="false" :key="activeField"
-          @update:model-value="onNumpadInput" />
-
-        <button class="clear-btn" @click="clearActiveField">C — Очистить</button>
-      </div>
-      <template #footer>
-        <Button label="Отмена" class="p-button-secondary" @click="showAddDialog = false" style="height:56px" />
-        <Button label="Добавить в корзину" icon="pi pi-cart-plus" @click="confirmAddToCart"
-          style="height:56px;flex:1;background:var(--gradient-hero);border:none" />
-      </template>
-    </Dialog>
-
     <!-- Cart Amount → Qty Dialog -->
     <Dialog v-model:visible="showPriceDialog" modal header="Ввести сумму"
       :style="{ width: '320px' }">
@@ -180,7 +145,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart.js'
 import { useApi } from '../composables/useApi.js'
-import { useSessionStore } from '../stores/session.js'
 import { useToast } from 'primevue/usetoast'
 import PaymentModal from '../components/PaymentModal.vue'
 import NumPad from '../components/NumPad.vue'
@@ -193,12 +157,9 @@ import InputIcon from 'primevue/inputicon'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 import Dialog from 'primevue/dialog'
-import VirtualScroller from 'primevue/virtualscroller'
-
 const router = useRouter()
 const cart = useCartStore()
 const api = useApi()
-const session = useSessionStore()
 const toast = useToast()
 
 const products = ref([])
@@ -250,73 +211,6 @@ function confirmPriceEdit() {
   showPriceDialog.value = false
 }
 
-// Add-to-cart dialog
-const showAddDialog = ref(false)
-const dialogProduct = ref(null)
-const dialogQty = ref('1')
-const dialogPrice = ref('0')
-const dialogTotal = ref('0')
-const activeField = ref('qty') // 'qty' | 'price' | 'total'
-
-const numpadValue = computed(() => {
-  if (activeField.value === 'qty') return dialogQty.value
-  if (activeField.value === 'price') return dialogPrice.value
-  return dialogTotal.value
-})
-
-function setActiveField(field) {
-  activeField.value = field
-}
-
-function onNumpadInput(val) {
-  if (activeField.value === 'qty') {
-    dialogQty.value = val
-    const q = parseFloat(val) || 0
-    const p = parseFloat(dialogPrice.value) || 0
-    dialogTotal.value = (q * p).toFixed(2)
-  } else if (activeField.value === 'price') {
-    dialogPrice.value = val
-    const q = +val / +dialogProduct.value.price || 0
-    const p = parseFloat(val) || 0
-    dialogTotal.value = (q * p).toFixed(2)
-    dialogQty.value = String(q)
-  } else {
-    dialogTotal.value = val
-    const t = parseFloat(val) || 0
-    const p = parseFloat(dialogPrice.value) || 0
-    dialogQty.value = p > 0 ? String(Math.round((t / p) * 1000) / 1000) : '0'
-  }
-}
-
-function openAddDialog(product) {
-  if (!product.is_active) return
-  dialogProduct.value = product
-  dialogPrice.value = String(parseFloat(product.price))
-  dialogQty.value = '1'
-  dialogTotal.value = parseFloat(product.price).toFixed(2)
-  activeField.value = 'qty'
-  showAddDialog.value = true
-}
-
-function clearActiveField() {
-  if (activeField.value === 'qty') {
-    dialogQty.value = '0'
-    dialogTotal.value = '0'
-  } else if (activeField.value === 'price') {
-    dialogPrice.value = '0'
-    dialogTotal.value = '0'
-  } else {
-    dialogTotal.value = '0'
-    dialogQty.value = '0'
-  }
-}
-
-function confirmAddToCart() {
-  const qty = parseFloat(dialogQty.value) || 1
-  const price = parseFloat(dialogPrice.value) || 0
-  cart.addItem(dialogProduct.value, qty, price)
-  showAddDialog.value = false
-}
 
 onMounted(async () => {
   await Promise.all([loadProducts(), loadCategories()])
@@ -359,12 +253,8 @@ async function handleBarcodeEnter() {
 }
 
 function addToCart(product) {
-  if (product.unit === 'kg' || product.unit === 'кг') {
-    openAddDialog(product)
-  } else {
-    if (!product.is_active) return
-    cart.addItem(product)
-  }
+  if (!product.is_active) return
+  cart.addItem(product)
 }
 
 async function handlePayment(paymentData) {
@@ -664,93 +554,6 @@ function stockClass(qty) {
   width: 100%;
 }
 
-/* Add-to-cart dialog */
-.add-dialog-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.add-fields {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.add-field {
-  flex: 1;
-  background: var(--bg-input);
-  border: 2px solid var(--border-default);
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: center;
-}
-
-.add-field:hover {
-  border-color: var(--accent-1);
-}
-
-.add-field.active {
-  border-color: var(--accent-1);
-  background: var(--accent-glow);
-}
-
-.add-field-total {
-  flex: 1.3;
-}
-
-.add-field-label {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-
-.add-field-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.add-field.active .add-field-value {
-  color: var(--text-accent);
-}
-
-.add-field-op {
-  color: var(--text-muted);
-  font-size: 18px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.clear-btn {
-  width: 100%;
-  height: 52px;
-  background: var(--danger-bg);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  color: var(--danger);
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.12s;
-}
-
-.clear-btn:hover {
-  border-color: var(--danger);
-}
-
-.clear-btn:active {
-  opacity: 0.8;
-  transform: scale(0.98);
-}
 
 .w-full {
   width: 100%;
