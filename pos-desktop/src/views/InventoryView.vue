@@ -129,10 +129,6 @@
             placeholder="Выбрать категорию" class="w-full" />
         </div>
         <div class="field-group">
-          <label class="field-label">URL изображения</label>
-          <InputText v-model="form.image_url" class="w-full" placeholder="https://..." />
-        </div>
-        <div class="field-group">
           <label class="field-label">Порог низкого запаса</label>
           <InputText v-model="form.low_stock_threshold" type="number" style="width:120px" placeholder="5" />
         </div>
