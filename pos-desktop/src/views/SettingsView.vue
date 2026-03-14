@@ -135,6 +135,27 @@
               <label class="field-label">Время итогового отчёта</label>
               <InputText v-model="settings.eod_time" style="width:120px" placeholder="23:00" />
             </div>
+            <div class="field-group">
+              <label class="field-label">Включить AI анализ дня</label>
+              <ToggleSwitch v-model="aiSummaryEnabled"
+                @change="settings.ai_summary_enabled = aiSummaryEnabled ? 'true' : 'false'" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Anthropic API Key</label>
+              <InputText v-model="settings.anthropic_api_key" class="w-field" type="password"
+                placeholder="sk-ant-..." />
+              <span style="font-size:12px;color:var(--text-muted)">
+                ℹ️ Использует claude-haiku-4-5. Добавляет AI-анализ к ежедневному отчёту.
+              </span>
+              <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+                <Button label="Тест AI анализа" class="p-button-secondary" icon="pi pi-microchip-ai"
+                  :loading="testingAI" :disabled="!aiSummaryEnabled || !settings.anthropic_api_key"
+                  @click="testAISummary" style="align-self:flex-start" />
+                <div v-if="aiSummaryStatus" class="status-msg" :class="aiSummaryStatus.type">
+                  {{ aiSummaryStatus.msg }}
+                </div>
+              </div>
+            </div>
             <div class="actions-row">
               <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" />
               <Button label="Отправить тест" class="p-button-secondary" :loading="testing" @click="testTelegram" />
@@ -279,8 +300,11 @@ const activeTab = ref('general')
 const settings = ref({})
 const saving = ref(false)
 const testing = ref(false)
+const testingAI = ref(false)
 const telegramEnabled = ref(false)
+const aiSummaryEnabled = ref(false)
 const telegramStatus = ref(null)
+const aiSummaryStatus = ref(null)
 
 const users = ref([])
 const loadingUsers = ref(false)
@@ -321,6 +345,7 @@ async function loadSettings() {
   try {
     settings.value = await api.get('/api/settings')
     telegramEnabled.value = settings.value.telegram_enabled === 'true'
+    aiSummaryEnabled.value = settings.value.ai_summary_enabled === 'true'
   } catch (e) { }
 }
 
@@ -346,6 +371,19 @@ async function testTelegram() {
     telegramStatus.value = { type: 'error-msg', msg: e.message }
   } finally {
     testing.value = false
+  }
+}
+
+async function testAISummary() {
+  testingAI.value = true
+  aiSummaryStatus.value = null
+  try {
+    const res = await api.post('/api/notifications/test-ai-summary', {})
+    aiSummaryStatus.value = { type: 'success-msg', msg: 'AI анализ отправлен в Telegram!' }
+  } catch (e) {
+    aiSummaryStatus.value = { type: 'error-msg', msg: e.message }
+  } finally {
+    testingAI.value = false
   }
 }
 
