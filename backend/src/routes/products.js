@@ -5,10 +5,7 @@ import { broadcastStatus } from '../services/statusService.js'
 
 async function checkStockAlerts(product, warehouseId) {
   try {
-    const { rows: settings } = await pool.query(
-      "SELECT value FROM settings WHERE key='low_stock_threshold'"
-    )
-    const threshold = parseInt(settings[0]?.value || '5')
+    const threshold = product.low_stock_threshold ?? 5
     const { rows: ws } = await pool.query(
       'SELECT stock_qty FROM warehouse_stock WHERE warehouse_id=$1 AND product_id=$2',
       [warehouseId, product.id]
@@ -87,15 +84,15 @@ export default async function productRoutes(fastify) {
 
   // POST /api/products
   fastify.post('/api/products', { onRequest: [fastify.authenticate] }, async (req, reply) => {
-    const { barcode, name, category_id, price, cost, stock_qty, unit, image_url } = req.body
+    const { barcode, name, category_id, price, cost, stock_qty, unit, image_url, low_stock_threshold } = req.body
     if (!name || price === undefined) {
       return reply.code(400).send({ error: 'name and price are required' })
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO products (barcode, name, category_id, price, cost, unit, image_url)
-      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
-    `, [barcode || null, name, category_id || null, price, cost || 0, unit || 'pcs', image_url || null])
+      INSERT INTO products (barcode, name, category_id, price, cost, unit, image_url, low_stock_threshold)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
+    `, [barcode || null, name, category_id || null, price, cost || 0, unit || 'pcs', image_url || null, low_stock_threshold ?? 5])
 
     const warehouseId = req.user.warehouse_id || 1
     const initialStock = stock_qty || 0
@@ -118,7 +115,7 @@ export default async function productRoutes(fastify) {
   // PUT /api/products/:id
   fastify.put('/api/products/:id', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const { id } = req.params
-    const { barcode, name, category_id, price, cost, unit, image_url, is_active } = req.body
+    const { barcode, name, category_id, price, cost, unit, image_url, is_active, low_stock_threshold } = req.body
 
     const { rows: before } = await pool.query('SELECT * FROM products WHERE id=$1', [id])
     if (!before[0]) return reply.code(404).send({ error: 'Product not found' })
@@ -126,8 +123,8 @@ export default async function productRoutes(fastify) {
     const { rows } = await pool.query(`
       UPDATE products SET
         barcode=$1, name=$2, category_id=$3, price=$4, cost=$5,
-        unit=$6, image_url=$7, is_active=$8, updated_at=NOW()
-      WHERE id=$9 RETURNING *
+        unit=$6, image_url=$7, is_active=$8, low_stock_threshold=$9, updated_at=NOW()
+      WHERE id=$10 RETURNING *
     `, [
       barcode ?? before[0].barcode,
       name ?? before[0].name,
@@ -137,6 +134,7 @@ export default async function productRoutes(fastify) {
       unit ?? before[0].unit,
       image_url ?? before[0].image_url,
       is_active ?? before[0].is_active,
+      low_stock_threshold ?? before[0].low_stock_threshold ?? 5,
       id
     ])
 

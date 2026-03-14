@@ -52,8 +52,8 @@
       <Column field="stock_qty" header="Склад" style="width:140px">
         <template #body="{ data }">
           <Skeleton v-if="loading" height="1.6rem" width="90px" border-radius="8px" />
-          <div v-else :class="['stock-badge', stockBadgeClass(data.stock_qty)]">
-            {{ stockLabel(data.stock_qty) }}
+          <div v-else :class="['stock-badge', stockBadgeClass(data.stock_qty, data.low_stock_threshold)]">
+            {{ stockLabel(data.stock_qty, data.low_stock_threshold) }}
           </div>
         </template>
       </Column>
@@ -131,6 +131,10 @@
         <div class="field-group">
           <label class="field-label">URL изображения</label>
           <InputText v-model="form.image_url" class="w-full" placeholder="https://..." />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Порог низкого запаса</label>
+          <InputText v-model="form.low_stock_threshold" type="number" style="width:120px" placeholder="5" />
         </div>
       </div>
 
@@ -225,7 +229,7 @@ const UNITS = ['шт', 'кг', 'г', 'л', 'упак', 'коробка']
 
 const defaultForm = () => ({
   name: '', barcode: '', price: '', cost: '', stock_qty: 0,
-  unit: 'шт', category_id: null, image_url: ''
+  unit: 'шт', category_id: null, image_url: '', low_stock_threshold: 5
 })
 
 const form = ref(defaultForm())
@@ -390,16 +394,16 @@ function highlight(text) {
 }
 
 function formatPrice(n) { return parseFloat(n || 0).toFixed(2) }
-function stockLabel(qty) {
+function stockLabel(qty, threshold = 5) {
   if (qty < 0) return `Перепродано (${qty})`
   if (qty === 0) return 'Нет в наличии'
-  if (qty <= 5) return `Мало (${qty})`
+  if (qty <= threshold) return `Мало (${qty})`
   return `${qty} на складе`
 }
-function stockBadgeClass(qty) {
+function stockBadgeClass(qty, threshold = 5) {
   if (qty < 0) return 'danger glow'
   if (qty === 0) return 'danger'
-  if (qty <= 5) return 'warning'
+  if (qty <= threshold) return 'warning'
   return 'success'
 }
 </script>

@@ -142,9 +142,8 @@ export async function sendEODSummary() {
 
     const { rows: lowStock } = await pool.query(
       `SELECT name, stock_qty FROM products
-      WHERE is_active = true AND stock_qty > 0 AND stock_qty <= $1
-      ORDER BY stock_qty ASC LIMIT 5`,
-      [parseInt(settings.low_stock_threshold) || 5],
+      WHERE is_active = true AND stock_qty > 0 AND stock_qty <= low_stock_threshold
+      ORDER BY stock_qty ASC LIMIT 5`
     );
 
     const { rows: oversold } = await pool.query(

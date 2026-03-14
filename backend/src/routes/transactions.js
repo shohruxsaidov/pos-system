@@ -104,8 +104,7 @@ export default async function transactionRoutes(fastify) {
           [warehouseId, item.product_id]
         )
         const stockQty = ws[0]?.stock_qty ?? 0
-        const { rows: settings } = await pool.query("SELECT value FROM settings WHERE key='low_stock_threshold'")
-        const threshold = parseInt(settings[0]?.value || '5')
+        const threshold = item.product.low_stock_threshold ?? 5
         if (stockQty < 0) sendOversoldAlert({ ...item.product, stock_qty: stockQty }).catch(() => {})
         else if (stockQty <= threshold) sendLowStockAlert({ ...item.product, stock_qty: stockQty }).catch(() => {})
       }
