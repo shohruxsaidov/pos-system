@@ -69,8 +69,8 @@ export default async function incomingRoutes(fastify) {
           totalCost += subtotal;
 
           await client.query(
-            `INSERT INTO incoming_items (receipt_id, product_id, product_name, qty_received, cost_per_unit, expiry_date, subtotal)
-             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            `INSERT INTO incoming_items (receipt_id, product_id, product_name, qty_received, cost_per_unit, expiry_date, subtotal, unit)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
             [
               receipt.id,
               item.product_id || null,
@@ -79,6 +79,7 @@ export default async function incomingRoutes(fastify) {
               item.cost_per_unit || 0,
               item.expiry_date || null,
               subtotal,
+              item.unit || 'шт',
             ],
           );
 

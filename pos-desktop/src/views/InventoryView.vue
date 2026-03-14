@@ -92,7 +92,16 @@
           </div>
           <div class="field-group">
             <label class="field-label">Единица</label>
-            <InputText v-model="form.unit" class="w-full" placeholder="шт" />
+            <div class="unit-chips">
+              <button
+                v-for="u in UNITS"
+                :key="u"
+                class="unit-chip"
+                :class="{ active: form.unit === u }"
+                type="button"
+                @click="form.unit = u"
+              >{{ u }}</button>
+            </div>
           </div>
         </div>
         <div class="field-group">
@@ -184,9 +193,11 @@ const stockFilterOptions = [
 
 const adjustReasons = ['Корректировка приёма', 'Повреждено', 'Корректировка счёта', 'Возврат поставщику', 'Другое']
 
+const UNITS = ['шт', 'кг', 'г', 'л', 'упак', 'коробка']
+
 const defaultForm = () => ({
   name: '', barcode: '', price: '', cost: '', stock_qty: 0,
-  unit: 'pcs', category_id: null, image_url: ''
+  unit: 'шт', category_id: null, image_url: ''
 })
 
 const form = ref(defaultForm())
@@ -454,4 +465,34 @@ function stockBadgeClass(qty) {
 .stock-badge.danger.glow { animation: pulse-danger 2s infinite; }
 
 .w-full { width: 100%; }
+
+.unit-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.unit-chip {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.unit-chip:hover {
+  border-color: rgba(123, 104, 238, 0.4);
+  color: var(--text-primary);
+}
+
+.unit-chip.active {
+  border-color: var(--accent-1);
+  background: rgba(123, 104, 238, 0.15);
+  color: var(--text-accent);
+}
 </style>

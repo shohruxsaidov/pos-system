@@ -50,6 +50,7 @@
         @remove="removeItem(idx)"
         @edit-field="(field, val) => openNumpadForField(idx, field, val)"
         @edit-expiry="() => openExpiryPicker(idx)"
+        @edit-unit="(unit) => items[idx].unit = unit"
       />
     </div>
 
@@ -165,7 +166,8 @@ function addProductToList(product) {
       barcode: product.barcode,
       qty_received: 1,
       cost_per_unit: parseFloat(product.cost || 0),
-      expiry_date: null
+      expiry_date: null,
+      unit: product.unit || 'шт'
     })
     toast.add({ severity: 'success', summary: 'Добавлено', detail: product.name, life: 1500 })
   }
@@ -179,7 +181,8 @@ function addManualProduct(productData) {
     barcode: productData.barcode,
     qty_received: 1,
     cost_per_unit: parseFloat(productData.price || 0),
-    expiry_date: null
+    expiry_date: null,
+    unit: 'шт'
   })
   showNotFound.value = false
   focusBarcodeInput()
@@ -193,7 +196,7 @@ function openNumpadForField(idx, field, currentVal) {
   numpadEditIdx.value = idx
   numpadEditField.value = field
   numpadValue.value = String(currentVal || '')
-  numpadLabel.value = field === 'qty' ? 'Количество' : 'Цена за единицу'
+  numpadLabel.value = field === 'qty' ? 'Количество' : field === 'cost' ? 'Цена за единицу' : 'Общая сумма'
   numpadInteger.value = field === 'qty'
   numpadVisible.value = true
 }
@@ -204,6 +207,11 @@ function applyNumpadValue(val) {
   if (idx === null || !field) return
   if (field === 'qty') items.value[idx].qty_received = parseInt(val) || 0
   if (field === 'cost') items.value[idx].cost_per_unit = parseFloat(val) || 0
+  if (field === 'total') {
+    const total = parseFloat(val) || 0
+    const cost = items.value[idx].cost_per_unit || 0
+    items.value[idx].qty_received = cost > 0 ? parseFloat((total / cost).toFixed(3)) : 0
+  }
 }
 
 function openExpiryPicker(idx) {

@@ -15,16 +15,18 @@ export const useCartStore = defineStore('cart', () => {
 
   const itemCount = computed(() => items.value.reduce((sum, i) => sum + i.qty, 0))
 
-  function addItem(product, qty = 1) {
+  function addItem(product, qty = 1, customPrice = null) {
+    const price = customPrice !== null ? parseFloat(customPrice) : parseFloat(product.price)
     const existing = items.value.find(i => i.product_id === product.id)
     if (existing) {
-      existing.qty += qty
+      existing.qty = parseFloat((existing.qty + qty).toFixed(4))
+      if (customPrice !== null) existing.unit_price = price
     } else {
       items.value.push({
         product_id: product.id,
         name: product.name,
         barcode: product.barcode,
-        unit_price: parseFloat(product.price),
+        unit_price: price,
         qty,
         discount: 0
       })

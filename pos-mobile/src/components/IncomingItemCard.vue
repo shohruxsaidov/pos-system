@@ -37,18 +37,32 @@
       </div>
     </div>
 
-    <div class="card-subtotal">
-      <span class="text-secondary">Сумма</span>
-      <span class="font-mono text-accent" style="font-size:16px;font-weight:700">
-        {{ formatAmount((item.qty_received || 0) * (item.cost_per_unit || 0)) }}
-      </span>
+    <!-- Unit selector -->
+    <div class="unit-row">
+      <span class="field-label">Единица</span>
+      <div class="unit-chips">
+        <button v-for="u in UNITS" :key="u" class="unit-chip" :class="{ active: item.unit === u }"
+          @click="$emit('edit-unit', u)">{{ u }}</button>
+      </div>
     </div>
+
+    <button class="card-subtotal"
+      @click="$emit('edit-field', 'total', (item.qty_received || 0) * (item.cost_per_unit || 0))">
+      <span class="text-secondary">Сумма</span>
+      <span class="font-mono text-accent"
+        style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px">
+        {{ formatAmount((item.qty_received || 0) * (item.cost_per_unit || 0)) }}
+        <i class="pi pi-pencil edit-icon" />
+      </span>
+    </button>
   </div>
 </template>
 
 <script setup>
 defineProps({ item: Object })
-defineEmits(['remove', 'edit-field', 'edit-expiry'])
+defineEmits(['remove', 'edit-field', 'edit-expiry', 'edit-unit'])
+
+const UNITS = ['шт', 'кг', 'г', 'л', 'упак', 'коробка']
 
 function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
 </script>
@@ -100,8 +114,19 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
   gap: 8px;
 }
 
-.field-group { display: flex; flex-direction: column; gap: 4px; }
-.field-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
 .field-input {
   display: flex;
@@ -117,7 +142,54 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
   min-height: 48px;
 }
 
-.edit-icon { color: var(--text-muted); font-size: 12px; }
+.edit-icon {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.unit-row .field-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.unit-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.unit-chip {
+  min-height: 40px;
+  padding: 0 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.unit-chip.active {
+  border-color: var(--accent-1);
+  background: rgba(123, 104, 238, 0.15);
+  color: var(--text-accent);
+}
 
 .card-subtotal {
   display: flex;
@@ -125,5 +197,12 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
   align-items: center;
   padding-top: 10px;
   border-top: 1px solid var(--border-subtle);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+  width: 100%;
+  cursor: pointer;
 }
 </style>

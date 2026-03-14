@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell">
-    <!-- Sidebar Nav (when logged in) -->
-    <aside v-if="session.isLoggedIn" class="sidebar">
+    <!-- Sidebar Nav (when logged in, hidden on POS) -->
+    <aside v-if="session.isLoggedIn && route.path !== '/pos'" class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
           <i class="pi pi-shopping-bag" />
@@ -45,7 +45,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from './stores/session.js'
 import StatusBar from './components/StatusBar.vue'
 import Button from 'primevue/button'
@@ -54,6 +54,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 
 const session = useSessionStore()
 const router = useRouter()
+const route = useRoute()
 
 const navItems = computed(() => {
   const items = [
