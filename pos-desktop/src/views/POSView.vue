@@ -49,14 +49,14 @@
           <Column field="name" header="Товар" />
           <Column field="unit_price" header="Цена" style="width:90px">
             <template #body="{ data }">
-              <span class="font-mono">{{ formatPrice(data.unit_price) }}</span>
+              <button class="qty-value font-mono qty-value-btn" @click="openPriceEdit(data)">{{ formatPrice(data.unit_price) }}</button>
             </template>
           </Column>
           <Column header="Кол-во" style="width:120px">
             <template #body="{ data }">
               <div class="qty-control">
                 <button class="qty-btn" @click="cart.updateQty(data.product_id, data.qty - 1)">−</button>
-                <span class="qty-value font-mono">{{ data.qty }}</span>
+                <button class="qty-value font-mono qty-value-btn" @click="openQtyEdit(data)">{{ data.qty }}</button>
                 <button class="qty-btn" @click="cart.updateQty(data.product_id, data.qty + 1)">+</button>
               </div>
             </template>
@@ -133,6 +133,41 @@
       </template>
     </Dialog>
 
+    <!-- Cart Amount → Qty Dialog -->
+    <Dialog v-model:visible="showPriceDialog" modal header="Ввести сумму"
+      :style="{ width: '320px' }">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="text-align:center;font-size:13px;color:var(--text-secondary);font-weight:600">
+          {{ editingCartItem?.name }} · {{ formatPrice(editingCartItem?.unit_price) }} за ед.
+        </div>
+        <NumPad v-model="editPrice" :show-display="true" />
+        <div style="text-align:center;font-size:13px;color:var(--text-muted)">
+          Кол-во: <span class="font-mono" style="color:var(--text-accent)">{{ computedQtyFromAmount }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <Button label="Отмена" class="p-button-secondary" @click="showPriceDialog = false" style="height:56px" />
+        <Button label="Применить" icon="pi pi-check" @click="confirmPriceEdit"
+          style="height:56px;flex:1;background:var(--gradient-hero);border:none" />
+      </template>
+    </Dialog>
+
+    <!-- Cart Qty Edit Dialog -->
+    <Dialog v-model:visible="showQtyDialog" modal header="Изменить количество"
+      :style="{ width: '320px' }">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="text-align:center;font-size:13px;color:var(--text-secondary);font-weight:600">
+          {{ editingCartItem?.name }}
+        </div>
+        <NumPad v-model="editQty" :show-display="true" :integer="true" />
+      </div>
+      <template #footer>
+        <Button label="Отмена" class="p-button-secondary" @click="showQtyDialog = false" style="height:56px" />
+        <Button label="Применить" icon="pi pi-check" @click="confirmQtyEdit"
+          style="height:56px;flex:1;background:var(--gradient-hero);border:none" />
+      </template>
+    </Dialog>
+
     <!-- Payment Modal -->
     <PaymentModal v-model="showPayment" @paid="handlePayment" />
 
@@ -173,6 +208,47 @@ const selectedCategory = ref(null)
 const showPayment = ref(false)
 const searchRef = ref(null)
 let searchTimeout = null
+
+// Cart qty + price edit dialogs
+const showQtyDialog = ref(false)
+const showPriceDialog = ref(false)
+const editingCartItem = ref(null)
+const editQty = ref('1')
+const editPrice = ref('0')
+
+function openQtyEdit(item) {
+  editingCartItem.value = item
+  editQty.value = String(item.qty)
+  showQtyDialog.value = true
+}
+
+function confirmQtyEdit() {
+  const qty = parseInt(editQty.value) || 1
+  cart.updateQty(editingCartItem.value.product_id, qty)
+  showQtyDialog.value = false
+}
+
+const computedQtyFromAmount = computed(() => {
+  const amount = parseFloat(editPrice.value) || 0
+  const price = editingCartItem.value?.unit_price || 1
+  return price > 0 ? String(Math.round((amount / price) * 1000) / 1000) : '0'
+})
+
+function openPriceEdit(item) {
+  editingCartItem.value = item
+  editPrice.value = String(parseFloat((item.unit_price * item.qty).toFixed(4)))
+  showPriceDialog.value = true
+}
+
+function confirmPriceEdit() {
+  const qty = parseFloat(computedQtyFromAmount.value) || 0
+  if (qty <= 0) {
+    cart.removeItem(editingCartItem.value.product_id)
+  } else {
+    cart.updateQty(editingCartItem.value.product_id, qty)
+  }
+  showPriceDialog.value = false
+}
 
 // Add-to-cart dialog
 const showAddDialog = ref(false)
@@ -529,6 +605,22 @@ function stockClass(qty) {
   width: 28px;
   text-align: center;
   font-size: 14px;
+}
+
+.qty-value-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: all 0.12s;
+}
+
+.qty-value-btn:hover {
+  border-color: var(--accent-1);
+  background: var(--accent-glow);
+  color: var(--text-accent);
 }
 
 .remove-btn {
