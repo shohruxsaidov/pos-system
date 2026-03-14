@@ -1,33 +1,36 @@
 <template>
   <div class="app-shell">
     <!-- Sidebar Nav (when logged in, hidden on POS) -->
-    <aside v-if="session.isLoggedIn && route.path !== '/pos'" class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">
-          <i class="pi pi-shopping-bag" />
-        </div>
-        <span class="brand-name">POS</span>
-      </div>
-
-      <nav class="sidebar-nav">
-        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="nav-item"
-          active-class="nav-item--active">
-          <i :class="item.icon" class="nav-icon" />
-          <span class="nav-label">{{ item.label }}</span>
-        </RouterLink>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="user-card">
-          <div class="user-avatar">{{ session.user?.name?.[0] }}</div>
-          <div class="user-info">
-            <div class="user-name">{{ session.user?.name }}</div>
-            <div class="user-role">{{ session.user?.role }}</div>
+    <Transition name="sidebar-slide">
+      <aside v-if="session.isLoggedIn && route.path !== '/pos'" class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-icon">
+            <i class="pi pi-shopping-bag" />
           </div>
+          <span class="brand-name">POS</span>
         </div>
-        <Button icon="pi pi-sign-out" class="p-button-secondary logout-btn" @click="logout" v-tooltip.right="'Выйти'" />
-      </div>
-    </aside>
+
+        <nav class="sidebar-nav">
+          <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="nav-item"
+            active-class="nav-item--active">
+            <i :class="item.icon" class="nav-icon" />
+            <span class="nav-label">{{ item.label }}</span>
+          </RouterLink>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-card">
+            <div class="user-avatar">{{ session.user?.name?.[0] }}</div>
+            <div class="user-info">
+              <div class="user-name">{{ session.user?.name }}</div>
+              <div class="user-role">{{ session.user?.role }}</div>
+            </div>
+          </div>
+          <Button icon="pi pi-sign-out" class="p-button-secondary logout-btn" @click="logout"
+            v-tooltip.right="'Выйти'" />
+        </div>
+      </aside>
+    </Transition>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -62,11 +65,11 @@ const route = useRoute()
 
 const transitionName = ref('page')
 router.beforeEach((to, from) => {
-  if (to.path === '/pos' || from.path === '/pos') {
-    transitionName.value = 'fade'
-  } else {
-    transitionName.value = 'page'
-  }
+  // if (to.path === '/pos' || from.path === '/pos') {
+  //   transitionName.value = 'fade'
+  // } else {
+  transitionName.value = 'page'
+  // }
 })
 
 const navItems = computed(() => {
@@ -289,6 +292,19 @@ onUnmounted(() => {
   flex-direction: column;
   max-height: calc(100vh - 40px);
   /* Account for status bar height */
+}
+
+/* Sidebar slide transition */
+.sidebar-slide-enter-active,
+.sidebar-slide-leave-active {
+  transition: width 0.22s ease, opacity 0.22s ease;
+  overflow: hidden;
+}
+
+.sidebar-slide-enter-from,
+.sidebar-slide-leave-to {
+  width: 0;
+  opacity: 0;
 }
 
 /* Fade transition (to/from POS) */
