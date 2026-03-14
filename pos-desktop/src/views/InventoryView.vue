@@ -8,20 +8,17 @@
       </div>
       <div class="header-actions">
         <InputText v-model="search" placeholder="Поиск..." class="search-input" @input="debouncedSearch" />
-        <Select v-model="categoryFilter" :options="[{id:null,name:'Все категории'},...categories]" option-label="name" option-value="id" style="width:180px" />
-        <Select v-model="stockFilter" :options="stockFilterOptions" option-label="label" option-value="value" style="width:160px" />
+        <Select v-model="categoryFilter" :options="[{ id: null, name: 'Все категории' }, ...categories]"
+          option-label="name" option-value="id" style="width:180px" />
+        <Select v-model="stockFilter" :options="stockFilterOptions" option-label="label" option-value="value"
+          style="width:160px" />
         <Button v-if="canManage" label="Добавить товар" icon="pi pi-plus" @click="openCreate" />
       </div>
     </div>
 
     <!-- DataTable -->
-    <DataTable
-      :value="loading ? skeletonRows : products"
-      scrollable
-      scroll-height="flex"
-      class="inventory-table"
-      row-hover
-    >
+    <DataTable :value="loading ? skeletonRows : products" scrollable scroll-height="flex" class="inventory-table"
+      row-hover>
       <Column field="barcode" header="Штрихкод" style="width:140px">
         <template #body="{ data }">
           <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
@@ -72,18 +69,24 @@
             <Skeleton v-for="n in 4" :key="n" height="36px" width="36px" border-radius="8px" />
           </div>
           <div v-else class="row-actions">
-            <Button v-if="canManage" icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Редактировать'" />
-            <Button v-if="canManage" icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px" @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
-            <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px" @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
-            <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px" @click="openPrintLabel(data)" v-tooltip="'Печать этикетки'" />
-            <Button v-if="canManage" icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px" @click="deleteProduct(data)" v-tooltip="'Удалить'" />
+            <Button v-if="canManage" icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
+              @click="openEdit(data)" v-tooltip="'Редактировать'" />
+            <Button v-if="canManage" icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px"
+              @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
+            <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px"
+              @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
+            <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px"
+              @click="openPrintLabel(data)" v-tooltip="'Печать этикетки'" />
+            <Button v-if="canManage" icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px"
+              @click="deleteProduct(data)" v-tooltip="'Удалить'" />
           </div>
         </template>
       </Column>
     </DataTable>
 
     <!-- Create/Edit Drawer -->
-    <Drawer v-model:visible="showDrawer" :header="editingProduct ? 'Редактировать товар' : 'Новый товар'" position="right" style="width:480px">
+    <Drawer v-model:visible="showDrawer" :header="editingProduct ? 'Редактировать товар' : 'Новый товар'"
+      position="right" style="width:480px">
       <div class="drawer-form">
         <div class="field-group">
           <label class="field-label">Название товара *</label>
@@ -91,9 +94,10 @@
         </div>
         <div class="field-group">
           <label class="field-label">Штрихкод</label>
-          <div class="p-inputgroup">
+          <div class="p-inputgroup" style="position: relative;">
             <InputText v-model="form.barcode" class="w-full" placeholder="Сканировать или ввести штрихкод" />
-            <Button icon="pi pi-refresh" class="p-button-secondary" @click="generateBarcodeInForm" v-tooltip="'Сгенерировать штрихкод'" />
+            <Button style="position: absolute; right: 0; top: 0;" icon="pi pi-refresh" class="p-button-secondary"
+              @click="generateBarcodeInForm" v-tooltip="'Сгенерировать штрихкод'" />
           </div>
         </div>
         <div class="field-row">
@@ -114,20 +118,15 @@
           <div class="field-group">
             <label class="field-label">Единица</label>
             <div class="unit-chips">
-              <button
-                v-for="u in UNITS"
-                :key="u"
-                class="unit-chip"
-                :class="{ active: form.unit === u }"
-                type="button"
-                @click="form.unit = u"
-              >{{ u }}</button>
+              <button v-for="u in UNITS" :key="u" class="unit-chip" :class="{ active: form.unit === u }" type="button"
+                @click="form.unit = u">{{ u }}</button>
             </div>
           </div>
         </div>
         <div class="field-group">
           <label class="field-label">Категория</label>
-          <Select v-model="form.category_id" :options="categories" option-label="name" option-value="id" placeholder="Выбрать категорию" class="w-full" />
+          <Select v-model="form.category_id" :options="categories" option-label="name" option-value="id"
+            placeholder="Выбрать категорию" class="w-full" />
         </div>
         <div class="field-group">
           <label class="field-label">URL изображения</label>
@@ -138,13 +137,15 @@
       <template #footer>
         <div class="drawer-footer">
           <Button label="Отмена" class="p-button-secondary" @click="showDrawer = false" />
-          <Button :label="editingProduct ? 'Сохранить изменения' : 'Создать товар'" :loading="saving" @click="saveProduct" style="flex:1" />
+          <Button :label="editingProduct ? 'Сохранить изменения' : 'Создать товар'" :loading="saving"
+            @click="saveProduct" style="flex:1" />
         </div>
       </template>
     </Drawer>
 
     <!-- Stock Adjust Dialog -->
-    <Dialog v-model:visible="showStockAdjust" modal :header="`Корректировать склад — ${adjustingProduct?.name}`" :style="{ width: '420px' }">
+    <Dialog v-model:visible="showStockAdjust" modal :header="`Корректировать склад — ${adjustingProduct?.name}`"
+      :style="{ width: '420px' }">
       <div class="stock-adjust-content">
         <div class="current-stock">
           <span class="text-secondary">Текущий остаток</span>
@@ -161,7 +162,8 @@
       </div>
       <template #footer>
         <Button label="Отмена" class="p-button-secondary" @click="showStockAdjust = false" />
-        <Button label="Применить" :disabled="!adjustDelta || !adjustReason" :loading="saving" @click="applyStockAdjust" style="flex:1" />
+        <Button label="Применить" :disabled="!adjustDelta || !adjustReason" :loading="saving" @click="applyStockAdjust"
+          style="flex:1" />
       </template>
     </Dialog>
 
@@ -437,11 +439,18 @@ function stockBadgeClass(qty) {
   gap: 10px;
 }
 
-.search-input { width: 220px; }
+.search-input {
+  width: 220px;
+}
 
-.inventory-table { flex: 1; }
+.inventory-table {
+  flex: 1;
+}
 
-.row-actions { display: flex; gap: 4px; }
+.row-actions {
+  display: flex;
+  gap: 4px;
+}
 
 .drawer-form {
   display: flex;
@@ -450,8 +459,17 @@ function stockBadgeClass(qty) {
   padding: 4px 0;
 }
 
-.field-group { display: flex; flex-direction: column; gap: 6px; }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 
 .field-label {
   font-size: 12px;
@@ -491,12 +509,29 @@ function stockBadgeClass(qty) {
   font-weight: 600;
   font-family: var(--font-mono);
 }
-.stock-badge.success { background: var(--success-bg); color: var(--success); }
-.stock-badge.warning { background: var(--warning-bg); color: var(--warning); }
-.stock-badge.danger { background: var(--danger-bg); color: var(--danger); }
-.stock-badge.danger.glow { animation: pulse-danger 2s infinite; }
 
-.w-full { width: 100%; }
+.stock-badge.success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.stock-badge.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.stock-badge.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.stock-badge.danger.glow {
+  animation: pulse-danger 2s infinite;
+}
+
+.w-full {
+  width: 100%;
+}
 
 .unit-chips {
   display: flex;
@@ -531,6 +566,7 @@ function stockBadgeClass(qty) {
 :deep(.p-skeleton) {
   background-color: var(--bg-elevated);
 }
+
 :deep(.p-skeleton::after) {
   background: linear-gradient(90deg, transparent, rgba(123, 104, 238, 0.08), transparent);
 }

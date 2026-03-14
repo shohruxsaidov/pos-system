@@ -9,6 +9,10 @@
         <span class="status-dot" />
         <span>База данных</span>
       </div>
+      <div class="status-pill" :class="printerClass">
+        <span class="status-dot" />
+        <span>Принтер</span>
+      </div>
       <div class="status-pill" :class="syncClass">
         <span class="status-dot" />
         <span v-if="status.syncQueue > 0">Синхр.: {{ status.syncQueue }} ожидает</span>
@@ -85,6 +89,12 @@ const dbClass = computed(() => {
   if (status.db === 'ok') return 'pill-success'
   if (status.db === 'unknown') return 'pill-warn'
   return 'pill-danger'
+})
+
+const printerClass = computed(() => {
+  if (status.printer === 'ok') return 'pill-success'
+  if (status.printer === 'disconnected') return 'pill-danger'
+  return 'pill-warn'
 })
 
 const syncClass = computed(() => {

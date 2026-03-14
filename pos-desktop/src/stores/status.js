@@ -6,6 +6,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:3000/ws/status";
 export const useStatusStore = defineStore("status", () => {
   const server = ref("connecting");
   const db = ref("unknown");
+  const printer = ref("unknown");
   const sync = ref("unknown");
   const syncQueue = ref(0);
   const lastSync = ref(null);
@@ -59,6 +60,7 @@ export const useStatusStore = defineStore("status", () => {
           if (msg.type === "status") {
             server.value = msg.server || "ok";
             db.value = msg.db || "unknown";
+            printer.value = msg.printer ?? "unknown";
             syncQueue.value = msg.sync_queue || 0;
             lastSync.value = msg.last_sync;
             uptime.value = msg.uptime || 0;
@@ -106,6 +108,7 @@ export const useStatusStore = defineStore("status", () => {
   return {
     server,
     db,
+    printer,
     sync,
     syncQueue,
     lastSync,

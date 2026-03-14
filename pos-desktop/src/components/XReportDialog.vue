@@ -73,7 +73,42 @@ async function loadReport() {
 }
 
 function printReport() {
-  window.print()
+  const el = document.getElementById('print-area')
+  if (!el) return
+
+  const win = window.open('', '_blank', 'width=820,height=700')
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>X-Отчёт</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fff; color: #111; padding: 24px; font-size: 13px; }
+  #print-area { display: flex; flex-direction: column; gap: 16px; }
+  .report-header { display: flex; align-items: flex-start; gap: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px; }
+  .report-type-badge { padding: 6px 16px; border-radius: 8px; font-size: 18px; font-weight: 800; border: 1px solid #ccc; }
+  .report-meta { display: flex; flex-direction: column; gap: 4px; }
+  .report-period, .report-detail { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .meta-label { color: #666; min-width: 120px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .summary-item { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+  .summary-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .summary-value { font-size: 18px; font-weight: 700; }
+  .section-title { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .refund-section { padding: 12px; border: 1px solid #f5c6c6; border-radius: 8px; background: #fff5f5; }
+  .refund-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+  th { background: #f5f5f5; font-weight: 600; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .gradient-text { color: #4e54c8; }
+  .text-secondary { color: #666; }
+  .text-accent { color: #7b68ee; }
+  @media print { body { padding: 8px; } }
+</style></head><body>${el.innerHTML}</body></html>`)
+  win.document.close()
+  win.addEventListener('load', () => {
+    win.print()
+    win.close()
+  })
 }
 </script>
 

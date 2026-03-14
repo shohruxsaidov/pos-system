@@ -1,5 +1,6 @@
 import { pool } from '../db/connection.js'
 import { getMobileUrl } from './networkService.js'
+import { getPrinterStatus } from './printService.js'
 
 export const desktopClients = new Set()
 let fastifyInstance = null
@@ -24,9 +25,12 @@ export async function getStatusPayload() {
     // db unreachable
   }
 
+  const printerStatus = await getPrinterStatus()
+
   return {
     server: 'ok',
     db: dbOk ? 'ok' : 'error',
+    printer: printerStatus.connected ? 'ok' : 'disconnected',
     sync_queue: syncQueue,
     last_sync: new Date().toISOString(),
     cloud_reachable: false,

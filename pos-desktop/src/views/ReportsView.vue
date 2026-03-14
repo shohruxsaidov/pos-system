@@ -47,6 +47,10 @@
         <div class="stat-label">Ср. / Транзакция</div>
         <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.avg_transaction) }}</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">Валовая прибыль</div>
+        <div class="stat-value font-mono" style="color: var(--success)">{{ formatAmount(totalGrossProfit) }}</div>
+      </div>
     </div>
 
     <div class="reports-grid">
@@ -62,6 +66,37 @@
         <Chart v-if="daily?.by_method?.length" type="doughnut" :data="methodChartData" :options="pieOptions" style="height:200px" />
         <div v-else class="empty-chart">Нет данных</div>
       </div>
+    </div>
+
+    <!-- Cashiers Breakdown -->
+    <div v-if="session.user?.role !== 'cashier'" class="card" style="margin-bottom: 15px;">
+      <div class="card-header">
+        <h3 class="card-title">Кассиры</h3>
+      </div>
+      <DataTable :value="cashiers" :loading="loading" size="small">
+        <Column field="name" header="Кассир" />
+        <Column field="transaction_count" header="Транзакции" style="width:110px" />
+        <Column field="total_sales" header="Продажи" style="width:130px">
+          <template #body="{ data }">
+            <span class="font-mono">{{ formatAmount(data.total_sales) }}</span>
+          </template>
+        </Column>
+        <Column field="avg_transaction" header="Ср/Транзакция" style="width:130px">
+          <template #body="{ data }">
+            <span class="font-mono">{{ formatAmount(data.avg_transaction) }}</span>
+          </template>
+        </Column>
+        <Column field="first_sale" header="Первая" style="width:100px">
+          <template #body="{ data }">
+            <span class="font-mono" style="font-size:12px">{{ formatTime(data.first_sale) }}</span>
+          </template>
+        </Column>
+        <Column field="last_sale" header="Последняя" style="width:100px">
+          <template #body="{ data }">
+            <span class="font-mono" style="font-size:12px">{{ formatTime(data.last_sale) }}</span>
+          </template>
+        </Column>
+      </DataTable>
     </div>
 
     <!-- Top Products -->
@@ -127,6 +162,83 @@
       </DataTable>
     </div>
 
+    <!-- Z-Reports History -->
+    <div v-if="session.user?.role !== 'cashier'" class="card" style="margin-bottom: 15px;">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3 class="card-title" style="margin-bottom:0">История Z-отчётов</h3>
+        <Button
+          :icon="showZHistory ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+          text
+          size="small"
+          @click="showZHistory = !showZHistory"
+        />
+      </div>
+      <div v-if="showZHistory">
+        <DataTable
+          :value="zReports"
+          :loading="loading"
+          size="small"
+          expandable-row-groups
+          v-model:expanded-rows="expandedZRows"
+          data-key="id"
+        >
+          <Column expander style="width:40px" />
+          <Column field="report_no" header="Отчёт" style="width:130px">
+            <template #body="{ data }">
+              <span class="font-mono" style="font-size:12px">{{ data.report_no }}</span>
+            </template>
+          </Column>
+          <Column header="Период">
+            <template #body="{ data }">
+              <span class="font-mono" style="font-size:12px">
+                {{ formatDateTime(data.opened_at) }} → {{ formatDateTime(data.closed_at) }}
+              </span>
+            </template>
+          </Column>
+          <Column field="closed_by_name" header="Закрыл" style="width:120px" />
+          <Column field="transaction_count" header="Транзакции" style="width:110px" />
+          <Column field="net_sales" header="Чистые продажи" style="width:140px">
+            <template #body="{ data }">
+              <span class="font-mono">{{ formatAmount(data.net_sales) }}</span>
+            </template>
+          </Column>
+          <Column field="refund_amount" header="Возвраты" style="width:110px">
+            <template #body="{ data }">
+              <span class="font-mono" style="color:var(--danger)">{{ formatAmount(data.refund_amount) }}</span>
+            </template>
+          </Column>
+          <template #expansion="{ data }">
+            <div class="z-report-expansion">
+              <div v-if="data.payment_methods?.length" class="expansion-section">
+                <div class="expansion-title">Способы оплаты</div>
+                <DataTable :value="data.payment_methods" size="small" style="font-size:13px">
+                  <Column field="method" header="Способ" />
+                  <Column field="count" header="Кол-во" style="width:80px" />
+                  <Column field="amount" header="Сумма" style="width:120px">
+                    <template #body="{ data: row }">
+                      <span class="font-mono">{{ formatAmount(row.amount) }}</span>
+                    </template>
+                  </Column>
+                </DataTable>
+              </div>
+              <div v-if="data.cashier_summary?.length" class="expansion-section">
+                <div class="expansion-title">Кассиры</div>
+                <DataTable :value="data.cashier_summary" size="small" style="font-size:13px">
+                  <Column field="name" header="Кассир" />
+                  <Column field="count" header="Транзакции" style="width:100px" />
+                  <Column field="sales" header="Продажи" style="width:120px">
+                    <template #body="{ data: row }">
+                      <span class="font-mono">{{ formatAmount(row.sales) }}</span>
+                    </template>
+                  </Column>
+                </DataTable>
+              </div>
+            </div>
+          </template>
+        </DataTable>
+      </div>
+    </div>
+
     <!-- Refund Dialog -->
     <RefundDialog
       v-model="showRefund"
@@ -136,7 +248,7 @@
 
     <!-- X/Z Report Dialogs -->
     <XReportDialog v-model="showXReport" :warehouse-id="selectedWarehouseId" />
-    <ZReportDialog v-model="showZReport" :warehouse-id="selectedWarehouseId" @closed="loadAll" />
+    <ZReportDialog v-model="showZReport" :warehouse-id="selectedWarehouseId" @closed="loadAll(); loadZReports()" />
 
     <Toast />
   </div>
@@ -174,10 +286,18 @@ const showXReport = ref(false)
 const showZReport = ref(false)
 const warehouses = ref([])
 const selectedWarehouseId = ref(null)
+const cashiers = ref([])
+const zReports = ref([])
+const showZHistory = ref(false)
+const expandedZRows = ref({})
 
 const selectedDate = computed(() => {
   return dateFilter.value?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]
 })
+
+const totalGrossProfit = computed(() =>
+  topProducts.value.reduce((s, p) => s + +p.gross_profit, 0)
+)
 
 onMounted(async () => {
   try {
@@ -188,6 +308,7 @@ onMounted(async () => {
     }
   } catch (e) {}
   await loadAll()
+  if (session.user?.role !== 'cashier') loadZReports()
 })
 
 async function loadAll() {
@@ -195,19 +316,30 @@ async function loadAll() {
   try {
     const date = selectedDate.value
     const wq = selectedWarehouseId.value ? `&warehouse_id=${selectedWarehouseId.value}` : ''
-    const [dailyData, topData, txnData] = await Promise.all([
+    const requests = [
       api.get(`/api/reports/daily?date=${date}${wq}`),
       api.get(`/api/reports/products?from=${date}&to=${date}${wq}`),
       api.get(`/api/transactions?from=${date}T00:00:00&to=${date}T23:59:59&limit=100`)
-    ])
-    daily.value = dailyData
-    topProducts.value = topData
-    transactions.value = txnData.data || txnData
+    ]
+    if (session.user?.role !== 'cashier') {
+      requests.push(api.get(`/api/reports/cashiers?date=${date}${wq}`))
+    }
+    const results = await Promise.all(requests)
+    daily.value = results[0]
+    topProducts.value = results[1]
+    transactions.value = results[2].data || results[2]
+    if (session.user?.role !== 'cashier') cashiers.value = results[3] || []
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     loading.value = false
   }
+}
+
+async function loadZReports() {
+  try {
+    zReports.value = await api.get('/api/reports/z-reports?limit=20')
+  } catch (e) {}
 }
 
 const hourlyChartData = computed(() => {
@@ -262,6 +394,11 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
 function formatTime(dt) {
   return dt ? new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
 }
+function formatDateTime(dt) {
+  if (!dt) return '—'
+  const d = new Date(dt)
+  return `${d.toLocaleDateString('ru')} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+}
 
 function statusSeverity(status) {
   const map = { completed: 'success', refunded: 'secondary', partially_refunded: 'warn', voided: 'danger' }
@@ -296,7 +433,7 @@ function exportCSV() {
 
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
   margin-bottom: 15px;
 }
@@ -339,5 +476,25 @@ function exportCSV() {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+.z-report-expansion {
+  display: flex;
+  gap: 20px;
+  padding: 12px 16px;
+  background: var(--bg-base);
+}
+
+.expansion-section {
+  flex: 1;
+}
+
+.expansion-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
 }
 </style>
