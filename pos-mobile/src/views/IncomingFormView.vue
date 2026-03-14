@@ -11,6 +11,9 @@
       </div>
       <div class="header-right">
         <span class="item-count font-mono">{{ items.length }} позиций</span>
+        <button class="manual-btn" @click="showManualAdd = true" title="Добавить вручную">
+          <i class="pi pi-plus" />
+        </button>
         <button class="logout-btn" @click="logout">
           <i class="pi pi-sign-out" />
         </button>
@@ -42,6 +45,9 @@
       <div v-if="items.length === 0" class="empty-state">
         <i class="pi pi-barcode" style="font-size:48px;color:var(--text-muted)" />
         <p>Отсканируйте штрихкод для добавления</p>
+        <button class="empty-manual-btn" @click="showManualAdd = true">
+          <i class="pi pi-plus" /> Добавить вручную
+        </button>
       </div>
       <IncomingItemCard
         v-for="(item, idx) in items"
@@ -87,6 +93,14 @@
       @created="addManualProduct"
     />
 
+    <!-- Manual Add Sheet -->
+    <ManualAddSheet
+      :visible="showManualAdd"
+      @close="showManualAdd = false; focusBarcodeInput()"
+      @selected="onManualSelected"
+      @create-new="onCreateNew"
+    />
+
     <Toast />
   </div>
 </template>
@@ -99,6 +113,7 @@ import { useToast } from 'primevue/usetoast'
 import IncomingItemCard from '../components/IncomingItemCard.vue'
 import BottomNumPad from '../components/BottomNumPad.vue'
 import ProductNotFound from '../components/ProductNotFound.vue'
+import ManualAddSheet from '../components/ManualAddSheet.vue'
 import Toast from 'primevue/toast'
 
 const router = useRouter()
@@ -122,6 +137,7 @@ const numpadEditField = ref(null)
 
 const showNotFound = ref(false)
 const scannedBarcode = ref('')
+const showManualAdd = ref(false)
 
 const totalCost = computed(() =>
   items.value.reduce((sum, i) => sum + (i.qty_received || 0) * (i.cost_per_unit || 0), 0)
@@ -186,6 +202,22 @@ function addManualProduct(productData) {
   })
   showNotFound.value = false
   focusBarcodeInput()
+}
+
+function onManualSelected(product) {
+  showManualAdd.value = false
+  addProductToList(product)
+}
+
+function onCreateNew(prefillName) {
+  showManualAdd.value = false
+  scannedBarcode.value = ''
+  // Reuse ProductNotFound dialog but without a barcode — pass name as barcode field for reference
+  // We open with a slight delay so ManualAddSheet fully closes
+  setTimeout(() => {
+    scannedBarcode.value = prefillName
+    showNotFound.value = true
+  }, 50)
 }
 
 function removeItem(idx) {
@@ -305,6 +337,19 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
 .header-right { display: flex; align-items: center; gap: 10px; }
 .item-count { font-size: 14px; color: var(--text-accent); }
 
+.manual-btn {
+  width: 40px; height: 40px;
+  background: var(--bg-surface);
+  border: 1px solid rgba(123,104,238,0.4);
+  border-radius: 10px;
+  color: var(--text-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
 .logout-btn {
   width: 40px; height: 40px;
   background: var(--bg-surface);
@@ -315,6 +360,22 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.empty-manual-btn {
+  margin-top: 8px;
+  height: 52px;
+  padding: 0 24px;
+  background: var(--bg-surface);
+  border: 1px solid rgba(123,104,238,0.4);
+  border-radius: 14px;
+  color: var(--text-accent);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .hidden-barcode {
