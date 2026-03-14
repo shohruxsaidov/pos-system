@@ -4,6 +4,31 @@ import { sendEODSummary } from './notificationService.js'
 
 let eodTask = null
 let backupTask = null
+let partitionTask = null
+
+async function createNextMonthPartitions() {
+  const tables = ['transactions', 'transaction_items', 'audit_log', 'sync_log']
+  for (let offset = 1; offset <= 2; offset++) {
+    const target = new Date()
+    target.setMonth(target.getMonth() + offset, 1)
+    const y  = target.getFullYear()
+    const m  = String(target.getMonth() + 1).padStart(2, '0')
+    const fd = `${y}-${m}-01`
+    const next = new Date(target)
+    next.setMonth(next.getMonth() + 1)
+    const td = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-01`
+    for (const table of tables) {
+      const part = `${table}_${y}_${m}`
+      try {
+        await pool.query(
+          `CREATE TABLE IF NOT EXISTS ${part} PARTITION OF ${table} FOR VALUES FROM ('${fd}') TO ('${td}')`
+        )
+      } catch (err) {
+        console.error(`[cron] Failed to create partition ${part}:`, err.message)
+      }
+    }
+  }
+}
 
 export async function startCronJobs() {
   // Load EOD time from settings
@@ -39,10 +64,20 @@ export async function startCronJobs() {
     }
   })
 
+  // Monthly partition pre-creation — runs on 25th at 02:00
+  if (partitionTask) partitionTask.stop()
+  partitionTask = cron.schedule('0 2 25 * *', () =>
+    createNextMonthPartitions().catch(e => console.error('[cron] Partition cron failed:', e.message))
+  )
+
+  // Startup check — create next 2 months' partitions if they don't exist yet
+  createNextMonthPartitions().catch(e => console.error('[cron] Startup partition check failed:', e.message))
+
   console.log(`[cron] EOD summary scheduled at ${eodTime}`)
 }
 
 export function stopCronJobs() {
   if (eodTask) eodTask.stop()
   if (backupTask) backupTask.stop()
+  if (partitionTask) partitionTask.stop()
 }
