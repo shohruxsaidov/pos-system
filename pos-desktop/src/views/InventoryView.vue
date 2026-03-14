@@ -16,8 +16,7 @@
 
     <!-- DataTable -->
     <DataTable
-      :value="products"
-      :loading="loading"
+      :value="loading ? skeletonRows : products"
       scrollable
       scroll-height="flex"
       class="inventory-table"
@@ -25,32 +24,54 @@
     >
       <Column field="barcode" header="Штрихкод" style="width:140px">
         <template #body="{ data }">
-          <span class="font-mono" style="font-size:12px">{{ data.barcode || '—' }}</span>
+          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
+          <span v-else class="font-mono" style="font-size:12px" v-html="highlight(data.barcode || '—')" />
         </template>
       </Column>
-      <Column field="name" header="Товар" sortable />
-      <Column field="category_name" header="Категория" style="width:130px" />
-      <Column field="price" header="Цена" sortable style="width:100px">
+      <Column field="name" header="Товар">
         <template #body="{ data }">
-          <span class="font-mono">{{ formatPrice(data.price) }}</span>
+          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
+          <span v-else v-html="highlight(data.name)" />
+        </template>
+      </Column>
+      <Column field="category_name" header="Категория" style="width:130px">
+        <template #body="{ data }">
+          <Skeleton v-if="loading" height="0.9rem" width="80%" border-radius="6px" />
+          <span v-else v-html="highlight(data.category_name)" />
+        </template>
+      </Column>
+      <Column field="price" header="Цена" style="width:100px">
+        <template #body="{ data }">
+          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
+          <span v-else class="font-mono">{{ formatPrice(data.price) }}</span>
         </template>
       </Column>
       <Column field="cost" header="Себест." style="width:100px">
         <template #body="{ data }">
-          <span class="font-mono text-muted">{{ formatPrice(data.cost) }}</span>
+          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
+          <span v-else class="font-mono text-muted">{{ formatPrice(data.cost) }}</span>
         </template>
       </Column>
-      <Column field="stock_qty" header="Склад" sortable style="width:140px">
+      <Column field="stock_qty" header="Склад" style="width:140px">
         <template #body="{ data }">
-          <div :class="['stock-badge', stockBadgeClass(data.stock_qty)]">
+          <Skeleton v-if="loading" height="1.6rem" width="90px" border-radius="8px" />
+          <div v-else :class="['stock-badge', stockBadgeClass(data.stock_qty)]">
             {{ stockLabel(data.stock_qty) }}
           </div>
         </template>
       </Column>
-      <Column field="unit" header="Ед." style="width:70px" />
+      <Column field="unit" header="Ед." style="width:70px">
+        <template #body="{ data }">
+          <Skeleton v-if="loading" height="0.9rem" width="30px" border-radius="6px" />
+          <span v-else>{{ data.unit }}</span>
+        </template>
+      </Column>
       <Column header="Действия" style="width:200px">
         <template #body="{ data }">
-          <div class="row-actions">
+          <div v-if="loading" class="row-actions">
+            <Skeleton v-for="n in 4" :key="n" height="36px" width="36px" border-radius="8px" />
+          </div>
+          <div v-else class="row-actions">
             <Button v-if="canManage" icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Редактировать'" />
             <Button v-if="canManage" icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px" @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
             <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px" @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
@@ -165,12 +186,14 @@ import Select from 'primevue/select'
 import Drawer from 'primevue/drawer'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
+import Skeleton from 'primevue/skeleton'
 
 const api = useApi()
 const toast = useToast()
 const session = useSessionStore()
 const canManage = computed(() => session.user?.role !== 'cashier')
 
+const skeletonRows = Array(12).fill({})
 const products = ref([])
 const categories = ref([])
 const loading = ref(false)
@@ -358,6 +381,12 @@ async function handlePrint({ product, copies, size }) {
   }
 }
 
+function highlight(text) {
+  if (!search.value || !text) return text
+  const escaped = search.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>')
+}
+
 function formatPrice(n) { return parseFloat(n || 0).toFixed(2) }
 function stockLabel(qty) {
   if (qty < 0) return `Перепродано (${qty})`
@@ -497,5 +526,20 @@ function stockBadgeClass(qty) {
   border-color: var(--accent-1);
   background: rgba(123, 104, 238, 0.15);
   color: var(--text-accent);
+}
+
+:deep(.p-skeleton) {
+  background-color: var(--bg-elevated);
+}
+:deep(.p-skeleton::after) {
+  background: linear-gradient(90deg, transparent, rgba(123, 104, 238, 0.08), transparent);
+}
+
+:deep(.search-highlight) {
+  background: rgba(255, 214, 0, 0.30);
+  color: #ffd600;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
 }
 </style>

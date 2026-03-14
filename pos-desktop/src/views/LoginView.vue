@@ -7,21 +7,13 @@
           <i class="pi pi-shopping-bag" />
         </div>
         <h1 class="logo-title">Market POS</h1>
-        <p class="logo-subtitle">Система кассового обслуживания</p>
       </div>
 
       <!-- Cashier Select -->
       <div class="field-group">
         <label class="field-label">Выбрать кассира</label>
-        <Select
-          v-model="selectedUser"
-          :options="users"
-          option-label="name"
-          option-value="id"
-          placeholder="Выберите кассира..."
-          class="w-full"
-          :loading="loadingUsers"
-        >
+        <Select v-model="selectedUser" :options="users" option-label="name" option-value="id"
+          placeholder="Выберите кассира..." class="w-full" :loading="loadingUsers">
           <template #option="{ option }">
             <div class="user-option">
               <div class="user-avatar-sm">{{ option.name[0] }}</div>
@@ -37,10 +29,7 @@
       <!-- PIN Input -->
       <div class="field-group">
         <label class="field-label">Введите PIN</label>
-        <PinPad
-          v-model="pin"
-          @complete="handleLogin"
-        />
+        <PinPad v-model="pin" @complete="handleLogin" />
       </div>
 
       <div v-if="error" class="error-message">
@@ -48,13 +37,8 @@
         {{ error }}
       </div>
 
-      <Button
-        label="Войти"
-        :loading="logging"
-        :disabled="!selectedUser || pin.length < 4"
-        class="touch-lg w-full"
-        @click="handleLogin"
-      />
+      <Button label="Войти" :loading="logging" :disabled="!selectedUser || pin.length < 4" class="touch-lg w-full"
+        @click="handleLogin" />
     </div>
   </div>
 </template>
@@ -131,15 +115,11 @@ async function handleLogin() {
 }
 
 .login-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 24px;
   padding: 5px 36px 40px;
   width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+  gap: 12px;
 }
 
 .login-logo {
@@ -230,5 +210,7 @@ async function handleLogin() {
   font-size: 14px;
 }
 
-.w-full { width: 100%; }
+.w-full {
+  width: 100%;
+}
 </style>

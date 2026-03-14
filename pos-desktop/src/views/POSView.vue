@@ -24,7 +24,7 @@
       <div class="products-area">
         <div v-for="item in products" :key="item.id" class="product-card"
           :class="{ 'out-of-stock': item.stock_qty <= 0 }" @click="addToCart(item)">
-          <div class="product-name">{{ item.name }}</div>
+          <div class="product-name" v-html="highlight(item.name)" />
           <div class="product-price font-mono">{{ formatPrice(item.price) }}</div>
           <div class="product-stock" :class="stockClass(item.stock_qty)">
             {{ stockLabel(item.stock_qty) }}
@@ -275,6 +275,12 @@ async function handlePayment(paymentData) {
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка продажи', detail: e.message, life: 5000 })
   }
+}
+
+function highlight(text) {
+  if (!searchQuery.value || !text) return text
+  const escaped = searchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>')
 }
 
 function formatPrice(n) {
@@ -565,5 +571,13 @@ function stockClass(qty) {
 
 .w-full {
   width: 100%;
+}
+
+:deep(.search-highlight) {
+  background: rgba(255, 214, 0, 0.30);
+  color: #ffd600;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
 }
 </style>
