@@ -10,7 +10,7 @@
         <InputText v-model="search" placeholder="Поиск..." class="search-input" @input="debouncedSearch" />
         <Select v-model="categoryFilter" :options="[{id:null,name:'Все категории'},...categories]" option-label="name" option-value="id" style="width:180px" />
         <Select v-model="stockFilter" :options="stockFilterOptions" option-label="label" option-value="value" style="width:160px" />
-        <Button label="Добавить товар" icon="pi pi-plus" @click="openCreate" />
+        <Button v-if="canManage" label="Добавить товар" icon="pi pi-plus" @click="openCreate" />
       </div>
     </div>
 
@@ -51,11 +51,11 @@
       <Column header="Действия" style="width:200px">
         <template #body="{ data }">
           <div class="row-actions">
-            <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Редактировать'" />
-            <Button icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px" @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
+            <Button v-if="canManage" icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Редактировать'" />
+            <Button v-if="canManage" icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px" @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
             <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px" @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
             <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px" @click="openPrintLabel(data)" v-tooltip="'Печать этикетки'" />
-            <Button icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px" @click="deleteProduct(data)" v-tooltip="'Удалить'" />
+            <Button v-if="canManage" icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px" @click="deleteProduct(data)" v-tooltip="'Удалить'" />
           </div>
         </template>
       </Column>
@@ -152,9 +152,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
+import { useSessionStore } from '../stores/session.js'
 import PrintLabelDialog from '../components/PrintLabelDialog.vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -167,6 +168,8 @@ import Toast from 'primevue/toast'
 
 const api = useApi()
 const toast = useToast()
+const session = useSessionStore()
+const canManage = computed(() => session.user?.role !== 'cashier')
 
 const products = ref([])
 const categories = ref([])
