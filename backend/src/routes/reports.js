@@ -1,4 +1,111 @@
+import argon from 'argon2'
 import { pool } from '../db/connection.js'
+import { logAudit } from '../services/auditService.js'
+
+async function getPeriodData(pool, warehouseId) {
+  const wid = warehouseId ? parseInt(warehouseId) : null
+
+  // Find opened_at = last z_report closed_at for this warehouse, or start of today
+  const { rows: lastReport } = await pool.query(
+    `SELECT closed_at FROM z_reports WHERE warehouse_id IS NOT DISTINCT FROM $1 ORDER BY closed_at DESC LIMIT 1`,
+    [wid]
+  )
+
+  const openedAt = lastReport[0]
+    ? lastReport[0].closed_at
+    : new Date(new Date().toISOString().split('T')[0] + 'T00:00:00.000Z')
+
+  const closedAt = new Date()
+
+  const whFilter = wid ? `AND warehouse_id = ${wid}` : ''
+
+  // Main summary
+  const { rows: summary } = await pool.query(`
+    SELECT
+      COUNT(*) as transaction_count,
+      COALESCE(SUM(total), 0) as gross_sales,
+      COALESCE(SUM(discount), 0) as total_discount,
+      COALESCE(SUM(tax), 0) as total_tax,
+      COALESCE(SUM(total), 0) - COALESCE(SUM(discount), 0) as net_sales
+    FROM transactions
+    WHERE created_at > $1 AND created_at <= $2 AND status != 'voided' ${whFilter}
+  `, [openedAt, closedAt])
+
+  // Payment methods
+  const { rows: paymentMethods } = await pool.query(`
+    SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total), 0) as amount
+    FROM transactions
+    WHERE created_at > $1 AND created_at <= $2 AND status != 'voided' ${whFilter}
+    GROUP BY payment_method
+    ORDER BY amount DESC
+  `, [openedAt, closedAt])
+
+  // Cashier summary
+  const { rows: cashierSummary } = await pool.query(`
+    SELECT
+      u.id, u.name,
+      COUNT(t.id) as transaction_count,
+      COALESCE(SUM(t.total), 0) as total_sales
+    FROM transactions t
+    JOIN users u ON u.id = t.cashier_id
+    WHERE t.created_at > $1 AND t.created_at <= $2 AND t.status != 'voided' ${whFilter}
+    GROUP BY u.id, u.name
+    ORDER BY total_sales DESC
+  `, [openedAt, closedAt])
+
+  // Top products
+  const { rows: topProducts } = await pool.query(`
+    SELECT
+      p.id, p.name,
+      SUM(ti.qty) as total_qty,
+      SUM(ti.subtotal) as total_amount
+    FROM transaction_items ti
+    JOIN products p ON p.id = ti.product_id
+    JOIN transactions t ON t.id = ti.transaction_id
+    WHERE t.created_at > $1 AND t.created_at <= $2 AND t.status != 'voided' ${whFilter}
+    GROUP BY p.id, p.name
+    ORDER BY total_qty DESC
+    LIMIT 10
+  `, [openedAt, closedAt])
+
+  // Refunds in this period
+  const { rows: refundData } = await pool.query(`
+    SELECT COUNT(*) as refund_count, COALESCE(SUM(r.total_refund_amount), 0) as refund_amount
+    FROM refunds r
+    JOIN transactions t ON t.id = r.original_txn_id
+    WHERE r.created_at > $1 AND r.created_at <= $2 ${whFilter ? whFilter.replace('AND warehouse_id', 'AND t.warehouse_id') : ''}
+  `, [openedAt, closedAt])
+
+  const s = summary[0]
+  return {
+    opened_at: openedAt,
+    closed_at: closedAt,
+    transaction_count: parseInt(s.transaction_count),
+    gross_sales: parseFloat(s.gross_sales),
+    total_discount: parseFloat(s.total_discount),
+    total_tax: parseFloat(s.total_tax),
+    net_sales: parseFloat(s.net_sales),
+    payment_methods: paymentMethods.map(m => ({
+      method: m.payment_method,
+      count: parseInt(m.count),
+      amount: parseFloat(m.amount)
+    })),
+    cashier_summary: cashierSummary.map(c => ({
+      id: c.id,
+      name: c.name,
+      transaction_count: parseInt(c.transaction_count),
+      total_sales: parseFloat(c.total_sales)
+    })),
+    top_products: topProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      total_qty: parseFloat(p.total_qty),
+      total_amount: parseFloat(p.total_amount)
+    })),
+    refund_count: parseInt(refundData[0]?.refund_count || 0),
+    refund_amount: parseFloat(refundData[0]?.refund_amount || 0)
+  }
+}
 
 export default async function reportRoutes(fastify) {
   // GET /api/reports/daily
@@ -137,5 +244,108 @@ export default async function reportRoutes(fastify) {
     `, [wid])
 
     return { products: rows, summary: summary[0] }
+  })
+
+  // GET /api/reports/x-report
+  fastify.get('/api/reports/x-report', { onRequest: [fastify.authenticate] }, async (req) => {
+    const { warehouse_id } = req.query
+    const data = await getPeriodData(pool, warehouse_id || null)
+    return data
+  })
+
+  // POST /api/reports/z-report
+  fastify.post('/api/reports/z-report', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const { manager_pin, warehouse_id } = req.body
+
+    if (!manager_pin) {
+      return reply.code(400).send({ error: 'manager_pin required' })
+    }
+
+    // Verify manager PIN
+    const { rows: managers } = await pool.query(
+      "SELECT * FROM users WHERE role IN ('manager','admin') AND is_active=true"
+    )
+    let approver = null
+    for (const m of managers) {
+      const valid = await argon.verify(m.pin_hash, String(manager_pin))
+      if (valid) {
+        approver = m
+        break
+      }
+    }
+    if (!approver) return reply.code(403).send({ error: 'Invalid manager PIN' })
+
+    const wid = warehouse_id ? parseInt(warehouse_id) : null
+    const periodData = await getPeriodData(pool, wid)
+
+    // Generate report_no
+    const { rows: countRows } = await pool.query(
+      'SELECT COUNT(*) as cnt FROM z_reports WHERE warehouse_id IS NOT DISTINCT FROM $1',
+      [wid]
+    )
+    const reportNo = `Z-${String(parseInt(countRows[0].cnt) + 1).padStart(4, '0')}`
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const { rows: reportRows } = await client.query(`
+        INSERT INTO z_reports (
+          report_no, warehouse_id, opened_at, closed_at, closed_by, closed_by_name,
+          transaction_count, gross_sales, total_discount, total_tax, net_sales,
+          refund_count, refund_amount, payment_methods, cashier_summary, top_products
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        RETURNING *
+      `, [
+        reportNo, wid, periodData.opened_at, periodData.closed_at,
+        approver.id, approver.name,
+        periodData.transaction_count, periodData.gross_sales,
+        periodData.total_discount, periodData.total_tax, periodData.net_sales,
+        periodData.refund_count, periodData.refund_amount,
+        JSON.stringify(periodData.payment_methods),
+        JSON.stringify(periodData.cashier_summary),
+        JSON.stringify(periodData.top_products)
+      ])
+
+      await logAudit({
+        action: 'z_report',
+        actor: req.user,
+        approver: { id: approver.id },
+        target: { type: 'z_report', id: reportRows[0].id, name: reportNo },
+        details: {
+          report_no: reportNo,
+          transaction_count: periodData.transaction_count,
+          net_sales: periodData.net_sales,
+          warehouse_id: wid
+        },
+        ip: req.ip,
+        client
+      })
+
+      await client.query('COMMIT')
+
+      return reply.code(201).send({ ...periodData, report_no: reportNo, id: reportRows[0].id })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      return reply.code(500).send({ error: err.message })
+    } finally {
+      client.release()
+    }
+  })
+
+  // GET /api/reports/z-reports
+  fastify.get('/api/reports/z-reports', { onRequest: [fastify.authenticate] }, async (req) => {
+    const { warehouse_id, limit = 50, page = 1 } = req.query
+    const wid = warehouse_id ? parseInt(warehouse_id) : null
+    const offset = (page - 1) * limit
+
+    const { rows } = await pool.query(`
+      SELECT * FROM z_reports
+      WHERE warehouse_id IS NOT DISTINCT FROM $1
+      ORDER BY closed_at DESC
+      LIMIT $2 OFFSET $3
+    `, [wid, limit, offset])
+
+    return rows
   })
 }

@@ -534,3 +534,23 @@ body {
   display: flex !important;
   align-items: center !important;
 }
+
+@media print {
+  body > * { display: none !important; }
+  #print-area {
+    display: block !important;
+    position: fixed; top: 0; left: 0; width: 100%;
+    background: white; color: #111;
+    font-family: var(--font-sans);
+    padding: 20px; font-size: 12px;
+  }
+  #print-area .p-datatable-table { border-collapse: collapse; width: 100%; }
+  #print-area .p-datatable-table th,
+  #print-area .p-datatable-table td { border: 1px solid #ddd; padding: 6px 8px; color: #111; }
+  #print-area .gradient-text {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #111 !important;
+  }
+  #print-area .section { page-break-inside: avoid; }
+}

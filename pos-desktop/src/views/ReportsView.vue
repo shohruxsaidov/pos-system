@@ -18,6 +18,14 @@
         />
         <DatePicker v-model="dateFilter" date-format="yy-mm-dd" @date-select="loadAll" />
         <Button label="Экспорт CSV" icon="pi pi-download" class="p-button-secondary" @click="exportCSV" />
+        <Button label="X-Отчёт" icon="pi pi-chart-bar" class="p-button-secondary" @click="showXReport = true" />
+        <Button
+          v-if="session.user?.role !== 'cashier'"
+          label="Z-Отчёт"
+          icon="pi pi-lock"
+          severity="danger"
+          @click="showZReport = true"
+        />
       </div>
     </div>
 
@@ -126,6 +134,10 @@
       @refunded="loadAll"
     />
 
+    <!-- X/Z Report Dialogs -->
+    <XReportDialog v-model="showXReport" :warehouse-id="selectedWarehouseId" />
+    <ZReportDialog v-model="showZReport" :warehouse-id="selectedWarehouseId" @closed="loadAll" />
+
     <Toast />
   </div>
 </template>
@@ -136,6 +148,8 @@ import { useApi } from '../composables/useApi.js'
 import { useSessionStore } from '../stores/session.js'
 import { useToast } from 'primevue/usetoast'
 import RefundDialog from '../components/RefundDialog.vue'
+import XReportDialog from '../components/XReportDialog.vue'
+import ZReportDialog from '../components/ZReportDialog.vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -156,6 +170,8 @@ const transactions = ref([])
 const loading = ref(false)
 const showRefund = ref(false)
 const refundTxnId = ref(null)
+const showXReport = ref(false)
+const showZReport = ref(false)
 const warehouses = ref([])
 const selectedWarehouseId = ref(null)
 
