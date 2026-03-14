@@ -62,6 +62,7 @@ const navItems = computed(() => {
     { to: '/inventory', icon: 'pi pi-box', label: 'Склад' },
   ]
   if (['manager', 'admin'].includes(session.user?.role)) {
+    items.push({ to: '/categories', icon: 'pi pi-folder', label: 'Категории' })
     items.push({ to: '/reports', icon: 'pi pi-chart-bar', label: 'Отчёты' })
     items.push({ to: '/settings', icon: 'pi pi-cog', label: 'Настройки' })
   }

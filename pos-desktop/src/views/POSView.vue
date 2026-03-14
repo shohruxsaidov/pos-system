@@ -49,7 +49,8 @@
           <Column field="name" header="Товар" />
           <Column field="unit_price" header="Цена" style="width:90px">
             <template #body="{ data }">
-              <button class="qty-value font-mono qty-value-btn" @click="openPriceEdit(data)">{{ formatPrice(data.unit_price) }}</button>
+              <button class="qty-value font-mono qty-value-btn" @click="openPriceEdit(data)">{{
+                formatPrice(data.unit_price) }}</button>
             </template>
           </Column>
           <Column header="Кол-во" style="width:120px">
@@ -99,8 +100,7 @@
     </div>
 
     <!-- Cart Amount → Qty Dialog -->
-    <Dialog v-model:visible="showPriceDialog" modal header="Ввести сумму"
-      :style="{ width: '320px' }">
+    <Dialog v-model:visible="showPriceDialog" modal header="Ввести сумму" :style="{ width: '320px' }">
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="text-align:center;font-size:13px;color:var(--text-secondary);font-weight:600">
           {{ editingCartItem?.name }} · {{ formatPrice(editingCartItem?.unit_price) }} за ед.
@@ -118,8 +118,7 @@
     </Dialog>
 
     <!-- Cart Qty Edit Dialog -->
-    <Dialog v-model:visible="showQtyDialog" modal header="Изменить количество"
-      :style="{ width: '320px' }">
+    <Dialog v-model:visible="showQtyDialog" modal header="Изменить количество" :style="{ width: '320px' }">
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="text-align:center;font-size:13px;color:var(--text-secondary);font-weight:600">
           {{ editingCartItem?.name }}
@@ -326,10 +325,12 @@ function stockClass(qty) {
   overflow-x: auto;
   padding-bottom: 4px;
   min-height: 34px;
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .category-tabs::-webkit-scrollbar {
-  height: 3px;
+  display: none;
 }
 
 .cat-tab {
@@ -492,9 +493,16 @@ function stockClass(qty) {
 }
 
 .qty-value {
-  width: 28px;
+  max-width: 50px;
   text-align: center;
   font-size: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.qty-value::-webkit-scrollbar {
+  display: none;
 }
 
 .qty-value-btn {
