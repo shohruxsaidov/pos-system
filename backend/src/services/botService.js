@@ -87,20 +87,14 @@ async function handleMessage(msg) {
       }
       case "/stock": {
         const { rows: oversold } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p
-           JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.name HAVING SUM(ws.stock_qty) < 0
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 10`,
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty < 0
+           ORDER BY stock_qty ASC LIMIT 10`,
         );
         const { rows: low } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p
-           JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.name HAVING SUM(ws.stock_qty) >= 0 AND SUM(ws.stock_qty) <= 5
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 10`,
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty >= 0 AND stock_qty <= 5
+           ORDER BY stock_qty ASC LIMIT 10`,
         );
         const oversoldText = oversold.length
           ? oversold.map((p) => `🚨 ${p.name}: ${p.stock_qty}`).join("\n")
@@ -244,22 +238,14 @@ async function handleMessage(msg) {
           [yesterday]
         );
         const { rows: lowStock } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p
-           JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.id, p.name
-           HAVING SUM(ws.stock_qty) > 0 AND SUM(ws.stock_qty) <= 5
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty > 0 AND stock_qty <= 5
+           ORDER BY stock_qty ASC LIMIT 5`
         );
         const { rows: oversold } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p
-           JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.id, p.name
-           HAVING SUM(ws.stock_qty) < 0
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty < 0
+           ORDER BY stock_qty ASC LIMIT 5`
         );
 
         const { rows: storeRow } = await pool.query(
