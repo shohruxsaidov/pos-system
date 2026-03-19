@@ -15,12 +15,7 @@
         </div>
 
         <div v-else class="user-list">
-          <button
-            v-for="u in users"
-            :key="u.id"
-            class="user-item"
-            @click="selectUser(u)"
-          >
+          <button v-for="u in users" :key="u.id" class="user-item" @click="selectUser(u)">
             <div class="user-avatar">{{ u.name[0] }}</div>
             <div class="user-info">
               <span class="user-name">{{ u.name }}</span>
@@ -52,13 +47,8 @@
         </div>
 
         <div class="pin-grid">
-          <button
-            v-for="key in pinKeys"
-            :key="key"
-            class="pin-key"
-            :class="{ 'key-del': key === 'del', 'key-empty': key === '' }"
-            @click="handleKey(key)"
-          >
+          <button v-for="key in pinKeys" :key="key" class="pin-key"
+            :class="{ 'key-del': key === 'del', 'key-empty': key === '' }" @click="handleKey(key)">
             <span v-if="key === 'del'">⌫</span>
             <span v-else>{{ key }}</span>
           </button>
@@ -69,11 +59,7 @@
         </div>
         <div v-else style="min-height: 44px;" />
 
-        <button
-          class="login-btn"
-          :disabled="pin.length < 4 || logging"
-          @click="handleLogin"
-        >
+        <button class="login-btn" :disabled="pin.length < 4 || logging" @click="handleLogin">
           <span v-if="logging"><i class="pi pi-spin pi-spinner" /> Вход...</span>
           <span v-else>Войти</span>
         </button>
@@ -192,10 +178,13 @@ async function handleLogin() {
   gap: 16px;
 }
 
-.login-logo { text-align: center; }
+.login-logo {
+  text-align: center;
+}
 
 .logo-icon {
-  width: 64px; height: 64px;
+  width: 64px;
+  height: 64px;
   background: var(--gradient-hero);
   border-radius: 20px;
   display: flex;
@@ -204,7 +193,7 @@ async function handleLogin() {
   font-size: 28px;
   color: #fff;
   margin: 0 auto 12px;
-  box-shadow: 0 4px 20px rgba(123,104,238,0.35);
+  box-shadow: 0 4px 20px rgba(123, 104, 238, 0.35);
 }
 
 .logo-icon.user-initial {
@@ -221,10 +210,16 @@ async function handleLogin() {
   background-clip: text;
 }
 
-.logo-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.logo-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
 
 /* User list */
-.loading-users { padding: 32px; }
+.loading-users {
+  padding: 32px;
+}
 
 .user-list {
   width: 100%;
@@ -250,10 +245,14 @@ async function handleLogin() {
   transition: all 0.15s;
 }
 
-.user-item:active { background: var(--bg-hover); border-color: var(--accent-1); }
+.user-item:active {
+  background: var(--bg-hover);
+  border-color: var(--accent-1);
+}
 
 .user-avatar {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   background: var(--gradient-accent);
   border-radius: 12px;
   display: flex;
@@ -265,9 +264,18 @@ async function handleLogin() {
   flex-shrink: 0;
 }
 
-.user-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
-.user-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.user-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
 .user-role-badge {
   font-size: 11px;
@@ -277,12 +285,30 @@ async function handleLogin() {
   width: fit-content;
 }
 
-.user-role-badge.cashier { background: var(--success-bg); color: var(--success); }
-.user-role-badge.warehouse { background: var(--warning-bg); color: var(--warning); }
-.user-role-badge.manager { background: rgba(123,104,238,0.15); color: var(--accent-1); }
-.user-role-badge.admin { background: var(--danger-bg); color: var(--danger); }
+.user-role-badge.cashier {
+  background: var(--success-bg);
+  color: var(--success);
+}
 
-.user-arrow { color: var(--text-muted); font-size: 12px; }
+.user-role-badge.warehouse {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.user-role-badge.manager {
+  background: rgba(123, 104, 238, 0.15);
+  color: var(--accent-1);
+}
+
+.user-role-badge.admin {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.user-arrow {
+  color: var(--text-muted);
+  font-size: 12px;
+}
 
 /* Back link */
 .back-link {
@@ -299,17 +325,24 @@ async function handleLogin() {
 }
 
 /* PIN dots */
-.pin-dots { display: flex; gap: 16px; }
+.pin-dots {
+  display: flex;
+  gap: 16px;
+}
+
 .pin-dot {
-  width: 18px; height: 18px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 2px solid var(--border-default);
   background: transparent;
   transition: all 0.15s;
 }
+
 .pin-dot.filled {
   background: var(--gradient-hero);
   border-color: transparent;
+  border: none;
   box-shadow: 0 0 12px var(--accent-glow);
 }
 
@@ -323,7 +356,8 @@ async function handleLogin() {
 }
 
 .pin-key {
-  height: 60px; width: 60px;
+  height: 60px;
+  width: 60px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 50%;
@@ -338,9 +372,20 @@ async function handleLogin() {
   transition: all 0.12s;
 }
 
-.pin-key.key-empty { visibility: hidden; }
-.pin-key:active { transform: scale(0.93); background: var(--accent-glow); }
-.pin-key.key-del { color: var(--danger); background: var(--danger-bg); border-color: rgba(255,92,92,0.2); }
+.pin-key.key-empty {
+  visibility: hidden;
+}
+
+.pin-key:active {
+  transform: scale(0.93);
+  background: var(--accent-glow);
+}
+
+.pin-key.key-del {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: rgba(255, 92, 92, 0.2);
+}
 
 /* Error */
 .error-msg {
@@ -349,7 +394,7 @@ async function handleLogin() {
   gap: 8px;
   padding: 12px 16px;
   background: var(--danger-bg);
-  border: 1px solid rgba(255,92,92,0.2);
+  border: 1px solid rgba(255, 92, 92, 0.2);
   border-radius: 12px;
   color: var(--danger);
   font-size: 14px;
@@ -367,9 +412,12 @@ async function handleLogin() {
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(123,104,238,0.35);
+  box-shadow: 0 4px 20px rgba(123, 104, 238, 0.35);
   transition: all 0.15s;
 }
 
-.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>
