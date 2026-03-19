@@ -16,6 +16,10 @@
         <i class="pi pi-list mobile-nav-icon" />
         <span class="mobile-nav-label">Инвентарь</span>
       </RouterLink>
+      <RouterLink v-if="store.role === 'manager' || store.role === 'admin'" to="/reports" class="mobile-nav-item" active-class="active">
+        <i class="pi pi-chart-bar mobile-nav-icon" />
+        <span class="mobile-nav-label">Отчёты</span>
+      </RouterLink>
     </nav>
 
     <Toast position="top-center" />

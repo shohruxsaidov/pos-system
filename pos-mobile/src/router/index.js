@@ -26,6 +26,12 @@ const routes = [
     name: 'inventory',
     component: () => import('../views/MobileInventoryView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/reports',
+    name: 'reports',
+    component: () => import('../views/MobileReportsView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

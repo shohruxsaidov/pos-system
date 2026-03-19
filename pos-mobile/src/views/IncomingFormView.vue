@@ -16,12 +16,6 @@
       </div>
     </div>
 
-    <!-- Supplier / Notes -->
-    <div class="receipt-meta">
-      <input v-model="supplier" class="meta-input" placeholder="Поставщик (необязательно)" />
-      <input v-model="notes" class="meta-input" placeholder="Примечания (необязательно)" />
-    </div>
-
     <!-- Item Cards -->
     <div class="items-list">
       <div v-if="items.length === 0" class="empty-state">
@@ -102,8 +96,6 @@ const store = useWarehouseStore()
 const toast = useToast()
 
 const items = ref([])
-const supplier = ref('')
-const notes = ref('')
 const confirming = ref(false)
 
 const numpadVisible = ref(false)
@@ -207,8 +199,6 @@ async function confirmReceipt() {
     const res = await store.authFetch('/api/incoming', {
       method: 'POST',
       body: JSON.stringify({
-        supplier: supplier.value,
-        notes: notes.value,
         items: items.value
       })
     })
@@ -218,8 +208,6 @@ async function confirmReceipt() {
 
     toast.add({ severity: 'success', summary: 'Приёмка подтверждена', detail: `${data.ref_no} — ${formatAmount(data.total_cost)}`, life: 4000 })
     items.value = []
-    supplier.value = ''
-    notes.value = ''
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 4000 })
   } finally {
@@ -296,27 +284,6 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
   align-items: center;
   gap: 8px;
 }
-
-.receipt-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 16px 10px;
-  flex-shrink: 0;
-}
-
-.meta-input {
-  height: 52px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-size: 15px;
-  padding: 0 16px;
-  font-family: var(--font-sans);
-}
-
-.meta-input::placeholder { color: var(--text-muted); }
 
 .items-list {
   flex: 1;
