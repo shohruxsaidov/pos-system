@@ -14,7 +14,7 @@
         <!-- Total -->
         <div class="payment-total">
           <span class="pt-label">К оплате</span>
-          <span class="pt-value font-mono">₱{{ total.toFixed(2) }}</span>
+          <span class="pt-value font-mono">{{ total.toFixed(2) }}</span>
         </div>
 
         <!-- Payment method -->
@@ -36,16 +36,16 @@
         <div v-if="method === 'cash'" class="cash-section">
           <div class="tendered-label">Получено наличными</div>
           <button class="tendered-field" @click="showNumpad = true">
-            <span class="tf-amount font-mono">₱{{ tenderedStr || '0.00' }}</span>
+            <span class="tf-amount font-mono">{{ tenderedStr || '0.00' }}</span>
             <i class="pi pi-pencil tf-icon" />
           </button>
           <div v-if="tenderedNum > 0 && tenderedNum >= total" class="change-row">
             <span class="change-label">Сдача</span>
-            <span class="change-amount font-mono">₱{{ change.toFixed(2) }}</span>
+            <span class="change-amount font-mono">{{ change.toFixed(2) }}</span>
           </div>
           <div v-else-if="tenderedNum > 0 && tenderedNum < total" class="insufficient-row">
             <i class="pi pi-exclamation-triangle" />
-            Недостаточно (ещё ₱{{ (total - tenderedNum).toFixed(2) }})
+            Недостаточно (ещё {{ (total - tenderedNum).toFixed(2) }})
           </div>
         </div>
 

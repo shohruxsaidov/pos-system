@@ -23,7 +23,7 @@
             <div v-for="(item, idx) in items" :key="item.product_id" class="cart-row">
               <div class="cart-row-main">
                 <span class="cart-row-name">{{ item.name }}</span>
-                <span class="cart-row-unit-price">₱{{ item.unit_price.toFixed(2) }}/шт</span>
+                <span class="cart-row-unit-price">{{ item.unit_price.toFixed(2) }}/шт</span>
               </div>
               <div class="cart-row-controls">
                 <div class="qty-controls">
@@ -31,7 +31,7 @@
                   <span class="qty-num">{{ item.qty }}</span>
                   <button class="qty-btn plus" @click="$emit('change-qty', idx, 1)">+</button>
                 </div>
-                <span class="cart-row-subtotal font-mono">₱{{ (item.unit_price * item.qty).toFixed(2) }}</span>
+                <span class="cart-row-subtotal font-mono">{{ (item.unit_price * item.qty).toFixed(2) }}</span>
                 <button class="remove-btn" @click="$emit('remove', idx)">
                   <i class="pi pi-trash" />
                 </button>
@@ -42,7 +42,7 @@
           <div class="cart-footer">
             <div class="total-row">
               <span class="total-label">Итого</span>
-              <span class="total-value font-mono">₱{{ total.toFixed(2) }}</span>
+              <span class="total-value font-mono">{{ total.toFixed(2) }}</span>
             </div>
             <button
               class="checkout-btn"

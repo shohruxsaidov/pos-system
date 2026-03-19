@@ -63,7 +63,7 @@
           @click="addToCart(p)"
         >
           <div class="product-name">{{ p.name }}</div>
-          <div class="product-price font-mono">₱{{ Number(p.price).toFixed(2) }}</div>
+          <div class="product-price font-mono">{{ Number(p.price).toFixed(2) }}</div>
           <div class="product-footer">
             <span class="stock-badge" :class="stockClass(p.stock_qty)">
               {{ stockLabel(p.stock_qty) }}
@@ -80,7 +80,7 @@
     <!-- Sticky cart bar (when cart has items) -->
     <div v-if="cartCount > 0 && !showCart" class="cart-bar" @click="showCart = true">
       <span class="cart-bar-count">{{ cartCount }} товар{{ cartCountSuffix }}</span>
-      <span class="cart-bar-total font-mono">₱{{ cartTotal.toFixed(2) }}</span>
+      <span class="cart-bar-total font-mono">{{ cartTotal.toFixed(2) }}</span>
       <span class="cart-bar-action">Корзина <i class="pi pi-angle-up" /></span>
     </div>
 
@@ -274,7 +274,7 @@ async function processSale({ method, tendered, changeGiven }) {
     toast.add({
       severity: 'success',
       summary: `Продажа ${data.ref_no}`,
-      detail: `Сумма: ₱${Number(data.total).toFixed(2)}`,
+      detail: `Сумма: ${Number(data.total).toFixed(2)}`,
       life: 4000
     })
   } catch (e) {
@@ -319,6 +319,33 @@ async function processSale({ method, tendered, changeGiven }) {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logout-btn {
+  width: 48px; height: 48px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logout-btn:active {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .cart-fab {
