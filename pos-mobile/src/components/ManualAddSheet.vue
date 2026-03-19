@@ -116,10 +116,24 @@ function onInput() {
 async function search() {
   const q = query.value.trim()
   if (!q) return
+
+  // 1. Try exact barcode lookup first
+  try {
+    const barcodeRes = await store.authFetch(`/api/products/barcode/${encodeURIComponent(q)}`)
+    if (barcodeRes.ok) {
+      const product = await barcodeRes.json()
+      results.value = [product]
+      loading.value = false
+      searched.value = true
+      return
+    }
+  } catch {}
+
+  // 2. Fall back to name search
   try {
     const res = await store.authFetch(`/api/products?search=${encodeURIComponent(q)}&limit=30`)
     const data = await res.json()
-    results.value = Array.isArray(data) ? data : (data.products || [])
+    results.value = Array.isArray(data) ? data : (data.data || data.products || [])
   } catch {
     results.value = []
   } finally {

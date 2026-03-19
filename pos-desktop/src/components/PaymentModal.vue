@@ -21,7 +21,7 @@
 
       <!-- Payment Method -->
       <div class="field-group">
-        <label class="field-label">Payment Method</label>
+        <label class="field-label">Способ оплаты</label>
         <SelectButton v-model="method" :options="methods" option-label="label" option-value="value"
           class="method-selector" />
       </div>
@@ -69,6 +69,7 @@ const showNumpad = ref(false)
 const methods = [
   { label: 'Наличные', value: 'cash' },
   { label: 'Карта', value: 'card' },
+  { label: 'Перевод', value: 'transfer' },
 ]
 
 watch(visible, (v) => {
