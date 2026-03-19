@@ -141,15 +141,20 @@ export async function sendEODSummary() {
     );
 
     const { rows: lowStock } = await pool.query(
-      `SELECT name, stock_qty FROM products
-      WHERE is_active = true AND stock_qty > 0 AND stock_qty <= low_stock_threshold
-      ORDER BY stock_qty ASC LIMIT 5`
+      `SELECT p.name, SUM(ws.stock_qty) as stock_qty
+      FROM products p JOIN warehouse_stock ws ON ws.product_id = p.id
+      WHERE p.is_active = true
+      GROUP BY p.id, p.name, p.low_stock_threshold
+      HAVING SUM(ws.stock_qty) > 0 AND SUM(ws.stock_qty) <= p.low_stock_threshold
+      ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
     );
 
     const { rows: oversold } = await pool.query(
-      `SELECT name, stock_qty FROM products
-      WHERE is_active = true AND stock_qty < 0
-      ORDER BY stock_qty ASC LIMIT 5`,
+      `SELECT p.name, SUM(ws.stock_qty) as stock_qty
+      FROM products p JOIN warehouse_stock ws ON ws.product_id = p.id
+      WHERE p.is_active = true
+      GROUP BY p.id, p.name HAVING SUM(ws.stock_qty) < 0
+      ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`,
     );
 
     const s = summary[0];
