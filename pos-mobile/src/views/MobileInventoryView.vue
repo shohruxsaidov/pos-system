@@ -90,7 +90,6 @@
       </div>
     </div>
 
-    <Toast />
   </div>
 </template>
 
@@ -101,7 +100,6 @@ import { useToast } from 'primevue/usetoast'
 import MobileProductCard from '../components/MobileProductCard.vue'
 import StockAdjustSheet from '../components/StockAdjustSheet.vue'
 import JsBarcode from 'jsbarcode'
-import Toast from 'primevue/toast'
 
 const store = useWarehouseStore()
 const toast = useToast()

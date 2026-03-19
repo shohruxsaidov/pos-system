@@ -73,7 +73,7 @@ import { ref, watch, nextTick } from 'vue'
 import JsBarcode from 'jsbarcode'
 import { useWarehouseStore } from '../stores/warehouse.js'
 
-const props = defineProps({ visible: Boolean, barcode: String })
+const props = defineProps({ visible: Boolean, barcode: String, prefillName: String })
 const emit = defineEmits(['close', 'skip', 'created'])
 
 const store = useWarehouseStore()
@@ -85,9 +85,16 @@ const units = ['шт', 'кг', 'л', 'уп', 'м']
 
 watch(() => props.visible, async (v) => {
   if (v) {
-    form.value = { name: '', barcode: props.barcode || '', price: 0, unit: 'шт' }
+    const hasRealBarcode = !!props.barcode
+    form.value = {
+      name: props.prefillName || '',
+      barcode: props.barcode || '',
+      price: 0,
+      unit: 'шт'
+    }
     error.value = ''
-    if (props.barcode) await nextTick(() => renderPreview())
+    if (!hasRealBarcode) generateBarcode()
+    else await nextTick(() => renderPreview())
   }
 })
 

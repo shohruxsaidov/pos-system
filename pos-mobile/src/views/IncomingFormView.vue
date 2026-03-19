@@ -88,6 +88,7 @@
     <ProductNotFound
       :visible="showNotFound"
       :barcode="scannedBarcode"
+      :prefill-name="notFoundPrefillName"
       @close="showNotFound = false"
       @skip="showNotFound = false"
       @created="addManualProduct"
@@ -101,12 +102,11 @@
       @create-new="onCreateNew"
     />
 
-    <Toast />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWarehouseStore } from '../stores/warehouse.js'
 import { useToast } from 'primevue/usetoast'
@@ -114,7 +114,6 @@ import IncomingItemCard from '../components/IncomingItemCard.vue'
 import BottomNumPad from '../components/BottomNumPad.vue'
 import ProductNotFound from '../components/ProductNotFound.vue'
 import ManualAddSheet from '../components/ManualAddSheet.vue'
-import Toast from 'primevue/toast'
 
 const router = useRouter()
 const store = useWarehouseStore()
@@ -137,6 +136,7 @@ const numpadEditField = ref(null)
 
 const showNotFound = ref(false)
 const scannedBarcode = ref('')
+const notFoundPrefillName = ref('')
 const showManualAdd = ref(false)
 
 const totalCost = computed(() =>
@@ -160,6 +160,7 @@ async function handleBarcodeScan() {
     const res = await store.authFetch(`/api/products/barcode/${encodeURIComponent(barcode)}`)
     if (!res.ok) {
       scannedBarcode.value = barcode
+      notFoundPrefillName.value = ''
       showNotFound.value = true
       return
     }
@@ -211,11 +212,9 @@ function onManualSelected(product) {
 
 function onCreateNew(prefillName) {
   showManualAdd.value = false
-  scannedBarcode.value = ''
-  // Reuse ProductNotFound dialog but without a barcode — pass name as barcode field for reference
-  // We open with a slight delay so ManualAddSheet fully closes
   setTimeout(() => {
-    scannedBarcode.value = prefillName
+    scannedBarcode.value = ''
+    notFoundPrefillName.value = prefillName
     showNotFound.value = true
   }, 50)
 }

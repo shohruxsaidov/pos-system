@@ -1,10 +1,5 @@
 <template>
-  <Dialog
-    v-model:visible="visible"
-    modal
-    header="Печать этикетки"
-    :style="{ width: '480px' }"
-  >
+  <Dialog v-model:visible="visible" modal header="Печать этикетки" :style="{ width: '480px' }">
     <div class="print-content">
       <!-- Preview -->
       <div class="label-preview" :class="`size-${size}`">
@@ -17,35 +12,24 @@
       <div class="print-fields">
         <div class="field-group">
           <label class="field-label">Размер этикетки</label>
-          <SelectButton
-            v-model="size"
-            :options="['58mm', '80mm']"
-          />
+          <SelectButton v-model="size" :options="['58mm', '80mm']" />
         </div>
 
         <div class="field-group">
           <label class="field-label">Копии</label>
           <div class="copies-control">
-            <Button
-              icon="pi pi-minus"
-              class="p-button-secondary"
-              @click="copies = Math.max(1, copies - 1)"
-              style="height:56px;width:56px"
-            />
+            <Button icon="pi pi-minus" class="p-button-secondary" @click="copies = Math.max(1, copies - 1)"
+              style="height:56px;width:56px" />
             <div class="copies-display font-mono">{{ copies }}</div>
-            <Button
-              icon="pi pi-plus"
-              class="p-button-secondary"
-              @click="copies = Math.min(50, copies + 1)"
-              style="height:56px;width:56px"
-            />
+            <Button icon="pi pi-plus" class="p-button-secondary" @click="copies = Math.min(50, copies + 1)"
+              style="height:56px;width:56px" />
           </div>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <Button label="Отмена" class="p-button-secondary" @click="visible = false" />
+      <Button label="Отмена" class="p-button-secondary touch-lg" @click="visible = false" />
       <Button label="Печать" icon="pi pi-print" class="touch-lg" @click="print" style="flex:1" />
     </template>
   </Dialog>
@@ -114,8 +98,13 @@ function print() {
   margin: 0 auto;
 }
 
-.size-58mm { width: 220px; }
-.size-80mm { width: 300px; }
+.size-58mm {
+  width: 220px;
+}
+
+.size-80mm {
+  width: 300px;
+}
 
 .label-store {
   font-size: 11px;
@@ -130,7 +119,9 @@ function print() {
   text-align: center;
 }
 
-.label-barcode { width: 100%; }
+.label-barcode {
+  width: 100%;
+}
 
 .label-price {
   font-size: 18px;
