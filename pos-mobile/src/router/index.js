@@ -2,12 +2,18 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { useWarehouseStore } from '../stores/warehouse.js'
 
 const routes = [
-  { path: '/', redirect: '/incoming' },
+  { path: '/', redirect: '/sales' },
   {
     path: '/login',
     name: 'login',
     component: () => import('../views/MobileLoginView.vue'),
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/sales',
+    name: 'sales',
+    component: () => import('../views/MobileSaleView.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/incoming',

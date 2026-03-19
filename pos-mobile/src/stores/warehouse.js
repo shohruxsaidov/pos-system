@@ -11,6 +11,9 @@ export const useWarehouseStore = defineStore('warehouse', () => {
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
   const warehouseId = computed(() => user.value?.warehouse_id || 1)
+  const role = computed(() => user.value?.role || '')
+  const canSell = computed(() => ['cashier', 'manager', 'admin'].includes(role.value))
+  const isWarehouse = computed(() => role.value === 'warehouse')
 
   function login(userData, jwt) {
     user.value = userData
@@ -53,5 +56,5 @@ export const useWarehouseStore = defineStore('warehouse', () => {
     return res
   }
 
-  return { token, user, products, receipts, isLoggedIn, warehouseId, login, logout, fetchProducts, fetchReceipts, authFetch }
+  return { token, user, products, receipts, isLoggedIn, warehouseId, role, canSell, isWarehouse, login, logout, fetchProducts, fetchReceipts, authFetch }
 })

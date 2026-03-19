@@ -4,11 +4,15 @@
 
     <!-- Bottom Nav (when logged in) -->
     <nav v-if="store.isLoggedIn" class="mobile-bottom-nav">
-      <RouterLink to="/incoming" class="mobile-nav-item" active-class="active">
+      <RouterLink v-if="store.canSell" to="/sales" class="mobile-nav-item" active-class="active">
+        <i class="pi pi-shopping-cart mobile-nav-icon" />
+        <span class="mobile-nav-label">Продажи</span>
+      </RouterLink>
+      <RouterLink v-if="store.isWarehouse || !store.canSell || store.role === 'manager' || store.role === 'admin'" to="/incoming" class="mobile-nav-item" active-class="active">
         <i class="pi pi-inbox mobile-nav-icon" />
         <span class="mobile-nav-label">Приёмка</span>
       </RouterLink>
-      <RouterLink to="/inventory" class="mobile-nav-item" active-class="active">
+      <RouterLink v-if="store.isWarehouse || store.role === 'manager' || store.role === 'admin'" to="/inventory" class="mobile-nav-item" active-class="active">
         <i class="pi pi-list mobile-nav-icon" />
         <span class="mobile-nav-label">Инвентарь</span>
       </RouterLink>
