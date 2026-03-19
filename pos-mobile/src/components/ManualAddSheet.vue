@@ -1,10 +1,8 @@
 <template>
   <div v-if="visible" class="sheet-overlay" @click.self="$emit('close')">
     <div class="sheet-card">
-      <div class="sheet-handle" />
-
       <div class="sheet-header">
-        <h3>Добавить товар вручную</h3>
+        <h3>Добавить товар</h3>
         <button class="close-btn" @click="$emit('close')">✕</button>
       </div>
 
@@ -152,30 +150,26 @@ function stockClass(qty) {
 <style scoped>
 .sheet-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0,0,0,0.65);
   z-index: 1100;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .sheet-card {
   width: 100%;
   background: var(--bg-elevated);
-  border-radius: 24px 24px 0 0;
-  border-top: 1px solid var(--border-default);
+  border-radius: 0 0 24px 24px;
+  border-bottom: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
-  max-height: 85vh;
+  max-height: 75vh;
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.sheet-handle {
-  width: 40px; height: 4px;
-  background: var(--border-default);
-  border-radius: 2px;
-  margin: 12px auto 0;
+  padding-top: env(safe-area-inset-top);
 }
 
 .sheet-header {

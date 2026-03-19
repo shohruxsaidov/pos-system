@@ -61,7 +61,7 @@
         <button class="btn-skip" :disabled="saving" @click="$emit('skip')">Пропустить</button>
         <button class="btn-create" :disabled="!form.name || saving" @click="create">
           <i v-if="saving" class="pi pi-spin pi-spinner" style="margin-right:6px" />
-          {{ saving ? 'Создание...' : 'Создать и добавить' }}
+          {{ saving ? 'Создание...' : 'Создать' }}
         </button>
       </div>
     </div>

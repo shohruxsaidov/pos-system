@@ -4,14 +4,10 @@
     <div class="view-header">
       <div>
         <h1 class="view-title">Приёмка товара</h1>
-        <div class="reader-status" :class="{ ready: readerReady }">
-          <div class="reader-dot" />
-          {{ readerReady ? 'Сканер готов' : 'Нажмите для активации' }}
-        </div>
       </div>
       <div class="header-right">
         <span class="item-count font-mono">{{ items.length }} позиций</span>
-        <button class="manual-btn" @click="showManualAdd = true" title="Добавить вручную">
+        <button class="manual-btn" @click="showManualAdd = true" title="Добавить">
           <i class="pi pi-plus" />
         </button>
         <button class="logout-btn" @click="logout">
@@ -20,20 +16,6 @@
       </div>
     </div>
 
-    <!-- Hidden barcode input (always focused) -->
-    <input
-      ref="barcodeInput"
-      v-model="barcodeBuffer"
-      class="hidden-barcode"
-      @keydown.enter="handleBarcodeScan"
-      @focus="readerReady = true"
-      @blur="readerReady = false"
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-    />
-
     <!-- Supplier / Notes -->
     <div class="receipt-meta">
       <input v-model="supplier" class="meta-input" placeholder="Поставщик (необязательно)" />
@@ -41,12 +23,12 @@
     </div>
 
     <!-- Item Cards -->
-    <div class="items-list" @click="focusBarcodeInput">
+    <div class="items-list">
       <div v-if="items.length === 0" class="empty-state">
-        <i class="pi pi-barcode" style="font-size:48px;color:var(--text-muted)" />
-        <p>Отсканируйте штрихкод для добавления</p>
+        <i class="pi pi-plus-circle" style="font-size:48px;color:var(--text-muted)" />
+        <p>Нажмите + чтобы добавить товар</p>
         <button class="empty-manual-btn" @click="showManualAdd = true">
-          <i class="pi pi-plus" /> Добавить вручную
+          <i class="pi pi-plus" /> Добавить
         </button>
       </div>
       <IncomingItemCard
@@ -97,7 +79,7 @@
     <!-- Manual Add Sheet -->
     <ManualAddSheet
       :visible="showManualAdd"
-      @close="showManualAdd = false; focusBarcodeInput()"
+      @close="showManualAdd = false"
       @selected="onManualSelected"
       @create-new="onCreateNew"
     />
@@ -106,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWarehouseStore } from '../stores/warehouse.js'
 import { useToast } from 'primevue/usetoast'
@@ -123,9 +105,6 @@ const items = ref([])
 const supplier = ref('')
 const notes = ref('')
 const confirming = ref(false)
-const barcodeInput = ref(null)
-const barcodeBuffer = ref('')
-const readerReady = ref(false)
 
 const numpadVisible = ref(false)
 const numpadValue = ref('')
@@ -142,34 +121,6 @@ const showManualAdd = ref(false)
 const totalCost = computed(() =>
   items.value.reduce((sum, i) => sum + (i.qty_received || 0) * (i.cost_per_unit || 0), 0)
 )
-
-onMounted(() => {
-  focusBarcodeInput()
-})
-
-function focusBarcodeInput() {
-  barcodeInput.value?.focus()
-}
-
-async function handleBarcodeScan() {
-  const barcode = barcodeBuffer.value.trim()
-  barcodeBuffer.value = ''
-  if (!barcode) return
-
-  try {
-    const res = await store.authFetch(`/api/products/barcode/${encodeURIComponent(barcode)}`)
-    if (!res.ok) {
-      scannedBarcode.value = barcode
-      notFoundPrefillName.value = ''
-      showNotFound.value = true
-      return
-    }
-    const product = await res.json()
-    addProductToList(product)
-  } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
-  }
-}
 
 function addProductToList(product) {
   const existing = items.value.find(i => i.product_id === product.id)
@@ -188,7 +139,6 @@ function addProductToList(product) {
     })
     toast.add({ severity: 'success', summary: 'Добавлено', detail: product.name, life: 1500 })
   }
-  focusBarcodeInput()
 }
 
 function addManualProduct(product) {
@@ -202,7 +152,6 @@ function addManualProduct(product) {
     unit: product.unit || 'шт'
   })
   showNotFound.value = false
-  focusBarcodeInput()
 }
 
 function onManualSelected(product) {
@@ -275,7 +224,6 @@ async function confirmReceipt() {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 4000 })
   } finally {
     confirming.value = false
-    focusBarcodeInput()
   }
 }
 
@@ -304,34 +252,6 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
 }
 
 .view-title { font-size: 20px; font-weight: 800; color: var(--text-primary); }
-
-.reader-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-.reader-status.ready { color: var(--success); }
-
-.reader-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-.reader-status.ready .reader-dot {
-  background: var(--success);
-  box-shadow: 0 0 8px var(--success);
-  animation: pulse-glow 2s infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 4px var(--success); }
-  50% { box-shadow: 0 0 12px var(--success); }
-}
 
 .header-right { display: flex; align-items: center; gap: 10px; }
 .item-count { font-size: 14px; color: var(--text-accent); }
@@ -375,14 +295,6 @@ function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.hidden-barcode {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
 }
 
 .receipt-meta {
