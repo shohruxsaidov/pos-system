@@ -190,15 +190,15 @@ function addProductToList(product) {
   focusBarcodeInput()
 }
 
-function addManualProduct(productData) {
+function addManualProduct(product) {
   items.value.unshift({
-    product_id: null,
-    product_name: productData.name,
-    barcode: productData.barcode,
+    product_id: product.id,
+    product_name: product.name,
+    barcode: product.barcode,
     qty_received: 1,
-    cost_per_unit: parseFloat(productData.price || 0),
+    cost_per_unit: parseFloat(product.cost || product.price || 0),
     expiry_date: null,
-    unit: 'шт'
+    unit: product.unit || 'шт'
   })
   showNotFound.value = false
   focusBarcodeInput()

@@ -36,8 +36,8 @@ export const useWarehouseStore = defineStore('warehouse', () => {
     receipts.value = await res.json()
   }
 
-  function authFetch(path, opts = {}) {
-    return fetch(`${BASE_URL}${path}`, {
+  async function authFetch(path, opts = {}) {
+    const res = await fetch(`${BASE_URL}${path}`, {
       ...opts,
       headers: {
         'Content-Type': 'application/json',
@@ -45,6 +45,12 @@ export const useWarehouseStore = defineStore('warehouse', () => {
         ...opts.headers
       }
     })
+    if (res.status === 401) {
+      logout()
+      const { default: router } = await import('../router/index.js')
+      router.push({ name: 'login' })
+    }
+    return res
   }
 
   return { token, user, products, receipts, isLoggedIn, warehouseId, login, logout, fetchProducts, fetchReceipts, authFetch }
