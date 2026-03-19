@@ -14,10 +14,18 @@ function generateRefNo() {
 export default async function transactionRoutes(fastify) {
   // POST /api/transactions — create sale
   fastify.post('/api/transactions', { onRequest: [fastify.authenticate] }, async (req, reply) => {
-    const { items, customer_id, discount = 0, tax = 0, payment_method = 'cash', tendered, change_given = 0, payment_reference, print_receipt = false } = req.body
+    const { items, customer_id, discount = 0, tax = 0, payment_method = 'cash', tendered, change_given = 0, payment_reference, print_receipt = false, client_ref = null } = req.body
 
     if (!items || !items.length) {
       return reply.code(400).send({ error: 'items required' })
+    }
+
+    // Idempotency check — if client_ref already exists, return the existing transaction
+    if (client_ref) {
+      const { rows: existing } = await pool.query(
+        'SELECT * FROM transactions WHERE client_ref=$1', [client_ref]
+      )
+      if (existing[0]) return reply.code(200).send(existing[0])
     }
 
     const warehouseId = req.user.warehouse_id || 1
@@ -45,9 +53,9 @@ export default async function transactionRoutes(fastify) {
 
       // Insert transaction with warehouse_id
       const { rows: txnRows } = await client.query(`
-        INSERT INTO transactions (ref_no, customer_id, cashier_id, subtotal, discount, tax, total, payment_method, warehouse_id)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
-      `, [refNo, customer_id || null, req.user.id, subtotal, discount, tax, total, payment_method, warehouseId])
+        INSERT INTO transactions (ref_no, customer_id, cashier_id, subtotal, discount, tax, total, payment_method, warehouse_id, client_ref)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
+      `, [refNo, customer_id || null, req.user.id, subtotal, discount, tax, total, payment_method, warehouseId, client_ref || null])
       const txn = txnRows[0]
 
       // Insert items & deduct from warehouse_stock

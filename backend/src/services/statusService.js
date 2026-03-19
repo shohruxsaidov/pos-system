@@ -30,7 +30,7 @@ export async function getStatusPayload() {
   return {
     server: 'ok',
     db: dbOk ? 'ok' : 'error',
-    printer: printerStatus.connected ? 'ok' : 'disconnected',
+    printer: printerStatus.connected ? 'ok' : printerStatus.reason === 'not_configured' ? 'not_configured' : 'disconnected',
     sync_queue: syncQueue,
     last_sync: new Date().toISOString(),
     cloud_reachable: false,

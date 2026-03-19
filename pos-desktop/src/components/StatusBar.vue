@@ -93,6 +93,7 @@ const dbClass = computed(() => {
 
 const printerClass = computed(() => {
   if (status.printer === 'ok') return 'pill-success'
+  if (status.printer === 'not_configured') return 'pill-warn'
   if (status.printer === 'disconnected') return 'pill-danger'
   return 'pill-warn'
 })

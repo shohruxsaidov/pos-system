@@ -1,5 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import {
+  generateClientRef, getQueue, enqueue, dequeue,
+  saveProductsCache, loadProductsCache, patchProductStock
+} from '../composables/useOfflineQueue.js'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -8,6 +12,11 @@ export const useWarehouseStore = defineStore('warehouse', () => {
   const user = ref(JSON.parse(localStorage.getItem('wh_user') || 'null'))
   const products = ref([])
   const receipts = ref([])
+
+  // Offline state
+  const isOnline = ref(true)
+  const queueLength = ref(getQueue().length)
+  const isSyncing = ref(false)
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
   const warehouseId = computed(() => user.value?.warehouse_id || 1)
@@ -30,8 +39,17 @@ export const useWarehouseStore = defineStore('warehouse', () => {
   }
 
   async function fetchProducts() {
-    const res = await authFetch('/api/inventory/mobile')
-    products.value = await res.json()
+    try {
+      const res = await authFetch('/api/inventory/mobile')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        products.value = data
+        saveProductsCache(data)
+      }
+    } catch {
+      const cached = loadProductsCache()
+      if (cached) products.value = cached
+    }
   }
 
   async function fetchReceipts() {
@@ -56,5 +74,86 @@ export const useWarehouseStore = defineStore('warehouse', () => {
     return res
   }
 
-  return { token, user, products, receipts, isLoggedIn, warehouseId, role, canSell, isWarehouse, login, logout, fetchProducts, fetchReceipts, authFetch }
+  async function submitSale(payload) {
+    const client_ref = generateClientRef()
+    const body = { ...payload, client_ref }
+
+    if (isOnline.value) {
+      try {
+        const res = await authFetch('/api/transactions', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Ошибка при оформлении')
+        // Update local product stock
+        for (const item of payload.items) {
+          patchProductStock(item.product_id, -item.qty, products.value)
+        }
+        return { ok: true, data, offline: false }
+      } catch (err) {
+        // Only go offline on network errors, not HTTP errors
+        if (!(err instanceof TypeError) && !err.name?.includes('Abort')) {
+          throw err
+        }
+        isOnline.value = false
+      }
+    }
+
+    // Offline path
+    try {
+      enqueue(body)
+      queueLength.value++
+      for (const item of payload.items) {
+        patchProductStock(item.product_id, -item.qty, products.value)
+      }
+      return { ok: true, data: { ref_no: client_ref }, offline: true }
+    } catch {
+      throw new Error('Не удалось сохранить продажу: хранилище переполнено')
+    }
+  }
+
+  async function syncQueue() {
+    const queue = getQueue()
+    if (!queue.length || isSyncing.value || !isOnline.value) return null
+
+    isSyncing.value = true
+    let synced = 0
+    let failed = 0
+
+    for (const sale of queue) {
+      try {
+        const res = await authFetch('/api/transactions', {
+          method: 'POST',
+          body: JSON.stringify(sale)
+        })
+        if (res.status === 401) break
+        if (res.ok || res.status === 200) {
+          dequeue(sale.client_ref)
+          synced++
+        } else {
+          failed++
+          break
+        }
+      } catch {
+        failed++
+        break
+      }
+    }
+
+    isSyncing.value = false
+    queueLength.value = getQueue().length
+
+    if (synced > 0) fetchProducts().catch(() => {})
+
+    return { synced, failed }
+  }
+
+  return {
+    token, user, products, receipts,
+    isOnline, queueLength, isSyncing,
+    isLoggedIn, warehouseId, role, canSell, isWarehouse,
+    login, logout, fetchProducts, fetchReceipts, authFetch,
+    submitSale, syncQueue
+  }
 })

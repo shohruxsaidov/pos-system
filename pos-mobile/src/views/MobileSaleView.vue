@@ -110,6 +110,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useWarehouseStore } from '../stores/warehouse.js'
+import { loadProductsCache } from '../composables/useOfflineQueue.js'
 import CartSheet from '../components/CartSheet.vue'
 import PaymentSheet from '../components/PaymentSheet.vue'
 
@@ -133,12 +134,19 @@ const processing = ref(false)
 
 // ── Products ──────────────────────────────────────────────
 onMounted(async () => {
+  // Show cached products instantly — no spinner if cache exists
+  const cached = loadProductsCache()
+  if (cached) {
+    allProducts.value = cached
+    loading.value = false
+  }
   try {
-    const res = await store.authFetch('/api/inventory/mobile')
-    const data = await res.json()
-    allProducts.value = Array.isArray(data) ? data : []
+    await store.fetchProducts()
+    allProducts.value = store.products
   } catch {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось загрузить товары', life: 3000 })
+    if (!cached) {
+      toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось загрузить товары', life: 3000 })
+    }
   } finally {
     loading.value = false
   }
@@ -244,39 +252,40 @@ async function processSale({ method, tendered, changeGiven }) {
   processing.value = true
 
   try {
-    const res = await store.authFetch('/api/transactions', {
-      method: 'POST',
-      body: JSON.stringify({
-        items: cart.value.map(i => ({
-          product_id: i.product_id,
-          qty: i.qty,
-          unit_price: i.unit_price,
-          discount: 0
-        })),
-        payment_method: method,
-        tendered,
-        change_given: changeGiven
-      })
+    const result = await store.submitSale({
+      items: cart.value.map(i => ({
+        product_id: i.product_id,
+        qty: i.qty,
+        unit_price: i.unit_price,
+        discount: 0
+      })),
+      payment_method: method,
+      tendered,
+      change_given: changeGiven,
+      total: cartTotal.value
     })
 
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Ошибка при оформлении')
-
-    // Update local stock
-    for (const cartItem of cart.value) {
-      const p = allProducts.value.find(x => x.id === cartItem.product_id)
-      if (p) p.stock_qty = (p.stock_qty ?? 0) - cartItem.qty
-    }
+    // Sync local display stock (already patched in store, refresh from store)
+    allProducts.value = store.products.length ? store.products : allProducts.value
 
     cart.value = []
     showPayment.value = false
 
-    toast.add({
-      severity: 'success',
-      summary: `Продажа ${data.ref_no}`,
-      detail: `Сумма: ${Number(data.total).toFixed(2)}`,
-      life: 4000
-    })
+    if (result.offline) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Сохранено офлайн',
+        detail: `${store.queueLength} в очереди`,
+        life: 4000
+      })
+    } else {
+      toast.add({
+        severity: 'success',
+        summary: `Продажа ${result.data.ref_no}`,
+        detail: `Сумма: ${Number(result.data.total ?? cartTotal.value).toFixed(2)}`,
+        life: 4000
+      })
+    }
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 4000 })
   } finally {
