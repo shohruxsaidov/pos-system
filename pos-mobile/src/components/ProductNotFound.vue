@@ -50,6 +50,13 @@
               <input v-model="form.price" type="number" class="text-input" placeholder="0.00" />
             </div>
             <div class="field-group">
+              <label class="field-label">Порог низкого запаса</label>
+              <input v-model="form.low_stock_threshold" type="number" class="text-input" placeholder="5" min="0" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
               <label class="field-label">Единица</label>
               <div class="unit-chips">
                 <button
@@ -90,7 +97,7 @@ const store = useWarehouseStore()
 const barcodeSvg = ref(null)
 const saving = ref(false)
 const error = ref('')
-const form = ref({ name: '', barcode: '', price: 0, unit: 'шт', category_id: null })
+const form = ref({ name: '', barcode: '', price: 0, unit: 'шт', category_id: null, low_stock_threshold: 5 })
 const units = ['шт', 'кг', 'л', 'уп', 'м']
 const categories = ref([])
 
@@ -109,7 +116,8 @@ watch(() => props.visible, async (v) => {
       barcode: props.barcode || '',
       price: 0,
       unit: 'шт',
-      category_id: null
+      category_id: null,
+      low_stock_threshold: 5
     }
     error.value = ''
     loadCategories()
@@ -150,7 +158,8 @@ async function create() {
         price: parseFloat(form.value.price) || 0,
         unit: form.value.unit || 'шт',
         barcode: form.value.barcode || null,
-        category_id: form.value.category_id || null
+        category_id: form.value.category_id || null,
+        low_stock_threshold: parseInt(form.value.low_stock_threshold) || 5
       })
     })
     const data = await res.json()
