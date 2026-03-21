@@ -20,10 +20,7 @@
               <label class="field-label">Название магазина</label>
               <InputText v-model="settings.store_name" class="w-field" />
             </div>
-            <div class="field-group">
-              <label class="field-label">Ставка налога (%)</label>
-              <InputText v-model="settings.tax_rate" type="number" style="width:120px" />
-            </div>
+
             <div class="field-group">
               <label class="field-label">Подпись чека</label>
               <InputText v-model="settings.receipt_footer" class="w-field" />
