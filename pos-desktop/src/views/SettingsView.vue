@@ -8,7 +8,6 @@
       <TabList>
         <Tab value="general">Общие</Tab>
         <Tab value="users">Пользователи</Tab>
-        <Tab value="printer">Принтер</Tab>
         <Tab value="telegram">Telegram</Tab>
         <Tab value="audit">Журнал аудита</Tab>
       </TabList>
@@ -103,42 +102,6 @@
           </Dialog>
         </TabPanel>
 
-        <!-- Printer -->
-        <TabPanel value="printer">
-          <div class="settings-section">
-            <div class="field-group">
-              <label class="field-label">Тип принтера</label>
-              <Select v-model="settings.printer_type" :options="['EPSON', 'STAR']" style="width:140px" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Ширина бумаги</label>
-              <Select v-model="settings.printer_paper_width" :options="['58mm', '80mm']" style="width:140px" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Адрес / интерфейс</label>
-              <div style="display:flex;gap:8px;align-items:center">
-                <InputText v-model="settings.printer_address" class="w-field"
-                  placeholder="tcp://192.168.1.100:9100 или /dev/usb/lp0" />
-                <Button label="Авто-определить" icon="pi pi-search" class="p-button-secondary"
-                  :loading="detecting" @click="detectPrinterAuto" style="white-space:nowrap;flex-shrink:0" />
-              </div>
-              <span v-if="printerDetectStatus" :style="{ fontSize:'13px', color: printerDetectStatus.ok ? 'var(--success)' : 'var(--danger)' }">
-                {{ printerDetectStatus.msg }}
-              </span>
-              <span v-else style="font-size:12px;color:var(--text-muted)">
-                Нажмите «Авто-определить» — система сама найдёт принтер
-              </span>
-            </div>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" style="width:200px" />
-              <Button label="Тест печати" icon="pi pi-print" class="p-button-secondary"
-                :loading="testingPrinter" @click="testPrint" style="width:160px" />
-            </div>
-            <div v-if="printerTestStatus" class="status-msg" :class="printerTestStatus.type">
-              {{ printerTestStatus.msg }}
-            </div>
-          </div>
-        </TabPanel>
 
         <!-- Telegram -->
         <TabPanel value="telegram">
@@ -296,14 +259,10 @@ const settings = ref({})
 const saving = ref(false)
 const testing = ref(false)
 const testingAI = ref(false)
-const detecting = ref(false)
-const testingPrinter = ref(false)
-const printerTestStatus = ref(null)
 const telegramEnabled = ref(false)
 const aiSummaryEnabled = ref(false)
 const telegramStatus = ref(null)
 const aiSummaryStatus = ref(null)
-const printerDetectStatus = ref(null)
 
 const users = ref([])
 const loadingUsers = ref(false)
@@ -349,34 +308,6 @@ async function saveSettings() {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
-  }
-}
-
-async function detectPrinterAuto() {
-  detecting.value = true
-  printerDetectStatus.value = null
-  try {
-    const res = await api.post('/api/settings/printer-detect', {})
-    settings.value.printer_address = res.address
-    printerDetectStatus.value = { ok: true, msg: `Принтер найден: ${res.address}` }
-    toast.add({ severity: 'success', summary: 'Принтер найден', detail: res.address, life: 3000 })
-  } catch {
-    printerDetectStatus.value = { ok: false, msg: 'Принтер не найден. Проверьте подключение USB.' }
-  } finally {
-    detecting.value = false
-  }
-}
-
-async function testPrint() {
-  testingPrinter.value = true
-  printerTestStatus.value = null
-  try {
-    await api.post('/api/settings/printer-test', {})
-    printerTestStatus.value = { type: 'success-msg', msg: 'Тестовая страница отправлена на принтер!' }
-  } catch (e) {
-    printerTestStatus.value = { type: 'error-msg', msg: e.message }
-  } finally {
-    testingPrinter.value = false
   }
 }
 

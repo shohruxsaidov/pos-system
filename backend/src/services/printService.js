@@ -31,9 +31,29 @@ async function getPrinterConfig() {
   }
 }
 
+async function getBarcodePrinterConfig() {
+  const { rows } = await pool.query(
+    `SELECT key, value FROM settings WHERE key IN ('barcode_printer_type', 'barcode_printer_address', 'barcode_printer_paper_width')`
+  )
+  const map = Object.fromEntries(rows.map(r => [r.key, r.value]))
+  return {
+    type: map.barcode_printer_type === 'STAR' ? PrinterTypes.STAR : PrinterTypes.EPSON,
+    address: map.barcode_printer_address || '',
+    paperWidth: map.barcode_printer_paper_width || '58mm'
+  }
+}
+
 async function savePrinterAddress(address) {
   await pool.query(
     `INSERT INTO settings (key, value) VALUES ('printer_address', $1)
+     ON CONFLICT (key) DO UPDATE SET value=$1`,
+    [address]
+  )
+}
+
+async function saveBarcodePrinterAddress(address) {
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES ('barcode_printer_address', $1)
      ON CONFLICT (key) DO UPDATE SET value=$1`,
     [address]
   )
@@ -98,6 +118,17 @@ export async function detectPrinter() {
   if (!address) return { found: false }
 
   await savePrinterAddress(address)
+  return { found: true, address }
+}
+
+export async function detectBarcodePrinter() {
+  const address = process.platform === 'win32'
+    ? await detectPrinterWindows()
+    : await detectPrinterUnix()
+
+  if (!address) return { found: false }
+
+  await saveBarcodePrinterAddress(address)
   return { found: true, address }
 }
 
@@ -321,11 +352,42 @@ export async function printTestPage() {
   })
 }
 
+// ── Barcode test page ─────────────────────────────────────────────────────────
+
+export async function printBarcodeTestPage() {
+  const config = await getBarcodePrinterConfig()
+  if (!config.address) throw new Error('Barcode printer not configured')
+
+  const storeName = await getStoreName()
+  const lineWidth = config.paperWidth === '80mm' ? 48 : 32
+  const line = '-'.repeat(lineWidth)
+  const now = new Date().toLocaleString('ru-RU')
+
+  await sendToPrinter(config, async (printer) => {
+    printer.alignCenter()
+    printer.bold(true)
+    printer.println(storeName)
+    printer.bold(false)
+    printer.println(line)
+    printer.println('BARCODE PRINTER TEST')
+    printer.println(now)
+    printer.println(line)
+    printer.alignLeft()
+    printer.println(`Type:  EPSON`)
+    printer.println(`Port:  ${config.address}`)
+    printer.println(`Width: ${config.paperWidth}`)
+    printer.println(line)
+    printer.alignCenter()
+    printer.println('Barcode Printer OK')
+    printer.cut()
+  })
+}
+
 // ── Label printing ────────────────────────────────────────────────────────────
 
 export async function printLabel({ barcode, product_name, price, copies = 1, size }) {
-  const config = await getPrinterConfig()
-  if (!config.address) throw new Error('Printer not configured')
+  const config = await getBarcodePrinterConfig()
+  if (!config.address) throw new Error('Barcode printer not configured')
 
   const storeName = await getStoreName()
   const paperWidth = size || config.paperWidth

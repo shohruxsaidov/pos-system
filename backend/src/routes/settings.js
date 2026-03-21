@@ -2,7 +2,7 @@ import argon from "argon2";
 import { pool } from "../db/connection.js";
 import { logAudit } from "../services/auditService.js";
 import { getMobileUrl, getLocalIP } from "../services/networkService.js";
-import { detectPrinter, printTestPage } from "../services/printService.js";
+import { detectPrinter, printTestPage, detectBarcodePrinter, printBarcodeTestPage } from "../services/printService.js";
 
 export default async function settingsRoutes(fastify) {
   // GET /api/settings
@@ -70,6 +70,33 @@ export default async function settingsRoutes(fastify) {
         return { success: true }
       } catch (e) {
         return reply.code(500).send({ error: e.message })
+      }
+    }
+  );
+
+  // POST /api/settings/barcode-printer-detect
+  fastify.post(
+    "/api/settings/barcode-printer-detect",
+    { onRequest: [fastify.authenticate] },
+    async (req, reply) => {
+      const result = await detectBarcodePrinter();
+      if (!result.found) {
+        return reply.code(404).send({ error: "Принтер не найден" });
+      }
+      return result;
+    }
+  );
+
+  // POST /api/settings/barcode-printer-test
+  fastify.post(
+    "/api/settings/barcode-printer-test",
+    { onRequest: [fastify.authenticate] },
+    async (req, reply) => {
+      try {
+        await printBarcodeTestPage();
+        return { success: true };
+      } catch (e) {
+        return reply.code(500).send({ error: e.message });
       }
     }
   );

@@ -83,6 +83,7 @@ const navItems = computed(() => {
     items.push({ to: '/reports', icon: 'pi pi-chart-bar', label: 'Отчёты' })
     items.push({ to: '/transactions', icon: 'pi pi-list', label: 'Транзакции' })
     items.push({ to: '/warehouse', icon: 'pi pi-warehouse', label: 'Склады' })
+    items.push({ to: '/printer-settings', icon: 'pi pi-print', label: 'Принтеры' })
     items.push({ to: '/settings', icon: 'pi pi-cog', label: 'Настройки' })
   }
   return items
