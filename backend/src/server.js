@@ -14,6 +14,7 @@ import { testConnection } from "./db/connection.js";
 import { setFastify, broadcastStatus } from "./services/statusService.js";
 import { startCronJobs } from "./services/cronService.js";
 import { startBot, stopBot } from "./services/botService.js";
+import { sendStartupNotification, sendShutdownNotification } from "./services/notificationService.js";
 
 // Route imports
 import authRoutes from "./routes/auth.js";
@@ -137,11 +138,15 @@ fastify.addHook("onReady", async () => {
   // Start Telegram bot (async, non-blocking)
   startBot().catch((err) => fastify.log.error("Bot error:", err));
 
+  // Notify startup
+  sendStartupNotification().catch(() => {});
+
   // Start cron jobs
   await startCronJobs();
 });
 
 fastify.addHook("onClose", async () => {
+  await sendShutdownNotification().catch(() => {});
   stopBot();
 });
 

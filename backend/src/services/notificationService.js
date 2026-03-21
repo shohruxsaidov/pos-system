@@ -85,6 +85,38 @@ export async function generateAISummary(data) {
   }
 }
 
+export async function sendStartupNotification() {
+  try {
+    const settings = await getSettings();
+    if (settings.telegram_enabled !== "true") return;
+    const token = settings.telegram_bot_token;
+    const chatId = settings.telegram_chat_id;
+    const storeName = settings.store_name || "Store";
+    const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+
+    const message = `🟢 <b>Система запущена</b>\n\nМагазин: ${storeName}\nВремя: ${time}`;
+    await sendTelegram(token, chatId, message);
+  } catch (err) {
+    console.error("[notify] Startup notification failed:", err.message);
+  }
+}
+
+export async function sendShutdownNotification() {
+  try {
+    const settings = await getSettings();
+    if (settings.telegram_enabled !== "true") return;
+    const token = settings.telegram_bot_token;
+    const chatId = settings.telegram_chat_id;
+    const storeName = settings.store_name || "Store";
+    const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+
+    const message = `🔴 <b>Система остановлена</b>\n\nМагазин: ${storeName}\nВремя: ${time}`;
+    await sendTelegram(token, chatId, message);
+  } catch (err) {
+    console.error("[notify] Shutdown notification failed:", err.message);
+  }
+}
+
 export async function sendEODSummary() {
   try {
     const settings = await getSettings();
