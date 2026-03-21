@@ -39,25 +39,40 @@ async function savePrinterAddress(address) {
 // ── Detection ─────────────────────────────────────────────────────────────────
 
 async function detectPrinterWindows() {
+  // Try WMIC — works on Windows 10/11 (despite deprecation warning printed to stdout)
   try {
     const { stdout } = await execAsync(
       'wmic printer get Name,PortName /format:csv',
       { timeout: 5000 }
     )
-    for (const line of stdout.trim().split('\n').slice(1)) {
+    for (const line of stdout.split('\n')) {
       const parts = line.split(',')
-      const portName = parts[2]?.trim()
+      if (parts.length < 3) continue // skip deprecation notice lines and blank lines
+      const portName = parts[2]?.trim().replace(/\r/g, '')
       if (portName && /^(USB|LPT|COM)\d+$/i.test(portName)) {
         return `//./${portName}`
       }
     }
   } catch { /* wmic not available */ }
 
-  // Fallback: try raw paths
-  const { ThermalPrinter: TP } = await import('node-thermal-printer')
+  // Try PowerShell — more reliable on Windows 11
+  try {
+    const { stdout } = await execAsync(
+      'powershell -NoProfile -Command "Get-WmiObject -Class Win32_Printer | Select-Object -ExpandProperty PortName"',
+      { timeout: 8000 }
+    )
+    for (const line of stdout.split('\n')) {
+      const portName = line.trim().replace(/\r/g, '')
+      if (portName && /^(USB|LPT|COM)\d+$/i.test(portName)) {
+        return `//./${portName}`
+      }
+    }
+  } catch { /* powershell not available */ }
+
+  // Last resort: probe raw paths directly
   for (const addr of ['//./USB001', '//./USB002', '//./USB003', '//./LPT1']) {
     try {
-      const p = new TP({ type: PrinterTypes.EPSON, interface: addr, characterSet: CharacterSet.PC852_LATIN2 })
+      const p = new ThermalPrinter({ type: PrinterTypes.EPSON, interface: addr, characterSet: CharacterSet.PC852_LATIN2 })
       if (await p.isPrinterConnected()) return addr
     } catch { /* skip */ }
   }
@@ -108,10 +123,26 @@ async function checkCupsPrinter(name) {
 async function checkRawPrinter(address, type) {
   try {
     const printer = new ThermalPrinter({ type, interface: address, characterSet: CharacterSet.PC852_LATIN2 })
-    return { connected: await printer.isPrinterConnected() }
-  } catch {
-    return { connected: false }
+    const connected = await printer.isPrinterConnected()
+    if (connected) return { connected: true }
+  } catch { /* fall through */ }
+
+  // isPrinterConnected() is unreliable on Windows raw USB paths.
+  // Fall back to PowerShell to check if any USB/LPT printer port is active.
+  if (process.platform === 'win32' && /^\/\/\.\/(USB|LPT|COM)/i.test(address)) {
+    try {
+      const portName = address.replace('//./','')
+      const { stdout } = await execAsync(
+        `powershell -NoProfile -Command "Get-WmiObject -Class Win32_Printer | Where-Object { $_.PortName -eq '${portName}' } | Select-Object -ExpandProperty PrinterStatus"`,
+        { timeout: 5000 }
+      )
+      const status = parseInt(stdout.trim())
+      // PrinterStatus 3 = Idle, 4 = Printing, 5 = Warming Up — all mean connected
+      if (!isNaN(status) && status >= 1) return { connected: true }
+    } catch { /* skip */ }
   }
+
+  return { connected: false }
 }
 
 export async function getPrinterStatus() {
