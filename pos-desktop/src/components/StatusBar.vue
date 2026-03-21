@@ -13,44 +13,12 @@
         <span class="status-dot" />
         <span>Принтер</span>
       </div>
-      <div class="status-pill" :class="syncClass">
-        <span class="status-dot" />
-        <span v-if="status.syncQueue > 0">Синхр.: {{ status.syncQueue }} ожидает</span>
-        <span v-else>Синхронизировано</span>
-      </div>
     </div>
     <div class="status-info">
       <span class="status-time font-mono">{{ currentTime }}</span>
       <span v-if="status.mobileUrl" class="status-url">{{ status.mobileUrl }}</span>
     </div>
 
-    <!-- Offline Overlay -->
-    <Teleport to="body">
-      <div v-if="status.isOffline" class="offline-overlay">
-        <div class="offline-card">
-          <div class="offline-icon">
-            <i class="pi pi-wifi" style="font-size:48px;color:var(--danger)" />
-          </div>
-          <h2>Сервер недоступен</h2>
-          <p>Нет подключения к серверу. Проверьте, запущен ли сервер.</p>
-          <div class="offline-status">
-            <div class="offline-row">
-              <span>Сервер:</span>
-              <span :class="status.server === 'ok' ? 'text-success' : 'text-danger'">
-                {{ status.server === 'ok' ? 'В сети' : 'Не в сети' }}
-              </span>
-            </div>
-            <div class="offline-row">
-              <span>База данных:</span>
-              <span :class="status.db === 'ok' ? 'text-success' : 'text-danger'">
-                {{ status.db === 'ok' ? 'Подключена' : 'Ошибка' }}
-              </span>
-            </div>
-          </div>
-          <p class="offline-hint">Автоматическое переподключение...</p>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
