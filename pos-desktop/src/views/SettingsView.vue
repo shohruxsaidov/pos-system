@@ -129,7 +129,14 @@
                 Нажмите «Авто-определить» — система сама найдёт принтер
               </span>
             </div>
-            <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" style="width:200px" />
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" style="width:200px" />
+              <Button label="Тест печати" icon="pi pi-print" class="p-button-secondary"
+                :loading="testingPrinter" @click="testPrint" style="width:160px" />
+            </div>
+            <div v-if="printerTestStatus" class="status-msg" :class="printerTestStatus.type">
+              {{ printerTestStatus.msg }}
+            </div>
           </div>
         </TabPanel>
 
@@ -290,6 +297,8 @@ const saving = ref(false)
 const testing = ref(false)
 const testingAI = ref(false)
 const detecting = ref(false)
+const testingPrinter = ref(false)
+const printerTestStatus = ref(null)
 const telegramEnabled = ref(false)
 const aiSummaryEnabled = ref(false)
 const telegramStatus = ref(null)
@@ -355,6 +364,19 @@ async function detectPrinterAuto() {
     printerDetectStatus.value = { ok: false, msg: 'Принтер не найден. Проверьте подключение USB.' }
   } finally {
     detecting.value = false
+  }
+}
+
+async function testPrint() {
+  testingPrinter.value = true
+  printerTestStatus.value = null
+  try {
+    await api.post('/api/settings/printer-test', {})
+    printerTestStatus.value = { type: 'success-msg', msg: 'Тестовая страница отправлена на принтер!' }
+  } catch (e) {
+    printerTestStatus.value = { type: 'error-msg', msg: e.message }
+  } finally {
+    testingPrinter.value = false
   }
 }
 

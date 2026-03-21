@@ -253,6 +253,47 @@ export async function printReceipt(txnId) {
   await printer.execute()
 }
 
+// ── Test page ─────────────────────────────────────────────────────────────────
+
+export async function printTestPage() {
+  const config = await getPrinterConfig()
+  if (!config.address) throw new Error('Printer not configured')
+
+  const storeName = await getStoreName()
+  const lineWidth = config.paperWidth === '80mm' ? 48 : 32
+  const line = '-'.repeat(lineWidth)
+  const now = new Date().toLocaleString('ru-RU')
+
+  function build(printer) {
+    printer.alignCenter()
+    printer.bold(true)
+    printer.println(storeName)
+    printer.bold(false)
+    printer.println(line)
+    printer.println('TEST PAGE')
+    printer.println(now)
+    printer.println(line)
+    printer.alignLeft()
+    printer.println(`Type:  ${config.type === 'STAR' ? 'STAR' : 'EPSON'}`)
+    printer.println(`Port:  ${config.address}`)
+    printer.println(`Width: ${config.paperWidth}`)
+    printer.println(line)
+    printer.alignCenter()
+    printer.println('Printer OK')
+    printer.cut()
+  }
+
+  if (config.address.startsWith('cups:')) {
+    await printRawViaCups(config.address.replace('cups:', ''), build)
+    return
+  }
+
+  const printer = new ThermalPrinter({ type: config.type, interface: config.address, characterSet: CharacterSet.PC852_LATIN2 })
+  if (!await printer.isPrinterConnected()) throw new Error('Printer not connected')
+  build(printer)
+  await printer.execute()
+}
+
 // ── Label printing ────────────────────────────────────────────────────────────
 
 export async function printLabel({ barcode, product_name, price, copies = 1, size }) {
