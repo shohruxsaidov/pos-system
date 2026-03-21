@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   visible: Boolean,
@@ -41,19 +41,24 @@ watch(() => props.visible, v => {
   if (v) displayValue.value = String(props.modelValue || '')
 })
 
-const keys = [
+// First 9 keys (rows 1-3) each span 4 cols in a 12-col grid
+// Last 4 keys (row 4) each span 3 cols
+const keys = computed(() => [
   { val: '7', label: '7' }, { val: '8', label: '8' }, { val: '9', label: '9' },
   { val: '4', label: '4' }, { val: '5', label: '5' }, { val: '6', label: '6' },
   { val: '1', label: '1' }, { val: '2', label: '2' }, { val: '3', label: '3' },
+  { val: 'clear', label: 'C', cls: 'key-clear' },
   { val: props.integer ? '00' : '.', label: props.integer ? '00' : '.' },
   { val: '0', label: '0' },
   { val: 'del', label: '⌫', cls: 'key-del' }
-]
+])
 
 function handleKey(val) {
   let cur = displayValue.value
   if (val === 'del') {
     displayValue.value = cur.length > 1 ? cur.slice(0, -1) : '0'
+  } else if (val === 'clear') {
+    displayValue.value = '0'
   } else if (val === '.') {
     if (!props.integer && !cur.includes('.')) {
       displayValue.value = cur === '0' || !cur ? '0.' : cur + '.'
@@ -111,10 +116,15 @@ function confirm() {
 
 .numpad-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(12, 1fr);
   gap: 10px;
   margin-bottom: 12px;
 }
+
+/* first 9 keys: 3 per row → each spans 4 of 12 cols */
+.numpad-key:nth-child(-n+9) { grid-column: span 4; }
+/* last 4 keys: 4 per row → each spans 3 of 12 cols */
+.numpad-key:nth-child(n+10) { grid-column: span 3; }
 
 .numpad-key {
   height: 72px;
@@ -135,6 +145,7 @@ function confirm() {
 
 .numpad-key:active { background: var(--accent-glow); transform: scale(0.96); }
 .numpad-key.key-del { color: var(--danger); background: var(--danger-bg); }
+.numpad-key.key-clear { color: var(--warning); background: var(--warning-bg); }
 
 .numpad-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
 
