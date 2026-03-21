@@ -245,6 +245,7 @@ INSERT INTO warehouses (id, name) VALUES (1, 'Main Warehouse')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO categories (name, color, icon) VALUES
+  ('Топ махсулотлар',        '#ffb02e', 'pi pi-star'),
   ('Стол учун',       '#00d4aa', 'pi pi-shopping-cart'),
   ('Ёнгок, Магиз',     '#7b68ee', 'pi pi-glass-filled'),
   ('Туршак',        '#ffb02e', 'pi pi-star'),
