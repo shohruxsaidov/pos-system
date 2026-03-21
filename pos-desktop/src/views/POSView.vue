@@ -191,7 +191,9 @@ function confirmQtyEdit() {
 const computedQtyFromAmount = computed(() => {
   const amount = parseFloat(editPrice.value) || 0
   const price = editingCartItem.value?.unit_price || 1
-  return price > 0 ? String(Math.round((amount / price) * 1000) / 1000) : '0'
+  if (price <= 0 || amount <= 0) return '0.00'
+  const qty = Math.round((amount / price) * 100) / 100
+  return qty.toFixed(2)
 })
 
 function openPriceEdit(item) {
