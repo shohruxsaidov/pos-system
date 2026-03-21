@@ -12,9 +12,10 @@ export default async function syncRoutes(fastify) {
     // In production, this would push to cloud DB
     // For now, mark as synced
     const ids = rows.map(r => r.id)
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
     await pool.query(
-      'UPDATE sync_log SET synced_at=NOW() WHERE id=ANY($1)',
-      [ids]
+      `UPDATE sync_log SET synced_at=NOW() WHERE id IN (${placeholders})`,
+      ids
     )
 
     return { pushed: rows.length, message: 'Sync successful' }

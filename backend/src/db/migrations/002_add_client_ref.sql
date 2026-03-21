@@ -1,3 +1,3 @@
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS client_ref TEXT;
-CREATE INDEX IF NOT EXISTS idx_transactions_client_ref
-  ON transactions (client_ref) WHERE client_ref IS NOT NULL;
+-- client_ref is already included in 001_schema.sql for SQLite.
+-- This migration is kept as a no-op for migration tracking continuity.
+SELECT 1;
