@@ -6,3 +6,6 @@ target/
 .DS_Store
 Thumbs.db
 *.local
+backend/pos.db
+backend/pos.db-shm
+backend/pos.db-wal
