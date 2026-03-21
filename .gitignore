@@ -5,5 +5,8 @@ dist/
 target/
 .DS_Store
 Thumbs.db
+*.db
+*.db-wal
+*.db-shm
 *.local
 CLAUDE.md
