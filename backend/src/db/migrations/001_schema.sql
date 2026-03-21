@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS incoming_items (
   cost_per_unit REAL NOT NULL DEFAULT 0,
   expiry_date   TEXT,
   subtotal      REAL NOT NULL DEFAULT 0,
-  unit          TEXT NOT NULL DEFAULT 'pcs'
+  unit          TEXT NOT NULL DEFAULT 'шт'
 );
 
 -- ── Stock Adjustments ────────────────────────────────────────────
@@ -245,11 +245,10 @@ INSERT INTO warehouses (id, name) VALUES (1, 'Main Warehouse')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO categories (name, color, icon) VALUES
-  ('Grocery',       '#00d4aa', 'pi pi-shopping-cart'),
-  ('Beverages',     '#7b68ee', 'pi pi-glass-filled'),
-  ('Snacks',        '#ffb02e', 'pi pi-star'),
-  ('Personal Care', '#9d4edd', 'pi pi-heart'),
-  ('Household',     '#ff5c5c', 'pi pi-home')
+  ('Стол учун',       '#00d4aa', 'pi pi-shopping-cart'),
+  ('Ёнгок, Магиз',     '#7b68ee', 'pi pi-glass-filled'),
+  ('Туршак',        '#ffb02e', 'pi pi-star'),
+  ('Бошкалар', '#9d4edd', 'pi pi-heart'),
 ON CONFLICT DO NOTHING;
 
 -- ── Indexes ──────────────────────────────────────────────────────
