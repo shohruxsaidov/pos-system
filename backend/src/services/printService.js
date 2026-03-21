@@ -55,21 +55,7 @@ async function detectPrinterWindows() {
     }
   } catch { /* wmic not available */ }
 
-  // Try PowerShell — more reliable on Windows 11
-  try {
-    const { stdout } = await execAsync(
-      'powershell -NoProfile -Command "Get-WmiObject -Class Win32_Printer | Select-Object -ExpandProperty PortName"',
-      { timeout: 8000 }
-    )
-    for (const line of stdout.split('\n')) {
-      const portName = line.trim().replace(/\r/g, '')
-      if (portName && /^(USB|LPT|COM)\d+$/i.test(portName)) {
-        return `//./${portName}`
-      }
-    }
-  } catch { /* powershell not available */ }
-
-  // Last resort: probe raw paths directly
+  // Fallback: probe raw paths directly
   for (const addr of ['//./USB001', '//./USB002', '//./USB003', '//./LPT1']) {
     try {
       const p = new ThermalPrinter({ type: PrinterTypes.EPSON, interface: addr, characterSet: CharacterSet.PC852_LATIN2 })
@@ -128,17 +114,17 @@ async function checkRawPrinter(address, type) {
   } catch { /* fall through */ }
 
   // isPrinterConnected() is unreliable on Windows raw USB paths.
-  // Fall back to PowerShell to check if any USB/LPT printer port is active.
+  // Fall back to WMIC to check printer status by port name.
   if (process.platform === 'win32' && /^\/\/\.\/(USB|LPT|COM)/i.test(address)) {
     try {
       const portName = address.replace('//./','')
       const { stdout } = await execAsync(
-        `powershell -NoProfile -Command "Get-WmiObject -Class Win32_Printer | Where-Object { $_.PortName -eq '${portName}' } | Select-Object -ExpandProperty PrinterStatus"`,
+        `wmic printer where "PortName='${portName}'" get PrinterStatus /format:value`,
         { timeout: 5000 }
       )
-      const status = parseInt(stdout.trim())
-      // PrinterStatus 3 = Idle, 4 = Printing, 5 = Warming Up — all mean connected
-      if (!isNaN(status) && status >= 1) return { connected: true }
+      const match = stdout.match(/PrinterStatus=(\d+)/i)
+      // PrinterStatus: 3=Idle, 4=Printing, 5=Warming Up — all mean printer is present
+      if (match && parseInt(match[1]) >= 1) return { connected: true }
     } catch { /* skip */ }
   }
 

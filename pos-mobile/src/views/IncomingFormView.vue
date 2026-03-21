@@ -169,7 +169,7 @@ function openNumpadForField(idx, field, currentVal) {
   numpadEditField.value = field
   numpadValue.value = String(currentVal || '')
   numpadLabel.value = field === 'qty' ? 'Количество' : field === 'cost' ? 'Цена за единицу' : 'Общая сумма'
-  numpadInteger.value = field === 'qty'
+  numpadInteger.value = false
   numpadVisible.value = true
 }
 

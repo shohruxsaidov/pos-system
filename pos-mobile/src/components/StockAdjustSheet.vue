@@ -45,7 +45,7 @@
           :visible="showNumpad"
           v-model="qty"
           label="Количество"
-          :integer="true"
+          :integer="false"
           @close="showNumpad = false"
           @confirm="showNumpad = false"
         />
