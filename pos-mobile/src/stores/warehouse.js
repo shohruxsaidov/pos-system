@@ -8,8 +8,8 @@ import {
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 export const useWarehouseStore = defineStore('warehouse', () => {
-  const token = ref(localStorage.getItem('wh_token') || '')
-  const user = ref(JSON.parse(localStorage.getItem('wh_user') || 'null'))
+  const token = ref(sessionStorage.getItem('wh_token') || '')
+  const user = ref(JSON.parse(sessionStorage.getItem('wh_user') || 'null'))
   const products = ref([])
   const receipts = ref([])
 
@@ -27,15 +27,15 @@ export const useWarehouseStore = defineStore('warehouse', () => {
   function login(userData, jwt) {
     user.value = userData
     token.value = jwt
-    localStorage.setItem('wh_user', JSON.stringify(userData))
-    localStorage.setItem('wh_token', jwt)
+    sessionStorage.setItem('wh_user', JSON.stringify(userData))
+    sessionStorage.setItem('wh_token', jwt)
   }
 
   function logout() {
     user.value = null
     token.value = ''
-    localStorage.removeItem('wh_user')
-    localStorage.removeItem('wh_token')
+    sessionStorage.removeItem('wh_user')
+    sessionStorage.removeItem('wh_token')
   }
 
   async function fetchProducts() {
