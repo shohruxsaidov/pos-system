@@ -38,7 +38,7 @@
       </div>
       <div class="stat-divider" />
       <div class="stat-item">
-        <span class="stat-value font-mono">{{ totalValue.toLocaleString('ru') }}</span>
+        <span class="stat-value font-mono" :title="totalValue.toLocaleString('ru')">{{ formatCompact(totalValue) }}</span>
         <span class="stat-label">Общая стоимость</span>
       </div>
     </div>
@@ -139,6 +139,13 @@ const tabs = [
 const totalValue = computed(() =>
   filteredProducts.value.reduce((sum, p) => sum + (p.price * Math.max(0, p.stock_qty)), 0)
 )
+
+function formatCompact(n) {
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B'
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
+  return n.toLocaleString('ru')
+}
 
 const filteredProducts = computed(() => {
   let items = allProducts.value
