@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { pool } from '../db/connection.js'
 import { sendEODSummary } from './notificationService.js'
+import { runBackupSafe } from './backupService.js'
 
 let eodTask = null
 let backupTask = null
@@ -27,15 +28,15 @@ export async function startCronJobs() {
   // Daily backup at 23:59
   if (backupTask) backupTask.stop()
   backupTask = cron.schedule('59 23 * * *', async () => {
-    console.log('[cron] Running daily backup (pg_dump)...')
-    // Backup logic would call pg_dump here in production
-    // For now just log
+    console.log('[cron] Running daily backup...')
+    const result = await runBackupSafe()
     try {
       await pool.query(
-        `INSERT INTO audit_log (action, actor_name, details) VALUES ('backup', 'system', '{"status":"scheduled"}'::jsonb)`
+        `INSERT INTO audit_log (action, actor_name, details) VALUES ('backup', 'system', $1::jsonb)`,
+        [JSON.stringify(result)]
       )
     } catch (e) {
-      console.error('[cron] Backup log failed:', e.message)
+      console.error('[cron] Backup audit log failed:', e.message)
     }
   })
 

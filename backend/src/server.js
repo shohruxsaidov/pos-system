@@ -15,6 +15,7 @@ import { setFastify, broadcastStatus } from "./services/statusService.js";
 import { startCronJobs } from "./services/cronService.js";
 import { startBot, stopBot } from "./services/botService.js";
 import { sendStartupNotification, sendShutdownNotification } from "./services/notificationService.js";
+import { runBackupSafe } from "./services/backupService.js";
 
 // Route imports
 import authRoutes from "./routes/auth.js";
@@ -143,6 +144,12 @@ fastify.addHook("onReady", async () => {
 
   // Start cron jobs
   await startCronJobs();
+
+  // Run backup 5 minutes after startup
+  setTimeout(() => {
+    console.log("[backup] Running startup backup (5min delay)...");
+    runBackupSafe().catch(() => {});
+  }, 5 * 60 * 1000);
 });
 
 fastify.addHook("onClose", async () => {
