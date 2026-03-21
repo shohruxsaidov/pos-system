@@ -16,6 +16,16 @@
           </div>
 
           <div class="field-group">
+            <label class="field-label">Категория</label>
+            <select v-model="form.category_id" class="text-input select-input">
+              <option :value="null">— Без категории —</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field-group">
             <label class="field-label">Штрихкод</label>
             <div class="barcode-row">
               <input
@@ -80,8 +90,16 @@ const store = useWarehouseStore()
 const barcodeSvg = ref(null)
 const saving = ref(false)
 const error = ref('')
-const form = ref({ name: '', barcode: '', price: 0, unit: 'шт' })
+const form = ref({ name: '', barcode: '', price: 0, unit: 'шт', category_id: null })
 const units = ['шт', 'кг', 'л', 'уп', 'м']
+const categories = ref([])
+
+async function loadCategories() {
+  try {
+    const res = await store.authFetch('/api/categories')
+    if (res.ok) categories.value = await res.json()
+  } catch {}
+}
 
 watch(() => props.visible, async (v) => {
   if (v) {
@@ -90,9 +108,11 @@ watch(() => props.visible, async (v) => {
       name: props.prefillName || '',
       barcode: props.barcode || '',
       price: 0,
-      unit: 'шт'
+      unit: 'шт',
+      category_id: null
     }
     error.value = ''
+    loadCategories()
     if (!hasRealBarcode) generateBarcode()
     else await nextTick(() => renderPreview())
   }
@@ -129,7 +149,8 @@ async function create() {
         name: form.value.name,
         price: parseFloat(form.value.price) || 0,
         unit: form.value.unit || 'шт',
-        barcode: form.value.barcode || null
+        barcode: form.value.barcode || null,
+        category_id: form.value.category_id || null
       })
     })
     const data = await res.json()
@@ -234,6 +255,21 @@ async function create() {
 }
 
 .barcode-input { font-family: var(--font-mono); font-size: 13px; }
+
+.select-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239898bb' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.select-input option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
 
 .barcode-row {
   display: flex;
