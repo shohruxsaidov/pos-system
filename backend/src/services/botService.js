@@ -14,7 +14,9 @@ async function loadSettings() {
     );
     const s = Object.fromEntries(rows.map((r) => [r.key, r.value]));
     botToken = s.telegram_bot_token || "";
-    ownerIds = JSON.parse(s.telegram_owner_ids || "[]");
+    const raw = s.telegram_owner_ids || "[]";
+    const parsed = JSON.parse(raw);
+    ownerIds = Array.isArray(parsed) ? parsed : [parsed];
     return s.telegram_enabled === "true";
   } catch (e) {
     return false;
@@ -29,12 +31,19 @@ async function handleMessage(msg) {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
 
+  console.log(
+    `[bot] Message from userId=${userId} chatId=${chatId} ownerIds=${JSON.stringify(ownerIds)}`,
+  );
+
   if (!ownerIds.includes(userId) && !ownerIds.includes(String(userId))) {
+    console.log(`[bot] Unauthorized userId=${userId}, ignoring`);
     return; // silently ignore unauthorized
   }
 
   const text = (msg.text || "").trim();
-  const [cmd, ...args] = text.split(" ");
+  const [rawCmd, ...args] = text.split(" ");
+  const cmd = rawCmd.split("@")[0]; // strip @botname for group chats
+  console.log(`[bot] Command: ${cmd}`);
 
   let reply = "";
 
@@ -87,19 +96,14 @@ async function handleMessage(msg) {
       }
       case "/stock": {
         const { rows: oversold } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.id, p.name HAVING SUM(ws.stock_qty) < 0
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 10`,
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty < 0
+           ORDER BY stock_qty ASC LIMIT 10`,
         );
         const { rows: low } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.id, p.name, p.low_stock_threshold
-           HAVING SUM(ws.stock_qty) >= 0 AND SUM(ws.stock_qty) <= p.low_stock_threshold
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 10`,
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty >= 0 AND stock_qty <= 5
+           ORDER BY stock_qty ASC LIMIT 10`,
         );
         const oversoldText = oversold.length
           ? oversold.map((p) => `🚨 ${p.name}: ${p.stock_qty}`).join("\n")
@@ -209,12 +213,16 @@ async function handleMessage(msg) {
         break;
       }
       case "/summary": {
-        await sendTelegram(botToken, String(chatId), "⏳ Генерирую AI анализ...");
+        await sendTelegram(
+          botToken,
+          String(chatId),
+          "⏳ Генерирую AI анализ...",
+        );
 
         const { rows: s } = await pool.query(
           `SELECT COUNT(*) as txn_count, COALESCE(SUM(total),0) as net_sales, COALESCE(AVG(total),0) as avg_txn
            FROM transactions WHERE DATE(created_at)=$1 AND status!='voided'`,
-          [today]
+          [today],
         );
         const { rows: topProducts } = await pool.query(
           `SELECT p.name, SUM(ti.qty) as total_qty, SUM(ti.subtotal) as revenue
@@ -223,43 +231,40 @@ async function handleMessage(msg) {
            JOIN transactions t ON t.id=ti.transaction_id
            WHERE DATE(t.created_at)=$1 AND t.status!='voided'
            GROUP BY p.id, p.name ORDER BY total_qty DESC LIMIT 5`,
-          [today]
+          [today],
         );
         const { rows: paymentMethods } = await pool.query(
           `SELECT payment_method as method, COUNT(*) as count, COALESCE(SUM(total),0) as total
            FROM transactions WHERE DATE(created_at)=$1 AND status!='voided'
            GROUP BY payment_method`,
-          [today]
+          [today],
         );
         const { rows: refunds } = await pool.query(
           `SELECT COUNT(*) as count, COALESCE(SUM(total_refund_amount),0) as total
            FROM refunds WHERE DATE(created_at)=$1`,
-          [today]
+          [today],
         );
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+        const yesterday = new Date(Date.now() - 86400000)
+          .toISOString()
+          .split("T")[0];
         const { rows: yday } = await pool.query(
           `SELECT COALESCE(SUM(total),0) as net_sales FROM transactions
            WHERE DATE(created_at)=$1 AND status!='voided'`,
-          [yesterday]
+          [yesterday],
         );
         const { rows: lowStock } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.id, p.name, p.low_stock_threshold
-           HAVING SUM(ws.stock_qty) > 0 AND SUM(ws.stock_qty) <= p.low_stock_threshold
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty > 0 AND stock_qty <= 5
+           ORDER BY stock_qty ASC LIMIT 5`,
         );
         const { rows: oversold } = await pool.query(
-          `SELECT p.name, SUM(ws.stock_qty) as stock_qty
-           FROM products p JOIN warehouse_stock ws ON ws.product_id=p.id
-           WHERE p.is_active=true
-           GROUP BY p.id, p.name HAVING SUM(ws.stock_qty) < 0
-           ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`
+          `SELECT name, stock_qty FROM products
+           WHERE is_active=true AND stock_qty < 0
+           ORDER BY stock_qty ASC LIMIT 5`,
         );
 
         const { rows: storeRow } = await pool.query(
-          "SELECT value FROM settings WHERE key='store_name'"
+          "SELECT value FROM settings WHERE key='store_name'",
         );
 
         const aiText = await generateAISummary({
@@ -268,12 +273,26 @@ async function handleMessage(msg) {
           txnCount: parseInt(s[0].txn_count),
           netSales: parseFloat(s[0].net_sales),
           avgTxn: parseFloat(s[0].avg_txn),
-          topProducts: topProducts.map(p => ({ name: p.name, qty: parseInt(p.total_qty), revenue: parseFloat(p.revenue) })),
-          paymentMethods: paymentMethods.map(p => ({ method: p.method, count: parseInt(p.count), total: parseFloat(p.total) })),
+          topProducts: topProducts.map((p) => ({
+            name: p.name,
+            qty: parseInt(p.total_qty),
+            revenue: parseFloat(p.revenue),
+          })),
+          paymentMethods: paymentMethods.map((p) => ({
+            method: p.method,
+            count: parseInt(p.count),
+            total: parseFloat(p.total),
+          })),
           refundCount: parseInt(refunds[0].count),
           refundTotal: parseFloat(refunds[0].total),
-          lowStockItems: lowStock.map(p => ({ name: p.name, stock_qty: p.stock_qty })),
-          oversoldItems: oversold.map(p => ({ name: p.name, stock_qty: p.stock_qty })),
+          lowStockItems: lowStock.map((p) => ({
+            name: p.name,
+            stock_qty: p.stock_qty,
+          })),
+          oversoldItems: oversold.map((p) => ({
+            name: p.name,
+            stock_qty: p.stock_qty,
+          })),
           yesterdayNetSales: parseFloat(yday[0]?.net_sales || 0),
         });
 
@@ -318,18 +337,21 @@ export async function startBot() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       commands: [
-        { command: "today",    description: "Итоги продаж сегодня" },
-        { command: "week",     description: "Итоги за последние 7 дней" },
-        { command: "month",    description: "Итоги за этот месяц" },
-        { command: "sales",    description: "Продажи за дату: /sales YYYY-MM-DD" },
-        { command: "stock",    description: "Остатки: минус и мало товара" },
-        { command: "top",      description: "Топ-10 товаров сегодня" },
+        { command: "today", description: "Итоги продаж сегодня" },
+        { command: "week", description: "Итоги за последние 7 дней" },
+        { command: "month", description: "Итоги за этот месяц" },
+        { command: "sales", description: "Продажи за дату: /sales YYYY-MM-DD" },
+        { command: "stock", description: "Остатки: минус и мало товара" },
+        { command: "top", description: "Топ-10 товаров сегодня" },
         { command: "cashiers", description: "По кассирам за сегодня" },
-        { command: "refunds",  description: "Возвраты сегодня" },
-        { command: "txn",      description: "Детали транзакции: /txn REF" },
-        { command: "status",   description: "Состояние системы и ссылка на мобильный" },
-        { command: "summary",  description: "AI анализ продаж за сегодня" },
-        { command: "help",     description: "Список всех команд" },
+        { command: "refunds", description: "Возвраты сегодня" },
+        { command: "txn", description: "Детали транзакции: /txn REF" },
+        {
+          command: "status",
+          description: "Состояние системы и ссылка на мобильный",
+        },
+        { command: "summary", description: "AI анализ продаж за сегодня" },
+        { command: "help", description: "Список всех команд" },
       ],
     }),
   }).catch((e) => console.error("[bot] setMyCommands failed:", e.message));
@@ -345,7 +367,6 @@ export async function startBot() {
         await sleep(5000);
         continue;
       }
-
       for (const update of result || []) {
         offset = update.update_id + 1;
         if (update.message?.text) {
