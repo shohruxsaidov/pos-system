@@ -74,7 +74,53 @@ function formatPrice(p) {
 }
 
 function print() {
-  emit('print', { product: props.product, copies: copies.value, size: size.value })
+  const svgHtml = svgRef.value ? svgRef.value.outerHTML : ''
+  const labelWidth = size.value === '58mm' ? '58mm' : '80mm'
+  const labelHtml = `
+    <div class="label">
+      <div class="label-store">${storeName.value}</div>
+      <div class="label-name">${props.product?.name || ''}</div>
+      <div class="label-barcode">${svgHtml}</div>
+      <div class="label-price">${formatPrice(props.product?.price)}</div>
+    </div>`
+
+  const win = window.open('', '_blank', 'width=600,height=400')
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Label</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; background: #fff; }
+    .label {
+      width: ${labelWidth};
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      page-break-after: always;
+      break-after: page;
+    }
+    .label:last-child { page-break-after: avoid; break-after: avoid; }
+    .label-store { font-size: 9px; color: #555; }
+    .label-name  { font-size: 12px; font-weight: 700; color: #111; text-align: center; }
+    .label-barcode svg { width: 100%; height: auto; }
+    .label-price { font-size: 16px; font-weight: 700; color: #111; font-family: monospace; }
+    @page { margin: 0; size: ${labelWidth} auto; }
+  </style>
+</head>
+<body>
+  ${Array(copies.value).fill(labelHtml).join('')}
+</body>
+</html>`)
+  win.document.close()
+  win.focus()
+  win.onload = () => { win.print(); win.close() }
+  // fallback if onload already fired
+  setTimeout(() => { try { win.print(); win.close() } catch {} }, 500)
+
   visible.value = false
 }
 </script>
