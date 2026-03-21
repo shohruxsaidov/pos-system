@@ -51,13 +51,6 @@ async function savePrinterAddress(address) {
   )
 }
 
-async function saveBarcodePrinterAddress(address) {
-  await pool.query(
-    `INSERT INTO settings (key, value) VALUES ('barcode_printer_address', $1)
-     ON CONFLICT (key) DO UPDATE SET value=$1`,
-    [address]
-  )
-}
 
 // ── Windows: share printer so copy /b works ───────────────────────────────────
 
@@ -73,6 +66,7 @@ async function ensureWindowsPrinterShared(printerName) {
 // ── Detection ─────────────────────────────────────────────────────────────────
 
 async function detectPrinterWindows() {
+  const found = []
   try {
     const { stdout } = await execAsync(
       'wmic printer get Name,PortName /format:csv',
@@ -85,51 +79,43 @@ async function detectPrinterWindows() {
       const portName = parts[2]?.trim().replace(/\r/g, '')
       if (portName && /^(USB|LPT|COM)\d+$/i.test(portName) && name) {
         await ensureWindowsPrinterShared(name)
-        return `winshare:${name}`
+        found.push({ label: name, address: `winshare:${name}` })
       }
     }
   } catch { /* wmic not available */ }
-  return null
+  return found
 }
 
 async function detectPrinterUnix() {
+  const found = []
   try {
     const { stdout } = await execAsync('lpstat -p', { timeout: 5000 })
     for (const line of stdout.trim().split('\n')) {
       const match = line.match(/^printer\s+(\S+)\s+is\s+(idle|printing|ready|enabled)/)
-      if (match) return `cups:${match[1]}`
+      if (match) found.push({ label: match[1], address: `cups:${match[1]}` })
     }
   } catch { /* lpstat not available */ }
 
   for (const path of ['/dev/usb/lp0', '/dev/usb/lp1', '/dev/ttyUSB0']) {
     try {
       const { stdout } = await execAsync(`test -e ${path} && echo exists`, { timeout: 2000 })
-      if (stdout.includes('exists')) return path
+      if (stdout.includes('exists')) found.push({ label: path, address: path })
     } catch { /* skip */ }
   }
-  return null
+  return found
 }
 
 export async function detectPrinter() {
-  const address = process.platform === 'win32'
+  const printers = process.platform === 'win32'
     ? await detectPrinterWindows()
     : await detectPrinterUnix()
 
-  if (!address) return { found: false }
+  if (!printers.length) return { found: false }
 
-  await savePrinterAddress(address)
-  return { found: true, address }
-}
+  // Auto-save only when exactly one found
+  if (printers.length === 1) await savePrinterAddress(printers[0].address)
 
-export async function detectBarcodePrinter() {
-  const address = process.platform === 'win32'
-    ? await detectPrinterWindows()
-    : await detectPrinterUnix()
-
-  if (!address) return { found: false }
-
-  await saveBarcodePrinterAddress(address)
-  return { found: true, address }
+  return { found: true, printers }
 }
 
 // ── Status ────────────────────────────────────────────────────────────────────

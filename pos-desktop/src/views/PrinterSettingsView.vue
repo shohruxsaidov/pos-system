@@ -55,6 +55,21 @@
 
     </div>
 
+    <!-- Printer picker dialog (when multiple found) -->
+    <Dialog v-model:visible="pickerVisible" modal header="Выберите принтер"
+      :style="{ width: '420px' }" :closable="true">
+      <div class="picker-list">
+        <div v-for="p in foundPrinters" :key="p.address"
+          class="picker-item" @click="selectPrinter(p)">
+          <i class="pi pi-print picker-icon" />
+          <div>
+            <div class="picker-name">{{ p.label }}</div>
+            <div class="picker-addr">{{ p.address }}</div>
+          </div>
+        </div>
+      </div>
+    </Dialog>
+
     <Toast />
   </div>
 </template>
@@ -66,6 +81,7 @@ import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
+import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
 
 const api = useApi()
@@ -79,6 +95,8 @@ const testingPrinter = ref(false)
 const printerDetectStatus = ref(null)
 const printerTestStatus = ref(null)
 
+const pickerVisible = ref(false)
+const foundPrinters = ref([])
 
 onMounted(async () => {
   try {
@@ -103,14 +121,25 @@ async function detectPrinterAuto() {
   printerDetectStatus.value = null
   try {
     const res = await api.post('/api/settings/printer-detect', {})
-    settings.value.printer_address = res.address
-    printerDetectStatus.value = { ok: true, msg: `Принтер найден: ${res.address}` }
-    toast.add({ severity: 'success', summary: 'Принтер найден', detail: res.address, life: 3000 })
+    if (res.printers.length === 1) {
+      settings.value.printer_address = res.printers[0].address
+      printerDetectStatus.value = { ok: true, msg: `Принтер найден: ${res.printers[0].address}` }
+    } else {
+      foundPrinters.value = res.printers
+      pickerVisible.value = true
+      printerDetectStatus.value = { ok: true, msg: `Найдено ${res.printers.length} принтера — выберите нужный` }
+    }
   } catch {
     printerDetectStatus.value = { ok: false, msg: 'Принтер не найден. Проверьте подключение USB.' }
   } finally {
     detecting.value = false
   }
+}
+
+function selectPrinter(printer) {
+  settings.value.printer_address = printer.address
+  pickerVisible.value = false
+  printerDetectStatus.value = { ok: true, msg: `Выбран: ${printer.address}` }
 }
 
 async function testPrint() {
@@ -241,5 +270,48 @@ async function testPrint() {
   background: var(--danger-bg);
   border-radius: 8px;
   font-size: 13px;
+}
+
+/* Picker dialog */
+.picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.picker-item:hover {
+  border-color: rgba(123, 104, 238, 0.5);
+  background: var(--bg-hover);
+}
+
+.picker-icon {
+  font-size: 20px;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.picker-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.picker-addr {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
 }
 </style>
