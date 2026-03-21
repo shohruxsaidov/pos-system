@@ -27,8 +27,9 @@ module.exports = {
     {
       name: "pos-desktop",
       cwd: "./pos-desktop",
-      script: "node_modules/.bin/vite",
-      args: "preview --port 5173 --host",
+      script: "pnpm",
+      args: "run preview",
+      interpreter: "none",
       instances: 1,
       autorestart: true,
       watch: false,
