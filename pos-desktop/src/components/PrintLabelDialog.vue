@@ -11,11 +11,6 @@
 
       <div class="print-fields">
         <div class="field-group">
-          <label class="field-label">Размер этикетки</label>
-          <SelectButton v-model="size" :options="['58mm', '80mm']" />
-        </div>
-
-        <div class="field-group">
           <label class="field-label">Копии</label>
           <div class="copies-control">
             <Button icon="pi pi-minus" class="p-button-secondary" @click="copies = Math.max(1, copies - 1)"
@@ -56,7 +51,7 @@ const visible = computed({
 import { computed } from 'vue'
 
 const svgRef = ref(null)
-const size = ref('58mm')
+const size = ref('80mm')
 const copies = ref(1)
 const storeName = ref('Main Market Store')
 
@@ -84,7 +79,7 @@ function print() {
       <div class="label-price">${formatPrice(props.product?.price)}</div>
     </div>`
 
-  const win = window.open('', '_blank', 'width=600,height=400')
+  const win = window.open('', '_blank', 'width=600,height=380')
   win.document.write(`<!DOCTYPE html>
 <html>
 <head>
@@ -119,7 +114,7 @@ function print() {
   win.focus()
   win.onload = () => { win.print(); win.close() }
   // fallback if onload already fired
-  setTimeout(() => { try { win.print(); win.close() } catch {} }, 500)
+  setTimeout(() => { try { win.print(); win.close() } catch { } }, 500)
 
   visible.value = false
 }
