@@ -31,19 +31,13 @@ async function handleMessage(msg) {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
 
-  console.log(
-    `[bot] Message from userId=${userId} chatId=${chatId} ownerIds=${JSON.stringify(ownerIds)}`,
-  );
-
   if (!ownerIds.includes(userId) && !ownerIds.includes(String(userId))) {
-    console.log(`[bot] Unauthorized userId=${userId}, ignoring`);
     return; // silently ignore unauthorized
   }
 
   const text = (msg.text || "").trim();
   const [rawCmd, ...args] = text.split(" ");
   const cmd = rawCmd.split("@")[0]; // strip @botname for group chats
-  console.log(`[bot] Command: ${cmd}`);
 
   let reply = "";
 
