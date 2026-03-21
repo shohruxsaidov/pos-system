@@ -196,7 +196,7 @@ const computedQtyFromAmount = computed(() => {
 
 function openPriceEdit(item) {
   editingCartItem.value = item
-  editPrice.value = String(parseFloat((item.unit_price * item.qty).toFixed(4)))
+  editPrice.value = ''
   showPriceDialog.value = true
 }
 
