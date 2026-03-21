@@ -7,6 +7,10 @@ import DialogService from 'primevue/dialogservice'
 import ConfirmationService from 'primevue/confirmationservice'
 import Tooltip from 'primevue/tooltip'
 
+import '@fontsource-variable/plus-jakarta-sans'
+import '@fontsource-variable/jetbrains-mono'
+import 'primeicons/primeicons.css'
+
 import App from './App.vue'
 import router from './router/index.js'
 import './assets/style.css'

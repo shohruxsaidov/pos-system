@@ -10,10 +10,13 @@
     "generate-pwa-assets": "pwa-assets-generator --preset minimal public/icon.svg"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
     "@primevue/themes": "^4.2.5",
     "chart.js": "^4.4.7",
     "jsbarcode": "^3.11.6",
     "pinia": "^2.2.6",
+    "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
     "qrcode": "^1.5.3",
     "vue": "^3.5.13",
