@@ -123,7 +123,7 @@
         <div style="text-align:center;font-size:13px;color:var(--text-secondary);font-weight:600">
           {{ editingCartItem?.name }}
         </div>
-        <NumPad v-model="editQty" :show-display="true" :integer="true" />
+        <NumPad v-model="editQty" :show-display="true" />
       </div>
       <template #footer>
         <Button label="Отмена" class="p-button-secondary" @click="showQtyDialog = false" style="height:56px" />
@@ -183,7 +183,7 @@ function openQtyEdit(item) {
 }
 
 function confirmQtyEdit() {
-  const qty = parseInt(editQty.value) || 1
+  const qty = parseFloat(editQty.value) || 1
   cart.updateQty(editingCartItem.value.product_id, qty)
   showQtyDialog.value = false
 }
