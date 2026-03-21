@@ -30,6 +30,19 @@
       </button>
     </div>
 
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-value">{{ filteredProducts.length }}</span>
+        <span class="stat-label">Товаров</span>
+      </div>
+      <div class="stat-divider" />
+      <div class="stat-item">
+        <span class="stat-value font-mono">{{ totalValue.toLocaleString('ru') }}</span>
+        <span class="stat-label">Общая стоимость</span>
+      </div>
+    </div>
+
     <!-- Product List -->
     <div
       class="product-list"
@@ -122,6 +135,10 @@ const tabs = [
   { label: 'Мало', value: 'low' },
   { label: 'Дефицит', value: 'oversold' }
 ]
+
+const totalValue = computed(() =>
+  filteredProducts.value.reduce((sum, p) => sum + (p.price * Math.max(0, p.stock_qty)), 0)
+)
 
 const filteredProducts = computed(() => {
   let items = allProducts.value
@@ -319,6 +336,46 @@ async function sendPrint() {
   border-radius: 10px;
   padding: 2px 6px;
   font-size: 11px;
+}
+
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0 16px 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 10px 16px;
+  flex-shrink: 0;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-accent);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--border-default);
+  margin: 0 8px;
 }
 
 .product-list {
