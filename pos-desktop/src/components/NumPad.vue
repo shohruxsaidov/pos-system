@@ -48,13 +48,16 @@ const keys = computed(() => [
   { label: '3', value: '3' },
   { label: props.integer ? '00' : '.', value: props.integer ? '00' : '.' },
   { label: '0', value: '0' },
-  { label: '⌫', value: 'del', class: 'key-delete', icon: '' }
+  { label: '⌫', value: 'del', class: 'key-delete', icon: '' },
+  { label: 'C', value: 'clear', class: 'key-clear' }
 ])
 
 function handleKey(val) {
   let current = displayValue.value
 
-  if (val === 'del') {
+  if (val === 'clear') {
+    displayValue.value = '0'
+  } else if (val === 'del') {
     displayValue.value = current.length > 1 ? current.slice(0, -1) : '0'
   } else if (val === '.') {
     if (!props.integer && !current.includes('.')) {
@@ -143,5 +146,15 @@ function handleKey(val) {
   border-color: var(--danger-border);
   color: var(--danger);
   font-size: 18px;
+}
+
+.numpad-key.key-clear {
+  grid-column: 1 / -1;
+  height: 64px;
+  background: var(--bg-input);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+  font-size: 16px;
+  letter-spacing: 0.05em;
 }
 </style>
