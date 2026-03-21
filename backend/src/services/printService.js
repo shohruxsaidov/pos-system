@@ -9,7 +9,10 @@ import { pool } from '../db/connection.js'
 
 const execAsync = promisify(exec)
 
-// ── Settings ─────────────────────────────────────────────────────────────────
+// Fixed Windows share name used for raw ESC/POS printing
+const WINDOWS_SHARE = 'POSPrint'
+
+// ── Settings ──────────────────────────────────────────────────────────────────
 
 async function getStoreName() {
   const { rows } = await pool.query(`SELECT value FROM settings WHERE key = 'store_name'`)
@@ -36,10 +39,20 @@ async function savePrinterAddress(address) {
   )
 }
 
+// ── Windows: share printer so copy /b works ───────────────────────────────────
+
+async function ensureWindowsPrinterShared(printerName) {
+  try {
+    await execAsync(
+      `wmic printer where "Name='${printerName}'" set Shared=True,ShareName="${WINDOWS_SHARE}"`,
+      { timeout: 5000 }
+    )
+  } catch { /* ignore — may already be shared */ }
+}
+
 // ── Detection ─────────────────────────────────────────────────────────────────
 
 async function detectPrinterWindows() {
-  // Try WMIC — works on Windows 10/11 (despite deprecation warning printed to stdout)
   try {
     const { stdout } = await execAsync(
       'wmic printer get Name,PortName /format:csv',
@@ -47,21 +60,15 @@ async function detectPrinterWindows() {
     )
     for (const line of stdout.split('\n')) {
       const parts = line.split(',')
-      if (parts.length < 3) continue // skip deprecation notice lines and blank lines
+      if (parts.length < 3) continue
+      const name = parts[1]?.trim().replace(/\r/g, '')
       const portName = parts[2]?.trim().replace(/\r/g, '')
-      if (portName && /^(USB|LPT|COM)\d+$/i.test(portName)) {
-        return `//./${portName}`
+      if (portName && /^(USB|LPT|COM)\d+$/i.test(portName) && name) {
+        await ensureWindowsPrinterShared(name)
+        return `winshare:${name}`
       }
     }
   } catch { /* wmic not available */ }
-
-  // Fallback: probe raw paths directly
-  for (const addr of ['//./USB001', '//./USB002', '//./USB003', '//./LPT1']) {
-    try {
-      const p = new ThermalPrinter({ type: PrinterTypes.EPSON, interface: addr, characterSet: CharacterSet.PC852_LATIN2 })
-      if (await p.isPrinterConnected()) return addr
-    } catch { /* skip */ }
-  }
   return null
 }
 
@@ -74,7 +81,6 @@ async function detectPrinterUnix() {
     }
   } catch { /* lpstat not available */ }
 
-  // Fallback: check device files
   for (const path of ['/dev/usb/lp0', '/dev/usb/lp1', '/dev/ttyUSB0']) {
     try {
       const { stdout } = await execAsync(`test -e ${path} && echo exists`, { timeout: 2000 })
@@ -106,6 +112,18 @@ async function checkCupsPrinter(name) {
   }
 }
 
+async function checkWindowsPrinterByName(printerName) {
+  try {
+    const { stdout } = await execAsync(
+      `wmic printer where "Name='${printerName}'" get PrinterStatus /format:value`,
+      { timeout: 5000 }
+    )
+    const match = stdout.match(/PrinterStatus=(\d+)/i)
+    if (match && parseInt(match[1]) >= 1) return { connected: true }
+  } catch { /* skip */ }
+  return { connected: false }
+}
+
 async function checkRawPrinter(address, type) {
   try {
     const printer = new ThermalPrinter({ type, interface: address, characterSet: CharacterSet.PC852_LATIN2 })
@@ -113,8 +131,6 @@ async function checkRawPrinter(address, type) {
     if (connected) return { connected: true }
   } catch { /* fall through */ }
 
-  // isPrinterConnected() is unreliable on Windows raw USB paths.
-  // Fall back to WMIC to check printer status by port name.
   if (process.platform === 'win32' && /^\/\/\.\/(USB|LPT|COM)/i.test(address)) {
     try {
       const portName = address.replace('//./','')
@@ -123,7 +139,6 @@ async function checkRawPrinter(address, type) {
         { timeout: 5000 }
       )
       const match = stdout.match(/PrinterStatus=(\d+)/i)
-      // PrinterStatus: 3=Idle, 4=Printing, 5=Warming Up — all mean printer is present
       if (match && parseInt(match[1]) >= 1) return { connected: true }
     } catch { /* skip */ }
   }
@@ -136,9 +151,11 @@ export async function getPrinterStatus() {
     const config = await getPrinterConfig()
     if (!config.address) return { connected: false, reason: 'not_configured' }
 
-    if (config.address.startsWith('cups:')) {
+    if (config.address.startsWith('cups:'))
       return checkCupsPrinter(config.address.replace('cups:', ''))
-    }
+
+    if (config.address.startsWith('winshare:'))
+      return checkWindowsPrinterByName(config.address.replace('winshare:', ''))
 
     return checkRawPrinter(config.address, config.type)
   } catch {
@@ -146,38 +163,51 @@ export async function getPrinterStatus() {
   }
 }
 
-// ── Printer factory ───────────────────────────────────────────────────────────
+// ── Unified send-to-printer ───────────────────────────────────────────────────
+// buildFn(printer) adds content to the ThermalPrinter instance.
+// Can be sync or async (label printing uses await printer.printImage).
 
-async function createPrinter() {
-  const config = await getPrinterConfig()
-  if (!config.address) throw new Error('Printer not configured')
-
+async function sendToPrinter(config, buildFn) {
   if (config.address.startsWith('cups:')) {
-    // CUPS printing is done via lp command — return a wrapper
-    return null // handled separately in print functions
+    return printRawViaCups(config.address.replace('cups:', ''), buildFn)
+  }
+  if (config.address.startsWith('winshare:')) {
+    return printViaWindowsShare(config.address.replace('winshare:', ''), buildFn)
   }
 
-  return new ThermalPrinter({
-    type: config.type,
-    interface: config.address,
-    characterSet: CharacterSet.PC852_LATIN2
-  })
+  // Raw file / device path (Linux/Mac direct device, or legacy Windows path)
+  const printer = new ThermalPrinter({ type: config.type, interface: config.address, characterSet: CharacterSet.PC852_LATIN2 })
+  await buildFn(printer)
+  await printer.execute()
 }
 
-// ── CUPS raw ESC/POS via lp ───────────────────────────────────────────────────
+// ── CUPS: write ESC/POS to temp file, send via lp ────────────────────────────
 
 async function printRawViaCups(printerName, buildFn) {
-  // Build ESC/POS bytes using a temp printer that writes to a temp file
   const tmpPath = join(tmpdir(), `pos-print-${Date.now()}.bin`)
-  const printer = new ThermalPrinter({
-    type: PrinterTypes.EPSON,
-    interface: tmpPath,
-    characterSet: CharacterSet.PC852_LATIN2
-  })
-  buildFn(printer)
-  await printer.execute()
-  await execAsync(`lp -d ${printerName} -o raw ${tmpPath}`, { timeout: 10000 })
-  await unlink(tmpPath).catch(() => {})
+  try {
+    const printer = new ThermalPrinter({ type: PrinterTypes.EPSON, interface: tmpPath, characterSet: CharacterSet.PC852_LATIN2 })
+    await buildFn(printer)
+    await printer.execute()
+    await execAsync(`lp -d ${printerName} -o raw ${tmpPath}`, { timeout: 10000 })
+  } finally {
+    await unlink(tmpPath).catch(() => {})
+  }
+}
+
+// ── Windows: write ESC/POS to temp file, send via shared printer ──────────────
+
+async function printViaWindowsShare(printerName, buildFn) {
+  const tmpPath = join(tmpdir(), `pos-print-${Date.now()}.bin`)
+  try {
+    const printer = new ThermalPrinter({ type: PrinterTypes.EPSON, interface: tmpPath, characterSet: CharacterSet.PC852_LATIN2 })
+    await buildFn(printer)
+    await printer.execute()
+    await ensureWindowsPrinterShared(printerName)
+    await execAsync(`cmd /c copy /b "${tmpPath}" "\\\\localhost\\${WINDOWS_SHARE}"`, { timeout: 10000 })
+  } finally {
+    await unlink(tmpPath).catch(() => {})
+  }
 }
 
 // ── Receipt printing ──────────────────────────────────────────────────────────
@@ -212,9 +242,10 @@ export async function printReceipt(txnId) {
 
   const lineWidth = config.paperWidth === '80mm' ? 48 : 32
   const line = '-'.repeat(lineWidth)
+  const colWidth = lineWidth - 8
   const date = new Date(txn.created_at).toLocaleString('ru-RU')
 
-  function build(printer) {
+  await sendToPrinter(config, async (printer) => {
     printer.alignCenter()
     printer.bold(true)
     printer.println(storeName)
@@ -227,7 +258,6 @@ export async function printReceipt(txnId) {
     if (txn.customer_name) printer.println(`Клиент: ${txn.customer_name}`)
     printer.println(line)
 
-    const colWidth = lineWidth - 8
     for (const item of items) {
       const name = (item.product_name || '').substring(0, lineWidth)
       const price = Number(item.unit_price).toFixed(2)
@@ -257,17 +287,7 @@ export async function printReceipt(txnId) {
     printer.alignCenter()
     printer.println('Спасибо за покупку!')
     printer.cut()
-  }
-
-  if (config.address.startsWith('cups:')) {
-    await printRawViaCups(config.address.replace('cups:', ''), build)
-    return
-  }
-
-  const printer = new ThermalPrinter({ type: config.type, interface: config.address, characterSet: CharacterSet.PC852_LATIN2 })
-  if (!await printer.isPrinterConnected()) throw new Error('Printer not connected')
-  build(printer)
-  await printer.execute()
+  })
 }
 
 // ── Test page ─────────────────────────────────────────────────────────────────
@@ -281,7 +301,7 @@ export async function printTestPage() {
   const line = '-'.repeat(lineWidth)
   const now = new Date().toLocaleString('ru-RU')
 
-  function build(printer) {
+  await sendToPrinter(config, async (printer) => {
     printer.alignCenter()
     printer.bold(true)
     printer.println(storeName)
@@ -291,24 +311,14 @@ export async function printTestPage() {
     printer.println(now)
     printer.println(line)
     printer.alignLeft()
-    printer.println(`Type:  ${config.type === 'STAR' ? 'STAR' : 'EPSON'}`)
+    printer.println(`Type:  EPSON`)
     printer.println(`Port:  ${config.address}`)
     printer.println(`Width: ${config.paperWidth}`)
     printer.println(line)
     printer.alignCenter()
     printer.println('Printer OK')
     printer.cut()
-  }
-
-  if (config.address.startsWith('cups:')) {
-    await printRawViaCups(config.address.replace('cups:', ''), build)
-    return
-  }
-
-  const printer = new ThermalPrinter({ type: config.type, interface: config.address, characterSet: CharacterSet.PC852_LATIN2 })
-  if (!await printer.isPrinterConnected()) throw new Error('Printer not connected')
-  build(printer)
-  await printer.execute()
+  })
 }
 
 // ── Label printing ────────────────────────────────────────────────────────────
@@ -327,12 +337,11 @@ export async function printLabel({ barcode, product_name, price, copies = 1, siz
     includetext: true, textxalign: 'center'
   })
 
-  // printImage() requires a file path — write PNG to a temp file
   const imgPath = join(tmpdir(), `pos-barcode-${Date.now()}.png`)
   await writeFile(imgPath, barcodeBuffer)
 
   try {
-    async function build(printer) {
+    await sendToPrinter(config, async (printer) => {
       for (let i = 0; i < safeCount; i++) {
         printer.alignCenter()
         printer.println(storeName)
@@ -349,22 +358,7 @@ export async function printLabel({ barcode, product_name, price, copies = 1, siz
         printer.setTextNormal()
         printer.cut()
       }
-    }
-
-    if (config.address.startsWith('cups:')) {
-      const tmpPath = join(tmpdir(), `pos-label-${Date.now()}.bin`)
-      const printer = new ThermalPrinter({ type: PrinterTypes.EPSON, interface: tmpPath, characterSet: CharacterSet.PC852_LATIN2 })
-      await build(printer)
-      await printer.execute()
-      await execAsync(`lp -d ${config.address.replace('cups:', '')} -o raw ${tmpPath}`, { timeout: 10000 })
-      await unlink(tmpPath).catch(() => {})
-      return
-    }
-
-    const printer = new ThermalPrinter({ type: config.type, interface: config.address, characterSet: CharacterSet.PC852_LATIN2 })
-    if (!await printer.isPrinterConnected()) throw new Error('Printer not connected')
-    await build(printer)
-    await printer.execute()
+    })
   } finally {
     await unlink(imgPath).catch(() => {})
   }
