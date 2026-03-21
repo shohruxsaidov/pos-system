@@ -73,7 +73,7 @@ function print() {
   const labelWidth = size.value === '58mm' ? '58mm' : '80mm'
   const labelHtml = `
     <div class="label">
-      <div class="label-store">${storeName.value}</div>
+      <div class="label-store"></div>
       <div class="label-name">${props.product?.name || ''}</div>
       <div class="label-barcode">${svgHtml}</div>
       <div class="label-price">${formatPrice(props.product?.price)}</div>
@@ -99,7 +99,7 @@ function print() {
       break-after: page;
     }
     .label:last-child { page-break-after: avoid; break-after: avoid; }
-    .label-store { font-size: 9px; color: #555; }
+    .label-store { font-size: 9px; color: #555; height: 11px; }
     .label-name  { font-size: 12px; font-weight: 700; color: #111; text-align: center; }
     .label-barcode svg { width: 100%; height: auto; }
     .label-price { font-size: 16px; font-weight: 700; color: #111; font-family: monospace; }
