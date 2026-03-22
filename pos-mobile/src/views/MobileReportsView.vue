@@ -40,6 +40,11 @@
             <div class="stat-sub">на транзакцию</div>
           </div>
           <div class="stat-card">
+            <div class="stat-label">Скидки</div>
+            <div class="stat-value danger">{{ fmt(daily.summary?.total_discount) }}</div>
+            <div class="stat-sub">итого скидок</div>
+          </div>
+          <div class="stat-card">
             <div class="stat-label">Возвраты</div>
             <div class="stat-value danger">{{ daily.refunds?.count ?? 0 }}</div>
             <div class="stat-sub">{{ fmt(daily.refunds?.total) }}</div>

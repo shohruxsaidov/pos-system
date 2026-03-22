@@ -27,6 +27,10 @@
         <div class="stat-label">Чистые продажи</div>
         <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.net_sales) }}</div>
       </div>
+      <div class="stat-card" v-if="daily.summary?.total_discount > 0">
+        <div class="stat-label">Скидки</div>
+        <div class="stat-value font-mono" style="color:var(--danger)">− {{ formatAmount(daily.summary?.total_discount) }}</div>
+      </div>
     </div>
 
     <div class="reports-grid">
