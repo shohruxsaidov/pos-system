@@ -254,7 +254,7 @@ function openPayment() {
   showPayment.value = true
 }
 
-async function processSale({ method, tendered, changeGiven }) {
+async function processSale({ method, tendered, changeGiven, discount = 0 }) {
   if (processing.value) return
   processing.value = true
 
@@ -269,7 +269,8 @@ async function processSale({ method, tendered, changeGiven }) {
       payment_method: method,
       tendered,
       change_given: changeGiven,
-      total: cartTotal.value
+      discount,
+      total: cartTotal.value - discount
     })
 
     // Sync local display stock (already patched in store, refresh from store)

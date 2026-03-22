@@ -19,6 +19,22 @@
         </div>
       </div>
 
+      <!-- Discount -->
+      <div class="field-group">
+        <label class="field-label">Скидка</label>
+        <div class="tendered-input" @click="showDiscountNumpad = !showDiscountNumpad" style="cursor:pointer">
+          <span class="tendered-prefix">−</span>
+          <input
+            class="tendered-field"
+            :value="discountInput || '0'"
+            readonly
+            inputmode="none"
+            style="cursor:pointer"
+          />
+        </div>
+        <NumPad v-if="showDiscountNumpad" v-model="discountInput" :show-display="false" @update:modelValue="applyDiscount" />
+      </div>
+
       <!-- Payment Method -->
       <div class="field-group">
         <label class="field-label">Способ оплаты</label>
@@ -65,6 +81,13 @@ const reference = ref('')
 const printReceipt = ref(true)
 const processing = ref(false)
 const showNumpad = ref(false)
+const discountInput = ref('')
+const showDiscountNumpad = ref(false)
+
+function applyDiscount(val) {
+  const amount = parseFloat(val) || 0
+  cart.setDiscount(Math.min(amount, cart.subtotal))
+}
 
 const methods = [
   { label: 'Наличные', value: 'cash' },
@@ -79,6 +102,9 @@ watch(visible, (v) => {
     reference.value = ''
     showNumpad.value = false
     processing.value = false
+    discountInput.value = ''
+    showDiscountNumpad.value = false
+    cart.setDiscount(0)
   }
 })
 

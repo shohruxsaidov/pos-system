@@ -14,7 +14,18 @@
         <!-- Total -->
         <div class="payment-total">
           <span class="pt-label">К оплате</span>
-          <span class="pt-value font-mono">{{ total.toFixed(2) }}</span>
+          <span class="pt-value font-mono">{{ finalTotal.toFixed(2) }}</span>
+        </div>
+
+        <!-- Discount row -->
+        <div class="discount-row" @click="showDiscountPad = true">
+          <div class="discount-left">
+            <i class="pi pi-tag" />
+            <span class="discount-label">Скидка</span>
+          </div>
+          <span class="discount-value font-mono" :class="{ 'has-discount': discountAmount > 0 }">
+            {{ discountAmount > 0 ? `− ${discountAmount.toFixed(2)}` : 'Нет' }}
+          </span>
         </div>
 
         <!-- Payment method -->
@@ -45,11 +56,20 @@
       </div>
     </div>
 
+    <!-- Discount numpad -->
+    <BottomNumPad
+      :visible="showDiscountPad"
+      v-model="discountInput"
+      label="Скидка"
+      @close="showDiscountPad = false"
+      @confirm="applyDiscount"
+    />
   </Teleport>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import BottomNumPad from './BottomNumPad.vue'
 
 const props = defineProps({
   total: { type: Number, required: true },
@@ -59,6 +79,11 @@ const props = defineProps({
 const emit = defineEmits(['confirm', 'close'])
 
 const method = ref('cash')
+const discountAmount = ref(0)
+const discountInput = ref('')
+const showDiscountPad = ref(false)
+
+const finalTotal = computed(() => Math.max(0, props.total - discountAmount.value))
 
 const methods = [
   { value: 'cash', label: 'Наличные', icon: 'pi pi-wallet' },
@@ -66,11 +91,18 @@ const methods = [
   { value: 'transfer', label: 'Перевод', icon: 'pi pi-send' }
 ]
 
+function applyDiscount() {
+  const val = parseFloat(discountInput.value) || 0
+  discountAmount.value = Math.min(val, props.total)
+  showDiscountPad.value = false
+}
+
 function confirm() {
   emit('confirm', {
     method: method.value,
-    tendered: props.total,
-    changeGiven: 0
+    tendered: finalTotal.value,
+    changeGiven: 0,
+    discount: discountAmount.value
   })
 }
 </script>
@@ -141,6 +173,41 @@ function confirm() {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Discount row */
+.discount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.discount-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.discount-left i { font-size: 16px; }
+
+.discount-label { color: var(--text-secondary); }
+
+.discount-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.discount-value.has-discount { color: var(--danger); }
 
 /* Method selector */
 .method-label {
