@@ -11,21 +11,31 @@
           </div>
         </div>
 
-        <!-- Add / Remove toggle -->
+        <!-- Add / Remove / Set toggle -->
         <div class="toggle-row">
-          <button :class="['toggle-btn', { active: mode === 'add' }]" @click="mode = 'add'">
+          <button :class="['toggle-btn', { active: mode === 'add' }]" @click="mode = 'add'; qty = ''">
             <i class="pi pi-plus" /> Добавить
           </button>
-          <button :class="['toggle-btn', { active: mode === 'remove' }]" @click="mode = 'remove'">
+          <button :class="['toggle-btn', { active: mode === 'remove' }]" @click="mode = 'remove'; qty = ''">
             <i class="pi pi-minus" /> Убрать
+          </button>
+          <button :class="['toggle-btn', { active: mode === 'set' }]" @click="mode = 'set'; qty = ''">
+            <i class="pi pi-equals" /> Точно
           </button>
         </div>
 
         <!-- Qty Display -->
         <div class="qty-display" @click="showNumpad = true">
-          <span class="qty-label">{{ mode === 'add' ? '+' : '−' }}</span>
+          <span class="qty-label">{{ mode === 'add' ? '+' : mode === 'remove' ? '−' : '=' }}</span>
           <span class="qty-value font-mono">{{ qty || 0 }}</span>
           <i class="pi pi-pencil" style="color:var(--text-muted);font-size:14px" />
+        </div>
+
+        <!-- Preview -->
+        <div v-if="qty !== '' && qty !== null" class="adjust-preview" :class="previewClass">
+          <span style="font-size:13px;color:var(--text-secondary)">Будет:</span>
+          <span class="font-mono" style="font-size:20px;font-weight:700">{{ previewQty }}</span>
+          <span class="font-mono preview-delta" style="font-size:13px">{{ previewDelta }}</span>
         </div>
 
         <!-- Reason -->
@@ -55,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import BottomNumPad from './BottomNumPad.vue'
 
 const props = defineProps({ visible: Boolean, product: Object })
@@ -68,9 +78,37 @@ const showNumpad = ref(false)
 
 const reasons = ['Корректировка приёмки', 'Повреждение', 'Корректировка инвентаризации', 'Возврат поставщику', 'Другое']
 
+const previewQty = computed(() => {
+  const current = props.product?.stock_qty ?? 0
+  const val = parseInt(qty.value)
+  if (isNaN(val)) return current
+  if (mode.value === 'add') return current + val
+  if (mode.value === 'remove') return current - val
+  return val // set mode
+})
+
+const previewDelta = computed(() => {
+  const current = props.product?.stock_qty ?? 0
+  const delta = previewQty.value - current
+  if (delta === 0) return '±0'
+  return delta > 0 ? `+${delta}` : `${delta}`
+})
+
+const previewClass = computed(() => {
+  const current = props.product?.stock_qty ?? 0
+  const delta = previewQty.value - current
+  if (delta > 0) return 'preview-add'
+  if (delta < 0) return 'preview-remove'
+  return 'preview-neutral'
+})
+
 function confirm() {
   if (!qty.value || !reason.value) return
-  const delta = mode.value === 'add' ? parseInt(qty.value) : -parseInt(qty.value)
+  const current = props.product?.stock_qty ?? 0
+  let delta
+  if (mode.value === 'add') delta = parseInt(qty.value)
+  else if (mode.value === 'remove') delta = -parseInt(qty.value)
+  else delta = parseInt(qty.value) - current // set mode
   emit('confirm', { delta, reason: reason.value })
   qty.value = ''
   reason.value = ''
@@ -111,7 +149,7 @@ function confirm() {
 .current-stock { font-size: 14px; color: var(--text-muted); }
 .current-stock .font-mono { color: var(--text-accent); }
 
-.toggle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.toggle-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
 .toggle-btn {
   height: 52px;
@@ -180,6 +218,20 @@ function confirm() {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.adjust-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+}
+.preview-add { background: var(--success-bg); border-color: var(--success); }
+.preview-remove { background: var(--danger-bg); border-color: var(--danger); }
+.preview-neutral { background: var(--bg-surface); }
+.preview-delta { opacity: 0.75; }
 
 .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
 .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }

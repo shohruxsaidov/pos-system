@@ -50,7 +50,7 @@
               <input v-model="form.price" type="number" class="text-input" placeholder="0.00" />
             </div>
             <div class="field-group">
-              <label class="field-label">Порог низкого запаса</label>
+              <label class="field-label">Мин. остаток</label>
               <input v-model="form.low_stock_threshold" type="number" class="text-input" placeholder="5" min="0" />
             </div>
           </div>
@@ -191,6 +191,9 @@ async function create() {
   border-radius: 20px;
   width: 100%;
   max-width: 400px;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -216,7 +219,11 @@ async function create() {
   cursor: pointer;
 }
 
-.modal-body { padding: 16px 20px; }
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
 
 .fields {
   display: flex;
