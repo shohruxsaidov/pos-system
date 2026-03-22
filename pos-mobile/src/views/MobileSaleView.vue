@@ -216,7 +216,7 @@ function addToCart(product) {
 function changeQty(idx, delta) {
   const item = cart.value[idx]
   if (!item) return
-  const newQty = item.qty + delta
+  const newQty = Math.round((item.qty + delta) * 10000) / 10000
   if (newQty < 1) {
     cart.value.splice(idx, 1)
   } else {
@@ -227,7 +227,7 @@ function changeQty(idx, delta) {
 function setQty(idx, qty) {
   const item = cart.value[idx]
   if (!item) return
-  item.qty = qty
+  item.qty = Math.round(qty * 10000) / 10000
 }
 
 function removeFromCart(idx) {
@@ -262,7 +262,7 @@ async function processSale({ method, tendered, changeGiven, discount = 0 }) {
     const result = await store.submitSale({
       items: cart.value.map(i => ({
         product_id: i.product_id,
-        qty: i.qty,
+        qty: Math.round(i.qty * 10000) / 10000,
         unit_price: i.unit_price,
         discount: 0
       })),

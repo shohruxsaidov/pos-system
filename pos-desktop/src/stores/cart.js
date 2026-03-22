@@ -41,7 +41,7 @@ export const useCartStore = defineStore('cart', () => {
     const item = items.value.find(i => i.product_id === productId)
     if (item) {
       if (qty <= 0) removeItem(productId)
-      else item.qty = qty
+      else item.qty = Math.round(qty * 10000) / 10000
     }
   }
 
