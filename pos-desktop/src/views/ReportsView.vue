@@ -24,20 +24,8 @@
         <div class="stat-value font-mono gradient-text">{{ daily.summary?.transaction_count || 0 }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Валовые продажи</div>
-        <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.gross_sales) }}</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-label">Чистые продажи</div>
         <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.net_sales) }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ср. / Транзакция</div>
-        <div class="stat-value font-mono gradient-text">{{ formatAmount(daily.summary?.avg_transaction) }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Валовая прибыль</div>
-        <div class="stat-value font-mono" style="color: var(--success)">{{ formatAmount(totalGrossProfit) }}</div>
       </div>
     </div>
 
