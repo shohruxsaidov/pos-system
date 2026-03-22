@@ -89,6 +89,7 @@
       v-model:visible="showCart"
       :items="cart"
       @change-qty="changeQty"
+      @set-qty="setQty"
       @remove="removeFromCart"
       @checkout="openPayment"
     />
@@ -221,6 +222,12 @@ function changeQty(idx, delta) {
   } else {
     item.qty = newQty
   }
+}
+
+function setQty(idx, qty) {
+  const item = cart.value[idx]
+  if (!item) return
+  item.qty = qty
 }
 
 function removeFromCart(idx) {

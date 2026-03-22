@@ -17,72 +17,66 @@
     </div>
 
     <!-- DataTable -->
-    <DataTable :value="loading ? skeletonRows : products" scrollable scroll-height="flex" class="inventory-table"
-      row-hover>
-      <Column field="barcode" header="Штрихкод" style="width:140px">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
-          <span v-else class="font-mono" style="font-size:12px" v-html="highlight(data.barcode || '—')" />
-        </template>
-      </Column>
-      <Column field="name" header="Товар">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
-          <span v-else v-html="highlight(data.name)" />
-        </template>
-      </Column>
-      <Column field="category_name" header="Категория" style="width:130px">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="0.9rem" width="80%" border-radius="6px" />
-          <span v-else v-html="highlight(data.category_name)" />
-        </template>
-      </Column>
-      <Column field="price" header="Цена" style="width:100px">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
-          <span v-else class="font-mono">{{ formatPrice(data.price) }}</span>
-        </template>
-      </Column>
-      <Column field="cost" header="Себест." style="width:100px">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="0.9rem" border-radius="6px" />
-          <span v-else class="font-mono text-muted">{{ formatPrice(data.cost) }}</span>
-        </template>
-      </Column>
-      <Column field="stock_qty" header="Склад" style="width:140px">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="1.6rem" width="90px" border-radius="8px" />
-          <div v-else :class="['stock-badge', stockBadgeClass(data.stock_qty, data.low_stock_threshold)]">
-            {{ stockLabel(data.stock_qty, data.low_stock_threshold) }}
-          </div>
-        </template>
-      </Column>
-      <Column field="unit" header="Ед." style="width:70px">
-        <template #body="{ data }">
-          <Skeleton v-if="loading" height="0.9rem" width="30px" border-radius="6px" />
-          <span v-else>{{ data.unit }}</span>
-        </template>
-      </Column>
-      <Column header="Действия" style="width:200px">
-        <template #body="{ data }">
-          <div v-if="loading" class="row-actions">
-            <Skeleton v-for="n in 4" :key="n" height="36px" width="36px" border-radius="8px" />
-          </div>
-          <div v-else class="row-actions">
-            <Button v-if="canManage" icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
-              @click="openEdit(data)" v-tooltip="'Редактировать'" />
-            <Button v-if="canManage" icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px"
-              @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
-            <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px"
-              @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
-            <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px"
-              @click="openPrintLabel(data)" v-tooltip="'Печать этикетки'" />
-            <Button v-if="canManage" icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px"
-              @click="deleteProduct(data)" v-tooltip="'Удалить'" />
-          </div>
-        </template>
-      </Column>
-    </DataTable>
+    <div class="table-wrapper">
+      <div v-if="loading" class="table-spinner">
+        <i class="pi pi-spin pi-spinner" style="font-size:2rem;color:var(--accent-1)" />
+      </div>
+      <DataTable :value="products" scrollable scroll-height="flex" class="inventory-table" row-hover>
+        <Column field="barcode" header="Штрихкод" style="width:140px">
+          <template #body="{ data }">
+            <span class="font-mono" style="font-size:12px" v-html="highlight(data.barcode || '—')" />
+          </template>
+        </Column>
+        <Column field="name" header="Товар">
+          <template #body="{ data }">
+            <span v-html="highlight(data.name)" />
+          </template>
+        </Column>
+        <Column field="category_name" header="Категория" style="width:130px">
+          <template #body="{ data }">
+            <span v-html="highlight(data.category_name)" />
+          </template>
+        </Column>
+        <Column field="price" header="Цена" style="width:100px">
+          <template #body="{ data }">
+            <span class="font-mono">{{ formatPrice(data.price) }}</span>
+          </template>
+        </Column>
+        <Column field="cost" header="Себест." style="width:100px">
+          <template #body="{ data }">
+            <span class="font-mono text-muted">{{ formatPrice(data.cost) }}</span>
+          </template>
+        </Column>
+        <Column field="stock_qty" header="Склад" style="width:140px">
+          <template #body="{ data }">
+            <div :class="['stock-badge', stockBadgeClass(data.stock_qty, data.low_stock_threshold)]">
+              {{ stockLabel(data.stock_qty, data.low_stock_threshold) }}
+            </div>
+          </template>
+        </Column>
+        <Column field="unit" header="Ед." style="width:70px">
+          <template #body="{ data }">
+            <span>{{ data.unit }}</span>
+          </template>
+        </Column>
+        <Column header="Действия" style="width:200px">
+          <template #body="{ data }">
+            <div class="row-actions">
+              <Button v-if="canManage" icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
+                @click="openEdit(data)" v-tooltip="'Редактировать'" />
+              <Button v-if="canManage" icon="pi pi-chart-line" class="p-button-secondary" style="height:36px;width:36px"
+                @click="openStockAdjust(data)" v-tooltip="'Корректировать склад'" />
+              <Button icon="pi pi-barcode" class="p-button-secondary" style="height:36px;width:36px"
+                @click="generateBarcode(data)" v-tooltip="'Создать штрихкод'" />
+              <Button icon="pi pi-print" class="p-button-secondary" style="height:36px;width:36px"
+                @click="openPrintLabel(data)" v-tooltip="'Печать этикетки'" />
+              <Button v-if="canManage" icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px"
+                @click="deleteProduct(data)" v-tooltip="'Удалить'" />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
 
     <!-- Create/Edit Drawer -->
     <Drawer v-model:visible="showDrawer" :header="editingProduct ? 'Редактировать товар' : 'Новый товар'"
@@ -188,14 +182,10 @@ import Select from 'primevue/select'
 import Drawer from 'primevue/drawer'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
-import Skeleton from 'primevue/skeleton'
-
 const api = useApi()
 const toast = useToast()
 const session = useSessionStore()
 const canManage = computed(() => session.user?.role !== 'cashier')
-
-const skeletonRows = Array(12).fill({})
 const products = ref([])
 const categories = ref([])
 const loading = ref(false)
@@ -563,12 +553,23 @@ function stockBadgeClass(qty, threshold = 5) {
   color: var(--text-accent);
 }
 
-:deep(.p-skeleton) {
-  background-color: var(--bg-elevated);
+.table-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-:deep(.p-skeleton::after) {
-  background: linear-gradient(90deg, transparent, rgba(123, 104, 238, 0.08), transparent);
+.table-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 39, 0.6);
+  z-index: 10;
+  border-radius: 12px;
 }
 
 :deep(.search-highlight) {

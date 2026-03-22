@@ -28,10 +28,10 @@
               <div class="cart-row-controls">
                 <div class="qty-controls">
                   <button class="qty-btn minus" @click="$emit('change-qty', idx, -1)">−</button>
-                  <span class="qty-num">{{ item.qty }}</span>
+                  <button class="qty-num qty-num-btn font-mono" @click="openQtyEdit(idx)">{{ Number(item.qty).toFixed(2) }}</button>
                   <button class="qty-btn plus" @click="$emit('change-qty', idx, 1)">+</button>
                 </div>
-                <span class="cart-row-subtotal font-mono">{{ (item.unit_price * item.qty).toFixed(2) }}</span>
+                <button class="cart-row-subtotal font-mono subtotal-btn" @click="openAmountEdit(idx)">{{ (item.unit_price * item.qty).toFixed(2) }}</button>
                 <button class="remove-btn" @click="$emit('remove', idx)">
                   <i class="pi pi-trash" />
                 </button>
@@ -56,20 +56,95 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Direct Qty NumPad -->
+    <BottomNumPad
+      v-model="qtyValue"
+      :visible="qtyVisible"
+      :label="qtyEditingIdx !== null && items[qtyEditingIdx] ? `${items[qtyEditingIdx].name} · количество` : 'Количество'"
+      @close="qtyVisible = false"
+      @confirm="confirmQty"
+    />
+
+    <!-- Amount → Qty NumPad -->
+    <BottomNumPad
+      v-model="amountValue"
+      :visible="amountVisible"
+      :label="amountLabel"
+      @close="amountVisible = false"
+      @confirm="confirmAmount"
+    />
   </Teleport>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import BottomNumPad from './BottomNumPad.vue'
 
 const props = defineProps({
   visible: Boolean,
   items: { type: Array, default: () => [] }
 })
 
-defineEmits(['update:visible', 'change-qty', 'remove', 'checkout'])
+const emit = defineEmits(['update:visible', 'change-qty', 'remove', 'checkout', 'set-qty'])
 
 const total = computed(() => props.items.reduce((sum, i) => sum + i.unit_price * i.qty, 0))
+
+// Direct qty edit
+const qtyVisible = ref(false)
+const qtyValue = ref('0')
+const qtyEditingIdx = ref(null)
+
+function openQtyEdit(idx) {
+  qtyEditingIdx.value = idx
+  qtyValue.value = Number(props.items[idx]?.qty || 0).toFixed(2)
+  qtyVisible.value = true
+}
+
+function confirmQty(val) {
+  const qty = Math.round(parseFloat(val || 0) * 100) / 100
+  if (qty <= 0) {
+    emit('remove', qtyEditingIdx.value)
+  } else {
+    emit('set-qty', qtyEditingIdx.value, qty)
+  }
+  qtyVisible.value = false
+}
+
+// Amount → qty edit
+const amountVisible = ref(false)
+const amountValue = ref('0')
+const editingIdx = ref(null)
+
+const editingItem = computed(() => editingIdx.value !== null ? props.items[editingIdx.value] : null)
+
+const computedQtyFromAmount = computed(() => {
+  const amount = parseFloat(amountValue.value) || 0
+  const price = editingItem.value?.unit_price || 1
+  if (price <= 0 || amount <= 0) return '0.00'
+  return (Math.round((amount / price) * 100) / 100).toFixed(2)
+})
+
+const amountLabel = computed(() => {
+  if (!editingItem.value) return 'Введите сумму'
+  return `${editingItem.value.name} · ${editingItem.value.unit_price.toFixed(2)}/шт → ${computedQtyFromAmount.value} шт`
+})
+
+function openAmountEdit(idx) {
+  editingIdx.value = idx
+  amountValue.value = '0'
+  amountVisible.value = true
+}
+
+function confirmAmount(val) {
+  const qty = parseFloat((Math.round((parseFloat(val || 0) / (editingItem.value?.unit_price || 1)) * 100) / 100).toFixed(2)) || 0
+  if (qty <= 0) {
+    emit('remove', editingIdx.value)
+  } else {
+    emit('set-qty', editingIdx.value, qty)
+  }
+  amountVisible.value = false
+}
 </script>
 
 <style scoped>
@@ -211,12 +286,43 @@ const total = computed(() => props.items.reduce((sum, i) => sum + i.unit_price *
   color: var(--text-primary);
 }
 
+.qty-num-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px 2px;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+
+.qty-num-btn:active {
+  border-color: var(--accent-1);
+  background: var(--accent-glow);
+  color: var(--text-accent);
+}
+
 .cart-row-subtotal {
   font-size: 15px;
   font-weight: 700;
   color: var(--text-accent);
   flex: 1;
   text-align: right;
+}
+
+.subtotal-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+
+.subtotal-btn:active {
+  border-color: var(--accent-1);
+  background: var(--accent-glow);
 }
 
 .remove-btn {

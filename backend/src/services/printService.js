@@ -19,6 +19,11 @@ async function getStoreName() {
   return rows[0]?.value || 'Store'
 }
 
+async function getReceiptFooter() {
+  const { rows } = await pool.query(`SELECT value FROM settings WHERE key = 'receipt_footer'`)
+  return rows[0]?.value || ''
+}
+
 async function getPrinterConfig() {
   const { rows } = await pool.query(
     `SELECT key, value FROM settings WHERE key IN ('printer_type', 'printer_address', 'printer_paper_width')`
@@ -234,6 +239,7 @@ export async function printReceipt(txnId) {
   if (!config.address) throw new Error('Printer not configured')
 
   const storeName = await getStoreName()
+  const receiptFooter = await getReceiptFooter()
 
   const { rows: txnRows } = await pool.query(`
     SELECT t.*, u.name as cashier_name, c.name as customer_name
@@ -302,7 +308,7 @@ export async function printReceipt(txnId) {
 
     printer.println(line)
     printer.alignCenter()
-    printer.println('Спасибо за покупку!')
+    if (receiptFooter) printer.println(receiptFooter)
     printer.cut()
   })
 }

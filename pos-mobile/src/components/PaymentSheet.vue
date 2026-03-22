@@ -32,26 +32,10 @@
           </button>
         </div>
 
-        <!-- Cash: tendered amount -->
-        <div v-if="method === 'cash'" class="cash-section">
-          <div class="tendered-label">Получено наличными</div>
-          <button class="tendered-field" @click="showNumpad = true">
-            <span class="tf-amount font-mono">{{ tenderedStr || '0.00' }}</span>
-            <i class="pi pi-pencil tf-icon" />
-          </button>
-          <div v-if="tenderedNum > 0 && tenderedNum >= total" class="change-row">
-            <span class="change-label">Сдача</span>
-            <span class="change-amount font-mono">{{ change.toFixed(2) }}</span>
-          </div>
-          <div v-else-if="tenderedNum > 0 && tenderedNum < total" class="insufficient-row">
-            <i class="pi pi-exclamation-triangle" />
-            Недостаточно (ещё {{ (total - tenderedNum).toFixed(2) }})
-          </div>
-        </div>
 
         <button
           class="confirm-btn"
-          :disabled="!canConfirm || processing"
+          :disabled="processing"
           @click="confirm"
         >
           <i v-if="processing" class="pi pi-spin pi-spinner" />
@@ -61,20 +45,11 @@
       </div>
     </div>
 
-    <!-- Numpad for tendered amount -->
-    <BottomNumPad
-      :visible="showNumpad"
-      v-model="tenderedStr"
-      label="Сумма наличных"
-      :integer="false"
-      @close="showNumpad = false"
-    />
   </Teleport>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import BottomNumPad from './BottomNumPad.vue'
+import { ref } from 'vue'
 
 const props = defineProps({
   total: { type: Number, required: true },
@@ -84,8 +59,6 @@ const props = defineProps({
 const emit = defineEmits(['confirm', 'close'])
 
 const method = ref('cash')
-const tenderedStr = ref('')
-const showNumpad = ref(false)
 
 const methods = [
   { value: 'cash', label: 'Наличные', icon: 'pi pi-wallet' },
@@ -93,19 +66,11 @@ const methods = [
   { value: 'transfer', label: 'Перевод', icon: 'pi pi-send' }
 ]
 
-const tenderedNum = computed(() => parseFloat(tenderedStr.value) || 0)
-const change = computed(() => Math.max(0, tenderedNum.value - props.total))
-
-const canConfirm = computed(() => {
-  if (method.value === 'cash') return tenderedNum.value >= props.total
-  return true
-})
-
 function confirm() {
   emit('confirm', {
     method: method.value,
-    tendered: method.value === 'cash' ? tenderedNum.value : props.total,
-    changeGiven: method.value === 'cash' ? change.value : 0
+    tendered: props.total,
+    changeGiven: 0
   })
 }
 </script>
@@ -219,61 +184,6 @@ function confirm() {
   color: var(--accent-1);
 }
 
-/* Cash section */
-.cash-section { margin-bottom: 20px; }
-
-.tendered-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.tendered-field {
-  width: 100%;
-  height: 60px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
-
-.tf-amount {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.tf-icon { color: var(--text-muted); font-size: 14px; }
-
-.change-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  background: var(--success-bg);
-  border: 1px solid rgba(0,212,170,0.2);
-  border-radius: 12px;
-}
-
-.change-label { font-size: 14px; color: var(--success); }
-.change-amount { font-size: 18px; font-weight: 700; color: var(--success); }
-
-.insufficient-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: var(--warning-bg);
-  border: 1px solid rgba(255,176,46,0.2);
-  border-radius: 12px;
-  color: var(--warning);
-  font-size: 14px;
-}
 
 /* Confirm */
 .confirm-btn {
