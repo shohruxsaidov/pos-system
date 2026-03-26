@@ -1,0 +1,53 @@
+name: pos_mobile_flutter
+description: POS Mobile - Flutter clone of pos-mobile warehouse app
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management (Pinia equivalent)
+  flutter_riverpod: ^2.6.1
+
+  # HTTP client
+  dio: ^5.8.0+1
+
+  # Local storage (localStorage / sessionStorage equivalent)
+  shared_preferences: ^2.3.3
+
+  # Secure token storage
+  flutter_secure_storage: ^9.2.4
+
+  # Network connectivity monitoring
+  connectivity_plus: ^6.1.4
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Barcode scanning
+  mobile_scanner: ^7.0.0
+
+  # Barcode rendering
+  barcode_widget: ^2.0.4
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+  # Toasts
+  fluttertoast: ^8.2.12
+
+  # Intl for date/number formatting
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,195 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../config/app_theme.dart';
+import '../models/product.dart';
+import '../utils/stock_status.dart';
+
+/// MobileProductCard — equivalent to MobileProductCard.vue
+class ProductCard extends StatelessWidget {
+  final Product product;
+  final int? cartQty;
+  final VoidCallback? onAdjust;
+  final VoidCallback? onPrint;
+  final VoidCallback? onTap;
+
+  const ProductCard({
+    super.key,
+    required this.product,
+    this.cartQty,
+    this.onAdjust,
+    this.onPrint,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0.00');
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.gradientCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Name + cart badge
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    product.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (cartQty != null && cartQty! > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGlow,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$cartQty',
+                      style: const TextStyle(
+                          color: AppColors.accent1,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+
+            // Barcode
+            if (product.barcode != null)
+              Text(
+                product.barcode!,
+                style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                    fontFamily: 'monospace'),
+              ),
+
+            // Category
+            if (product.categoryName != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                product.categoryName!,
+                style: const TextStyle(
+                    color: AppColors.textMuted, fontSize: 11),
+              ),
+            ],
+
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: AppColors.borderSubtle),
+            const SizedBox(height: 8),
+
+            // Price + stock
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    fmt.format(product.price),
+                    style: const TextStyle(
+                      color: AppColors.textAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      fontFamily: 'monospace',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                StockBadge(qty: product.stockQty),
+              ],
+            ),
+
+            // Action buttons
+            if (onAdjust != null || onPrint != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  if (onAdjust != null)
+                    Expanded(
+                      child: _ActionBtn(
+                        icon: Icons.tune,
+                        label: 'Adjust',
+                        color: AppColors.warning,
+                        onTap: onAdjust!,
+                      ),
+                    ),
+                  if (onAdjust != null && onPrint != null)
+                    const SizedBox(width: 6),
+                  if (onPrint != null)
+                    Expanded(
+                      child: _ActionBtn(
+                        icon: Icons.print,
+                        label: 'Print',
+                        color: AppColors.accent1,
+                        onTap: onPrint!,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionBtn({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+}

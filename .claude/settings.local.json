@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(git config:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(wc -l /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes/*.js)",
+      "Bash(grep -h \"export default\" /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes/*.js)",
+      "Bash(flutter --version)",
+      "Bash(flutter create:*)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter devices:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(ruby --version)",
+      "Bash(gem --version)",
+      "Bash(brew reinstall:*)",
+      "Bash(gem install:*)",
+      "Bash(pod:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(open -a Simulator)"
     ]
   }
 }
