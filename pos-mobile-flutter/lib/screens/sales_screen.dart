@@ -6,7 +6,6 @@ import '../config/app_theme.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../providers/warehouse_provider.dart';
-import '../providers/connectivity_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/cart_sheet.dart';
 import '../widgets/payment_sheet.dart';
@@ -154,7 +153,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(warehouseProvider);
-    final isOnline = ref.watch(connectivityProvider);
     final filtered = _filtered(state.products);
     final fmt = NumberFormat('#,##0.00');
 
@@ -165,28 +163,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
           children: [
             Column(
               children: [
-                // Offline banner
-                if (!isOnline)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 6, horizontal: 16),
-                    color: AppColors.warningBg,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.wifi_off,
-                            color: AppColors.warning, size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Offline — sales will be queued'
-                          '${state.queueLength > 0 ? ' (${state.queueLength} queued)' : ''}',
-                          style: const TextStyle(
-                              color: AppColors.warning, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-
                 // Search bar
                 Padding(
                   padding: const EdgeInsets.all(12),
