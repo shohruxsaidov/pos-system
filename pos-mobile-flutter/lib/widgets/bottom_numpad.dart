@@ -183,7 +183,7 @@ class _NumPadSheetState extends State<_NumPadSheet> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Cancel'),
+                  child: const Text('Отмена'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -191,7 +191,7 @@ class _NumPadSheetState extends State<_NumPadSheet> {
                 flex: 2,
                 child: _GradientButton(
                   onTap: () => Navigator.pop(context, _value),
-                  child: const Text('Confirm',
+                  child: const Text('Подтвердить',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,

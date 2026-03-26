@@ -113,14 +113,14 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Receipt confirmed!'),
+            content: Text('Поступление подтверждено!'),
             backgroundColor: AppColors.successBg,
           ),
         );
       }
     } catch (e) {
       setState(() {
-        _error = 'Submit failed: $e';
+        _error = 'Ошибка отправки: $e';
         _submitting = false;
       });
     }
@@ -149,7 +149,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                       style:
                           const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Scan barcode...',
+                        hintText: 'Сканировать штрихкод...',
                         prefixIcon: const Icon(Icons.qr_code_scanner,
                             color: AppColors.textMuted),
                         suffixIcon: Container(
@@ -168,7 +168,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                               Icon(Icons.circle,
                                   color: AppColors.success, size: 8),
                               SizedBox(width: 4),
-                              Text('Ready',
+                              Text('Готов',
                                   style: TextStyle(
                                       color: AppColors.success,
                                       fontSize: 10)),
@@ -193,7 +193,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                       style:
                           const TextStyle(color: AppColors.textPrimary),
                       decoration:
-                          const InputDecoration(hintText: 'Supplier'),
+                          const InputDecoration(hintText: 'Поставщик'),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -203,7 +203,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                       style:
                           const TextStyle(color: AppColors.textPrimary),
                       decoration:
-                          const InputDecoration(hintText: 'Notes'),
+                          const InputDecoration(hintText: 'Примечание'),
                     ),
                   ),
                 ],
@@ -220,7 +220,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                           Icon(Icons.inventory_2_outlined,
                               color: AppColors.textMuted, size: 48),
                           SizedBox(height: 8),
-                          Text('Scan items to add',
+                          Text('Сканируйте товары для добавления',
                               style:
                                   TextStyle(color: AppColors.textMuted)),
                         ],
@@ -259,7 +259,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('${_items.length} items · Total: ${fmt.format(total)}',
+                      Text('${_items.length} поз. · Итого: ${fmt.format(total)}',
                           style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13)),
@@ -273,7 +273,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                           child: _submitting
                               ? const CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2)
-                              : const Text('Confirm Receipt',
+                              : const Text('Подтвердить поступление',
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600)),
@@ -346,12 +346,12 @@ class _IncomingItemCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _EditableField(
-                  label: 'Qty',
+                  label: 'Кол-во',
                   value: item.qty.toInt().toString(),
                   onTap: () async {
                     final result = await BottomNumPad.show(
                       context,
-                      title: 'Quantity',
+                      title: 'Количество',
                       initialValue: item.qty.toInt().toString(),
                       allowDecimal: false,
                     );
@@ -365,12 +365,12 @@ class _IncomingItemCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _EditableField(
-                  label: 'Cost',
+                  label: 'Себест.',
                   value: fmt.format(item.costPerUnit),
                   onTap: () async {
                     final result = await BottomNumPad.show(
                       context,
-                      title: 'Cost per unit',
+                      title: 'Себестоимость единицы',
                       initialValue: item.costPerUnit.toString(),
                       allowDecimal: true,
                     );
@@ -385,7 +385,7 @@ class _IncomingItemCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('Subtotal',
+                  const Text('Сумма',
                       style: TextStyle(
                           color: AppColors.textMuted, fontSize: 11)),
                   Text(
@@ -489,7 +489,7 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
       widget.onCreated(product);
     } catch (e) {
       setState(() {
-        _error = 'Failed to create product';
+        _error = 'Ошибка создания товара';
         _loading = false;
       });
     }
@@ -499,12 +499,12 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.bgElevated,
-      title: const Text('Product Not Found',
+      title: const Text('Товар не найден',
           style: TextStyle(color: AppColors.textPrimary)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Barcode: ${widget.barcode}',
+          Text('Штрихкод: ${widget.barcode}',
               style: const TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
@@ -513,14 +513,14 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
           TextField(
             controller: _nameCtrl,
             style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(labelText: 'Product Name'),
+            decoration: const InputDecoration(labelText: 'Название товара'),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _priceCtrl,
             keyboardType: TextInputType.number,
             style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(labelText: 'Price'),
+            decoration: const InputDecoration(labelText: 'Цена'),
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
@@ -533,7 +533,7 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel',
+          child: const Text('Отмена',
               style: TextStyle(color: AppColors.textSecondary)),
         ),
         TextButton(
@@ -543,7 +543,7 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Create',
+              : const Text('Создать',
                   style: TextStyle(color: AppColors.accent1)),
         ),
       ],

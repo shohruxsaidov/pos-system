@@ -173,7 +173,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                     onSubmitted: (_) => _onBarcodeSubmit(),
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Scan barcode or search...',
+                      hintText: 'Сканировать или поиск...',
                       prefixIcon: const Icon(Icons.search,
                           color: AppColors.textMuted),
                       suffixIcon: _query.isNotEmpty
@@ -198,7 +198,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                               color: AppColors.accent1))
                       : filtered.isEmpty
                           ? const Center(
-                              child: Text('No products found',
+                              child: Text('Товары не найдены',
                                   style: TextStyle(
                                       color: AppColors.textMuted)))
                           : GridView.builder(
@@ -273,7 +273,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Text('View Cart',
+                              const Text('Корзина',
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,

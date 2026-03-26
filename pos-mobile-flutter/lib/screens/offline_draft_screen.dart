@@ -55,7 +55,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
   Future<void> _openNumpad() async {
     final result = await BottomNumPad.show(
       context,
-      title: 'Quantity',
+      title: 'Количество',
       initialValue: _qtyValue,
       allowDecimal: true,
     );
@@ -68,14 +68,14 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
     final barcode = _barcodeCtrl.text.trim();
     if (barcode.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a barcode'), behavior: SnackBarBehavior.floating),
+        const SnackBar(content: Text('Введите штрихкод'), behavior: SnackBarBehavior.floating),
       );
       return;
     }
     final qty = double.tryParse(_qtyValue);
     if (qty == null || qty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid quantity'), behavior: SnackBarBehavior.floating),
+        const SnackBar(content: Text('Введите корректное количество'), behavior: SnackBarBehavior.floating),
       );
       return;
     }
@@ -91,7 +91,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Draft saved'),
+          content: Text('Черновик сохранён'),
           backgroundColor: AppColors.successBg,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 1),
@@ -119,7 +119,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                   const Icon(Icons.wifi_off, color: AppColors.warning, size: 18),
                   const SizedBox(width: 8),
                   const Text(
-                    'Draft Sales',
+                    'Черновые продажи',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 18,
@@ -146,7 +146,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                     focusNode: _barcodeFocus,
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Scan or type barcode',
+                      hintText: 'Сканируйте или введите штрихкод',
                       prefixIcon: const Icon(Icons.qr_code, color: AppColors.textMuted),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.qr_code_scanner, color: AppColors.textMuted),
@@ -175,7 +175,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                                 Icon(Icons.warning_amber_outlined,
                                     color: AppColors.warning, size: 14),
                                 SizedBox(width: 6),
-                                Text('Product not in cache',
+                                Text('Товар не в кэше',
                                     style: TextStyle(color: AppColors.warning, fontSize: 12)),
                               ],
                             ),
@@ -199,7 +199,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                           const Icon(Icons.numbers, color: AppColors.textMuted, size: 18),
                           const SizedBox(width: 10),
                           Text(
-                            'Qty: $_qtyValue',
+                            'Кол-во: $_qtyValue',
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 16,
@@ -217,7 +217,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                   GradientButton(
                     onTap: _submit,
                     child: const Text(
-                      'Save Draft',
+                      'Сохранить черновик',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -237,7 +237,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
               child: Row(
                 children: [
                   const Text(
-                    'Unsync Drafts',
+                    'Несинхронизированные',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
@@ -275,7 +275,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                       ),
                       icon: const Icon(Icons.check_circle_outline, size: 14),
                       label: Text(
-                        'Clear synced (${draftState.syncedCount})',
+                        'Очистить синхр. (${draftState.syncedCount})',
                         style: const TextStyle(fontSize: 11),
                       ),
                     ),
@@ -287,7 +287,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
               child: draftState.drafts.isEmpty
                   ? const Center(
                       child: Text(
-                        'No pending drafts',
+                        'Нет ожидающих черновиков',
                         style: TextStyle(color: AppColors.textMuted),
                       ),
                     )
@@ -342,8 +342,8 @@ class _SyncButton extends ConsumerWidget {
           : const Icon(Icons.sync, size: 18),
       label: Text(
         draftState.syncing
-            ? 'Syncing...'
-            : 'Sync (${draftState.pendingCount})',
+            ? 'Синхронизация...'
+            : 'Синхр. (${draftState.pendingCount})',
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
     );
@@ -440,12 +440,12 @@ class _DraftRow extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Barcode: ${draft.barcode}',
+                      'Штрихкод: ${draft.barcode}',
                       style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Qty: ${draft.qty % 1 == 0 ? draft.qty.toInt() : draft.qty}',
+                      'Кол-во: ${draft.qty % 1 == 0 ? draft.qty.toInt() : draft.qty}',
                       style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                     ),
                     if (draft.resolvedPrice != null) ...[
@@ -494,7 +494,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (draft.status) {
       case OfflineDraftStatus.pending:
-        return _badge('Pending', AppColors.warning, AppColors.warningBg);
+        return _badge('Ожидает', AppColors.warning, AppColors.warningBg);
       case OfflineDraftStatus.syncing:
         return Row(
           mainAxisSize: MainAxisSize.min,
@@ -508,15 +508,15 @@ class _StatusBadge extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Text('Syncing', style: TextStyle(color: AppColors.accent1, fontSize: 11)),
+            Text('Синхр.', style: TextStyle(color: AppColors.accent1, fontSize: 11)),
           ],
         );
       case OfflineDraftStatus.synced:
-        return _badge('Synced', AppColors.success, AppColors.successBg);
+        return _badge('Синхронизирован', AppColors.success, AppColors.successBg);
       case OfflineDraftStatus.error:
         return Tooltip(
           message: draft.errorMessage ?? 'Unknown error',
-          child: _badge('Error', AppColors.danger, AppColors.dangerBg),
+          child: _badge('Ошибка', AppColors.danger, AppColors.dangerBg),
         );
     }
   }

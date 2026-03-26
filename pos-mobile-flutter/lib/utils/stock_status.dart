@@ -15,27 +15,27 @@ class StockStatus {
   static StockStatus from(int qty) {
     if (qty < 0) {
       return StockStatus(
-        label: 'Oversold ($qty)',
+        label: 'Дефицит ($qty)',
         color: AppColors.danger,
         bgColor: AppColors.dangerBg,
       );
     }
     if (qty == 0) {
       return StockStatus(
-        label: 'Out of Stock',
+        label: 'Нет в наличии',
         color: AppColors.danger,
         bgColor: AppColors.dangerBg,
       );
     }
     if (qty <= 5) {
       return StockStatus(
-        label: 'Low ($qty)',
+        label: 'Мало ($qty)',
         color: AppColors.warning,
         bgColor: AppColors.warningBg,
       );
     }
     return StockStatus(
-      label: '$qty in stock',
+      label: '$qty на складе',
       color: AppColors.success,
       bgColor: AppColors.successBg,
     );

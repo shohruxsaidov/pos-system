@@ -44,7 +44,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Server URL saved'),
+          content: Text('Адрес сервера сохранён'),
           backgroundColor: AppColors.successBg,
         ),
       );
@@ -62,7 +62,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('Настройки'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -120,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
 
           // Server URL
-          const Text('Server URL',
+          const Text('Адрес сервера',
               style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -139,7 +139,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(width: 8),
               Tooltip(
-                message: 'Scan QR code',
+                message: 'Сканировать QR-код',
                 child: IconButton(
                   icon: const Icon(Icons.qr_code_scanner,
                       color: AppColors.accent1),
@@ -149,14 +149,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          ElevatedButton(onPressed: _saveUrl, child: const Text('Save URL')),
+          ElevatedButton(onPressed: _saveUrl, child: const Text('Сохранить адрес')),
           const SizedBox(height: 32),
 
           // Logout
           OutlinedButton.icon(
             onPressed: _logout,
             icon: const Icon(Icons.logout, color: AppColors.danger),
-            label: const Text('Logout',
+            label: const Text('Выйти',
                 style: TextStyle(color: AppColors.danger)),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),

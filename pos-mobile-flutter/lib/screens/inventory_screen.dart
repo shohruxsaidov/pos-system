@@ -85,7 +85,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Print queued'),
+            content: Text('Отправлено на печать'),
             backgroundColor: AppColors.successBg,
           ),
         );
@@ -94,7 +94,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Print failed — desktop not connected'),
+            content: Text('Ошибка печати — десктоп не подключён'),
             backgroundColor: AppColors.dangerBg,
           ),
         );
@@ -120,7 +120,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 onChanged: (v) => setState(() => _query = v),
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Search products...',
+                  hintText: 'Поиск товаров...',
                   prefixIcon:
                       const Icon(Icons.search, color: AppColors.textMuted),
                   suffixIcon: _query.isNotEmpty
@@ -143,13 +143,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               child: Row(
                 children: [
                   _FilterTab(
-                      label: 'All',
+                      label: 'Все',
                       count: state.products.length,
                       active: _filter == 'all',
                       onTap: () => setState(() => _filter = 'all')),
                   const SizedBox(width: 8),
                   _FilterTab(
-                      label: 'Low Stock',
+                      label: 'Мало',
                       count: state.products
                           .where((p) => p.stockQty > 0 && p.stockQty <= 5)
                           .length,
@@ -158,7 +158,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       onTap: () => setState(() => _filter = 'low')),
                   const SizedBox(width: 8),
                   _FilterTab(
-                      label: 'Oversold',
+                      label: 'Дефицит',
                       count:
                           state.products.where((p) => p.stockQty < 0).length,
                       active: _filter == 'oversold',
@@ -195,7 +195,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                 fontFamily: 'monospace',
                               ),
                             ),
-                            const Text('Products',
+                            const Text('Товаров',
                                 style: TextStyle(
                                     color: AppColors.textMuted,
                                     fontSize: 11)),
@@ -222,7 +222,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                 fontFamily: 'monospace',
                               ),
                             ),
-                            const Text('Total value',
+                            const Text('Общая стоимость',
                                 style: TextStyle(
                                     color: AppColors.textMuted,
                                     fontSize: 11)),
@@ -242,7 +242,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           color: AppColors.accent1))
                   : filtered.isEmpty
                       ? const Center(
-                          child: Text('No products',
+                          child: Text('Нет товаров',
                               style:
                                   TextStyle(color: AppColors.textMuted)))
                       : ListView.builder(

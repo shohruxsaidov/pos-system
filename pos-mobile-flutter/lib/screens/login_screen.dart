@@ -32,7 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Server URL',
+        title: const Text('Адрес сервера',
             style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
           controller: ctrl,
@@ -46,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
+            child: const Text('Отмена',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -60,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               });
               _loadUsers();
             },
-            child: const Text('Save'),
+            child: const Text('Сохранить'),
           ),
         ],
       ),
@@ -74,7 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final users = await auth.fetchUsers();
       setState(() => _users = users);
     } catch (e) {
-      setState(() => _error = 'Could not load users');
+      setState(() => _error = 'Не удалось загрузить пользователей');
     }
   }
 
@@ -105,7 +105,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (_) {
       setState(() {
-        _error = 'Invalid PIN';
+        _error = 'Неверный PIN';
         _pin = '';
         _loading = false;
       });
@@ -121,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.dns_outlined, color: AppColors.textMuted),
-            tooltip: 'Server URL',
+            tooltip: 'Адрес сервера',
             onPressed: _showServerUrlDialog,
           ),
         ],
@@ -148,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'POS Mobile',
+                    'POS Мобайл',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Select your account',
+                    'Выберите аккаунт',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 8),
@@ -193,7 +193,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           setState(() => _error = null);
                           _loadUsers();
                         },
-                        child: const Text('Retry'),
+                        child: const Text('Повторить'),
                       ),
                     ] else if (_users.isEmpty)
                       const CircularProgressIndicator(

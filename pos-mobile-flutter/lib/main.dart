@@ -28,7 +28,7 @@ class PosApp extends ConsumerWidget {
     final router = buildRouter(ref);
 
     return MaterialApp.router(
-      title: 'POS Mobile',
+      title: 'POS Мобайл',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       routerConfig: router,

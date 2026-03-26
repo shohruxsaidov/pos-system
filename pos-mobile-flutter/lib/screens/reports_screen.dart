@@ -53,7 +53,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load reports';
+        _error = 'Ошибка загрузки отчётов';
         _loading = false;
       });
     }
@@ -93,7 +93,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Text('Reports',
+                  const Text('Отчёты',
                       style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 20,
@@ -149,7 +149,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               const SizedBox(height: 8),
                               TextButton(
                                   onPressed: _load,
-                                  child: const Text('Retry')),
+                                  child: const Text('Повторить')),
                             ],
                           ),
                         )
@@ -164,7 +164,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
                             // Payment breakdown
                             if (_daily?['by_method'] != null) ...[
-                              _sectionTitle('Payment Methods'),
+                              _sectionTitle('Способы оплаты'),
                               const SizedBox(height: 8),
                               _buildPaymentMethods(),
                               const SizedBox(height: 16),
@@ -172,7 +172,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
                             // Top products
                             if (_topProducts.isNotEmpty) ...[
-                              _sectionTitle('Top Products'),
+                              _sectionTitle('Топ товаров'),
                               const SizedBox(height: 8),
                               ..._topProducts.asMap().entries.map(
                                     (e) => _ProductRow(
@@ -184,7 +184,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
                             // Cashiers
                             if (_cashiers.isNotEmpty) ...[
-                              _sectionTitle('Cashiers'),
+                              _sectionTitle('Кассиры'),
                               const SizedBox(height: 8),
                               ..._cashiers.map(
                                     (c) => _CashierRow(cashier: c),
@@ -223,22 +223,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       childAspectRatio: 1.6,
       children: [
         _StatCard(
-            label: 'Transactions',
+            label: 'Транзакции',
             value: '$txnCount',
             icon: Icons.receipt_long,
             color: AppColors.accent1),
         _StatCard(
-            label: 'Net Sales',
+            label: 'Чистые продажи',
             value: _fmt.format(netSales),
             icon: Icons.trending_up,
             color: AppColors.success),
         _StatCard(
-            label: 'Discounts',
+            label: 'Скидки',
             value: _fmt.format(totalDiscount),
             icon: Icons.discount,
             color: AppColors.warning),
         _StatCard(
-            label: 'Refunds',
+            label: 'Возвраты',
             value: _fmt.format(refunds),
             icon: Icons.undo,
             color: AppColors.danger),
@@ -274,7 +274,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       fontWeight: FontWeight.w500),
                 ),
               ),
-              Text('$count txns',
+              Text('$count тр.',
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(width: 12),
@@ -385,7 +385,7 @@ class _ProductRow extends StatelessWidget {
           SizedBox(
             width: 56,
             child: Text(
-              '${product['total_qty'] ?? 0} sold',
+              '${product['total_qty'] ?? 0} прод.',
               style: const TextStyle(
                   color: AppColors.textMuted, fontSize: 12),
               textAlign: TextAlign.right,
@@ -453,13 +453,13 @@ class _CashierRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  cashier['cashier_name'] as String? ?? 'Unknown',
+                  cashier['cashier_name'] as String? ?? 'Неизвестен',
                   style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  '${cashier['transaction_count'] ?? 0} transactions',
+                  '${cashier['transaction_count'] ?? 0} транзакций',
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12),
                 ),

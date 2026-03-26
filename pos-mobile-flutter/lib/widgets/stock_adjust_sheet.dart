@@ -5,12 +5,18 @@ import '../services/api_service.dart';
 import 'bottom_numpad.dart';
 
 const _reasons = [
-  'Receiving correction',
-  'Damaged',
-  'Count correction',
-  'Return to supplier',
-  'Other',
+  'Коррекция поступления',
+  'Повреждение',
+  'Коррекция инвентаря',
+  'Возврат поставщику',
+  'Другое',
 ];
+
+const _modeLabels = {
+  'add': 'Добавить',
+  'remove': 'Убрать',
+  'set': 'Установить',
+};
 
 /// StockAdjustSheet — equivalent to StockAdjustSheet.vue
 class StockAdjustSheet extends StatefulWidget {
@@ -57,7 +63,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
       widget.onDone();
     } catch (e) {
       setState(() {
-        _error = 'Failed to adjust stock';
+        _error = 'Ошибка коррекции остатка';
         _loading = false;
       });
     }
@@ -96,7 +102,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Adjust Stock',
+                    const Text('Коррекция остатка',
                         style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
@@ -138,7 +144,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                       ),
                     ),
                     child: Text(
-                      m[0].toUpperCase() + m.substring(1),
+                      _modeLabels[m]!,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: selected
@@ -160,7 +166,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
             onTap: () async {
               final result = await BottomNumPad.show(
                 context,
-                title: 'Quantity',
+                title: 'Количество',
                 initialValue: _qty > 0 ? _qty.toString() : '',
                 allowDecimal: false,
               );
@@ -179,10 +185,10 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Quantity',
+                  const Text('Количество',
                       style: TextStyle(color: AppColors.textSecondary)),
                   Text(
-                    _qty == 0 ? 'Tap to enter' : _qty.toInt().toString(),
+                    _qty == 0 ? 'Нажмите для ввода' : _qty.toInt().toString(),
                     style: TextStyle(
                       color: _qty == 0
                           ? AppColors.textMuted
@@ -208,7 +214,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('New stock',
+                const Text('Новый остаток',
                     style: TextStyle(color: AppColors.textSecondary)),
                 Text(
                   '${widget.product.stockQty} → $_preview',
@@ -230,7 +236,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
             value: _reason,
             dropdownColor: AppColors.bgElevated,
             style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(labelText: 'Reason'),
+            decoration: const InputDecoration(labelText: 'Причина'),
             items: _reasons
                 .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                 .toList(),
@@ -259,7 +265,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Cancel'),
+                  child: const Text('Отмена'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -271,7 +277,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                   child: _loading
                       ? const CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2)
-                      : const Text('Save',
+                      : const Text('Сохранить',
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600)),

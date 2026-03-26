@@ -31,9 +31,9 @@ class _PaymentSheetState extends State<PaymentSheet> {
   bool _processing = false;
 
   final _methods = [
-    {'key': 'cash', 'label': 'Cash', 'icon': Icons.money},
-    {'key': 'card', 'label': 'Card', 'icon': Icons.credit_card},
-    {'key': 'transfer', 'label': 'Transfer', 'icon': Icons.account_balance},
+    {'key': 'cash', 'label': 'Наличные', 'icon': Icons.money},
+    {'key': 'card', 'label': 'Карта', 'icon': Icons.credit_card},
+    {'key': 'transfer', 'label': 'Перевод', 'icon': Icons.account_balance},
   ];
 
   double get _netTotal => (widget.total - _discount).clamp(0, double.infinity);
@@ -85,7 +85,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
           // Header
           Row(
             children: [
-              const Text('Payment',
+              const Text('Оплата',
                   style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 18,
@@ -100,7 +100,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
           const SizedBox(height: 16),
 
           // Payment method selector
-          const Text('Method',
+          const Text('Способ оплаты',
               style:
                   TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           const SizedBox(height: 8),
@@ -157,7 +157,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Discount',
+                    const Text('Скидка',
                         style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 13)),
                     const SizedBox(height: 4),
@@ -165,7 +165,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                       onTap: () async {
                         final result = await BottomNumPad.show(
                           context,
-                          title: 'Discount Amount',
+                          title: 'Сумма скидки',
                           initialValue: _discount > 0
                               ? _discount.toString()
                               : '',
@@ -214,7 +214,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Tendered',
+                    const Text('Получено',
                         style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 13)),
                     const SizedBox(height: 4),
@@ -222,7 +222,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                       onTap: () async {
                         final result = await BottomNumPad.show(
                           context,
-                          title: 'Amount Tendered',
+                          title: 'Сумма получена',
                           initialValue: _tendered.toString(),
                           allowDecimal: true,
                         );
@@ -275,21 +275,21 @@ class _PaymentSheetState extends State<PaymentSheet> {
             child: Column(
               children: [
                 _SummaryRow(
-                    label: 'Subtotal',
+                    label: 'Подытог',
                     value: _fmt.format(widget.total)),
                 if (_discount > 0)
                   _SummaryRow(
-                      label: 'Discount',
+                      label: 'Скидка',
                       value: '-${_fmt.format(_discount)}',
                       color: AppColors.warning),
                 const Divider(color: AppColors.borderSubtle, height: 16),
                 _SummaryRow(
-                    label: 'Total',
+                    label: 'Итого',
                     value: _fmt.format(_netTotal),
                     large: true),
                 if (_method == 'cash' && _change > 0)
                   _SummaryRow(
-                      label: 'Change',
+                      label: 'Сдача',
                       value: _fmt.format(_change),
                       color: AppColors.success),
               ],
@@ -305,7 +305,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                 ? const CircularProgressIndicator(
                     color: Colors.white, strokeWidth: 2)
                 : Text(
-                    'Confirm Payment  ${_fmt.format(_netTotal)}',
+                    'Оплатить  ${_fmt.format(_netTotal)}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,

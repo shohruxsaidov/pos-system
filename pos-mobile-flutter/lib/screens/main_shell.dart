@@ -33,7 +33,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     ref.listen<bool>(connectivityProvider, (prev, next) {
       if (!next) {
         final tabs = _buildTabs(user.role);
-        final draftsIdx = tabs.indexWhere((t) => t['label'] == 'Drafts');
+        final draftsIdx = tabs.indexWhere((t) => t['id'] == 'drafts');
         if (draftsIdx >= 0 && _tab != draftsIdx) {
           setState(() => _tab = draftsIdx);
         }
@@ -59,7 +59,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                   Icon(Icons.wifi_off, color: AppColors.warning, size: 14),
                   SizedBox(width: 6),
                   Text(
-                    'Offline — draft mode active',
+                    'Офлайн — режим черновиков',
                     style: TextStyle(color: AppColors.warning, fontSize: 12),
                   ),
                 ],
@@ -99,7 +99,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 final tab = e.value;
                 final active = _tab == i;
                 final offlineDisabled = !isOnline && (tab['offlineDisabled'] as bool);
-                final isDraftsTab = tab['label'] == 'Drafts';
+                final isDraftsTab = tab['id'] == 'drafts';
 
                 final effectiveColor = offlineDisabled
                     ? AppColors.textMuted.withOpacity(0.3)
@@ -113,7 +113,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                       if (offlineDisabled) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Not available offline'),
+                            content: Text('Недоступно офлайн'),
                             duration: Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -199,7 +199,8 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     if (role == 'cashier' || role == 'manager' || role == 'admin') {
       tabs.add({
-        'label': 'Sales',
+        'id': 'sales',
+        'label': 'Продажи',
         'icon': Icons.shopping_cart_outlined,
         'activeIcon': Icons.shopping_cart,
         'offlineDisabled': true,
@@ -207,21 +208,24 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
 
     tabs.add({
-      'label': 'Drafts',
+      'id': 'drafts',
+      'label': 'Черновики',
       'icon': Icons.edit_note_outlined,
       'activeIcon': Icons.edit_note,
       'offlineDisabled': false,
     });
 
     tabs.add({
-      'label': 'Incoming',
+      'id': 'incoming',
+      'label': 'Поступление',
       'icon': Icons.inbox_outlined,
       'activeIcon': Icons.inbox,
       'offlineDisabled': true,
     });
 
     tabs.add({
-      'label': 'Inventory',
+      'id': 'inventory',
+      'label': 'Склад',
       'icon': Icons.inventory_2_outlined,
       'activeIcon': Icons.inventory_2,
       'offlineDisabled': true,
@@ -229,7 +233,8 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     if (role == 'manager' || role == 'admin') {
       tabs.add({
-        'label': 'Reports',
+        'id': 'reports',
+        'label': 'Отчёты',
         'icon': Icons.bar_chart_outlined,
         'activeIcon': Icons.bar_chart,
         'offlineDisabled': true,

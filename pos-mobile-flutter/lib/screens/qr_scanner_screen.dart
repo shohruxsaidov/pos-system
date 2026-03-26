@@ -40,7 +40,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Scan Server QR Code'),
+        title: const Text('Сканировать QR-код сервера'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -76,7 +76,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'Point at the QR code in POS Desktop → Settings → Warehouse',
+                  'Наведите на QR-код в POS Desktop → Настройки → Склад',
                   style:
                       TextStyle(color: AppColors.textPrimary, fontSize: 13),
                   textAlign: TextAlign.center,

@@ -59,7 +59,7 @@ class _CartSheetState extends State<CartSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
-                const Text('Cart',
+                const Text('Корзина',
                     style: TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 18,
@@ -73,7 +73,7 @@ class _CartSheetState extends State<CartSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${widget.items.length} items',
+                    '${widget.items.length} поз.',
                     style: const TextStyle(
                         color: AppColors.accent1, fontSize: 13),
                   ),
@@ -113,7 +113,7 @@ class _CartSheetState extends State<CartSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total',
+                    const Text('Итого',
                         style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 16)),
                     Text(
@@ -132,7 +132,7 @@ class _CartSheetState extends State<CartSheet> {
                   height: 56,
                   onTap: widget.onCheckout,
                   child: const Text(
-                    'Checkout',
+                    'Оформить',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -150,7 +150,7 @@ class _CartSheetState extends State<CartSheet> {
   Future<void> _editQty(BuildContext context, CartItem item) async {
     final result = await BottomNumPad.show(
       context,
-      title: 'Quantity for ${item.product.name}',
+      title: 'Количество: ${item.product.name}',
       initialValue: item.qty.toString(),
       allowDecimal: true,
     );
