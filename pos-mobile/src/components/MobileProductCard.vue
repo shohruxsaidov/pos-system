@@ -17,6 +17,10 @@
         <i class="pi pi-chart-line" />
         <span>Коррект.</span>
       </button>
+      <button class="action-btn rename-btn" @click="$emit('rename')">
+        <i class="pi pi-pencil" />
+        <span>Имя</span>
+      </button>
       <button class="action-btn print-btn" @click="$emit('print')">
         <i class="pi pi-print" />
         <span>Печать</span>
@@ -29,7 +33,7 @@
 import { computed } from 'vue'
 
 const props = defineProps({ product: Object })
-defineEmits(['adjust', 'print'])
+defineEmits(['adjust', 'print', 'rename'])
 
 const stockLabel = computed(() => {
   const q = props.product.stock_qty
@@ -100,6 +104,9 @@ function formatPrice(n) { return parseFloat(n || 0).toFixed(2) }
 
 .adjust-btn { background: var(--bg-input); color: var(--text-secondary); }
 .adjust-btn:hover { color: var(--text-accent); border-color: var(--accent-1); }
+
+.rename-btn { background: var(--bg-input); color: var(--text-secondary); }
+.rename-btn:hover { color: var(--text-accent); border-color: var(--accent-1); }
 
 .print-btn { background: var(--bg-input); color: var(--text-secondary); }
 .print-btn:hover { color: var(--text-accent); border-color: var(--accent-1); }

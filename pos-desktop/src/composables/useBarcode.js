@@ -1,6 +1,6 @@
 import JsBarcode from "jsbarcode";
 
-export function renderBarcode(svgEl, barcode) {
+export function renderBarcode(svgEl, barcode, options = {}) {
   if (!svgEl || !barcode) return;
   JsBarcode(svgEl, barcode, {
     format: "CODE128",
@@ -10,6 +10,7 @@ export function renderBarcode(svgEl, barcode) {
     fontSize: 11,
     lineColor: "#000",
     background: "transparent",
+    ...options,
   });
 }
 

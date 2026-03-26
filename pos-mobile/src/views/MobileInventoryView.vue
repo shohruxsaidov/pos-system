@@ -64,6 +64,7 @@
         :product="product"
         @adjust="openAdjust(product)"
         @print="openPrint(product)"
+        @rename="openRename(product)"
       />
 
       <!-- Pull to refresh hint -->
@@ -122,6 +123,28 @@
       </div>
     </div>
 
+    <!-- Rename Sheet -->
+    <div v-if="showRename" class="print-overlay" @click.self="showRename = false">
+      <div class="print-sheet">
+        <div class="sheet-handle" />
+        <h3 style="text-align:center;margin-bottom:16px">Изменить название</h3>
+        <div class="rename-current">{{ renameProduct?.name }}</div>
+        <input
+          ref="renameInput"
+          v-model="renameName"
+          class="rename-input"
+          placeholder="Новое название"
+          @keydown.enter="saveRename"
+        />
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="rename-cancel-btn" @click="showRename = false">Отмена</button>
+          <button class="print-btn" style="flex:1;margin-top:0" :disabled="!renameName.trim() || renaming" @click="saveRename">
+            <i class="pi pi-check" /> Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -147,6 +170,11 @@ const printProduct = ref(null)
 const printCopies = ref(1)
 const printSvg = ref(null)
 const selectedPrintBarcode = ref(null)
+const showRename = ref(false)
+const renameProduct = ref(null)
+const renameName = ref('')
+const renaming = ref(false)
+const renameInput = ref(null)
 
 const printBarcodes = computed(() => {
   if (!printProduct.value) return []
@@ -278,6 +306,33 @@ function openPrint(product) {
 }
 
 watch(selectedPrintBarcode, (bc) => { if (bc) renderPrintBarcode(bc) })
+
+function openRename(product) {
+  renameProduct.value = product
+  renameName.value = product.name
+  showRename.value = true
+  nextTick(() => renameInput.value?.focus())
+}
+
+async function saveRename() {
+  if (!renameName.value.trim() || renaming.value) return
+  renaming.value = true
+  try {
+    const res = await store.authFetch(`/api/products/${renameProduct.value.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: renameName.value.trim() })
+    })
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
+    const product = allProducts.value.find(p => p.id === renameProduct.value.id)
+    if (product) product.name = renameName.value.trim()
+    toast.add({ severity: 'success', summary: 'Название изменено', life: 2000 })
+    showRename.value = false
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
+  } finally {
+    renaming.value = false
+  }
+}
 
 async function sendPrint() {
   try {
@@ -541,6 +596,43 @@ async function sendPrint() {
   border-radius: 10px;
   color: var(--text-primary);
   font-size: 20px;
+  cursor: pointer;
+}
+
+.rename-current {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.rename-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 56px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+.rename-input:focus {
+  border-color: var(--border-focus);
+}
+
+.rename-cancel-btn {
+  height: 60px;
+  padding: 0 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
 }
 
