@@ -29,9 +29,19 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      body: IndexedStack(
-        index: _tab.clamp(0, screens.length - 1),
-        children: screens,
+      body: Stack(
+        children: screens.asMap().entries.map((e) {
+          final isActive = _tab == e.key;
+          return IgnorePointer(
+            ignoring: !isActive,
+            child: AnimatedOpacity(
+              opacity: isActive ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: e.value,
+            ),
+          );
+        }).toList(),
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(

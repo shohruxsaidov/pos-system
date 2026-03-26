@@ -1,9 +1,32 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/settings_screen.dart';
+
+Page<void> _fadePage(Widget child) => CustomTransitionPage(
+      child: child,
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
+
+Page<void> _slidePage(Widget child) => CustomTransitionPage(
+      child: child,
+      transitionDuration: const Duration(milliseconds: 280),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final tween = Tween(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic));
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
 
 GoRouter buildRouter(WidgetRef ref) {
   return GoRouter(
@@ -18,27 +41,27 @@ GoRouter buildRouter(WidgetRef ref) {
     routes: [
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginScreen(),
+        pageBuilder: (_, __) => _fadePage(const LoginScreen()),
       ),
       GoRoute(
         path: '/sales',
-        builder: (_, __) => const MainShell(),
+        pageBuilder: (_, __) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/incoming',
-        builder: (_, __) => const MainShell(),
+        pageBuilder: (_, __) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/inventory',
-        builder: (_, __) => const MainShell(),
+        pageBuilder: (_, __) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/reports',
-        builder: (_, __) => const MainShell(),
+        pageBuilder: (_, __) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/settings',
-        builder: (_, __) => const SettingsScreen(),
+        pageBuilder: (_, __) => _slidePage(const SettingsScreen()),
       ),
     ],
   );
