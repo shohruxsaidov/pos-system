@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
+import 'qr_scanner_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,6 +24,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _loadUsers();
+  }
+
+  Future<void> _scanQr() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (result != null && mounted) {
+      await ApiConfig.save(result);
+      setState(() {
+        _users = [];
+        _error = null;
+      });
+      _loadUsers();
+    }
   }
 
   Future<void> _showServerUrlDialog() async {
@@ -119,6 +135,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner, color: AppColors.textMuted),
+            tooltip: 'Сканировать QR-код',
+            onPressed: _scanQr,
+          ),
           IconButton(
             icon: const Icon(Icons.dns_outlined, color: AppColors.textMuted),
             tooltip: 'Адрес сервера',
