@@ -87,6 +87,25 @@
         <h3 style="text-align:center;margin-bottom:16px">Печать этикетки</h3>
         <div class="print-product-name">{{ printProduct?.name }}</div>
         <svg ref="printSvg" style="width:100%;max-width:300px;display:block;margin:0 auto" />
+
+        <!-- Barcode selector (only if product has multiple barcodes) -->
+        <div v-if="printBarcodes.length > 1" class="print-barcode-select">
+          <div class="field-label-sm">Штрихкод</div>
+          <div class="barcode-options">
+            <button
+              v-for="bc in printBarcodes"
+              :key="bc.barcode"
+              class="barcode-option"
+              :class="{ active: selectedPrintBarcode === bc.barcode }"
+              type="button"
+              @click="selectedPrintBarcode = bc.barcode"
+            >
+              <span class="bc-value font-mono">{{ bc.barcode }}</span>
+              <span v-if="bc.is_primary" class="bc-primary-tag">основной</span>
+            </button>
+          </div>
+        </div>
+
         <div class="print-controls">
           <div class="copies-row">
             <span class="text-secondary">Копии</span>
@@ -127,6 +146,14 @@ const showPrint = ref(false)
 const printProduct = ref(null)
 const printCopies = ref(1)
 const printSvg = ref(null)
+const selectedPrintBarcode = ref(null)
+
+const printBarcodes = computed(() => {
+  if (!printProduct.value) return []
+  return Array.isArray(printProduct.value.barcodes)
+    ? printProduct.value.barcodes.filter(b => b.barcode)
+    : []
+})
 const listRef = ref(null)
 let filterTimeout = null
 
@@ -155,6 +182,7 @@ const filteredProducts = computed(() => {
     const q = search.value.toLowerCase()
     items = items.filter(p =>
       p.name.toLowerCase().includes(q) ||
+      (Array.isArray(p.barcodes) && p.barcodes.some(b => b.barcode.includes(q))) ||
       (p.barcode && p.barcode.includes(q))
     )
   }
@@ -227,13 +255,10 @@ async function applyAdjustment({ delta, reason }) {
   }
 }
 
-function openPrint(product) {
-  printProduct.value = product
-  printCopies.value = 1
-  showPrint.value = true
+function renderPrintBarcode(barcode) {
   nextTick(() => {
-    if (printSvg.value && product.barcode) {
-      JsBarcode(printSvg.value, product.barcode, {
+    if (printSvg.value && barcode) {
+      JsBarcode(printSvg.value, barcode, {
         format: 'CODE128', width: 2, height: 48,
         displayValue: true, fontSize: 11,
         lineColor: '#111', background: '#fff'
@@ -242,13 +267,25 @@ function openPrint(product) {
   })
 }
 
+function openPrint(product) {
+  printProduct.value = product
+  printCopies.value = 1
+  const barcodes = Array.isArray(product.barcodes) ? product.barcodes.filter(b => b.barcode) : []
+  const primary = barcodes.find(b => b.is_primary) || barcodes[0]
+  selectedPrintBarcode.value = primary?.barcode || product.barcode || null
+  showPrint.value = true
+  renderPrintBarcode(selectedPrintBarcode.value)
+}
+
+watch(selectedPrintBarcode, (bc) => { if (bc) renderPrintBarcode(bc) })
+
 async function sendPrint() {
   try {
     const res = await store.authFetch('/api/barcode/print', {
       method: 'POST',
       body: JSON.stringify({
         product_id: printProduct.value.id,
-        barcode: printProduct.value.barcode,
+        barcode: selectedPrintBarcode.value || printProduct.value.barcode,
         product_name: printProduct.value.name,
         price: printProduct.value.price,
         copies: printCopies.value,
@@ -436,6 +473,57 @@ async function sendPrint() {
   color: var(--text-primary);
   text-align: center;
   margin-bottom: 16px;
+}
+
+.print-barcode-select {
+  margin: 12px 0 4px;
+}
+
+.field-label-sm {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.barcode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barcode-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.12s;
+}
+
+.barcode-option.active {
+  border-color: var(--accent-1);
+  background: var(--accent-glow);
+}
+
+.bc-value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bc-primary-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-bg);
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .print-controls { padding: 16px 0; }
