@@ -14,7 +14,7 @@ class IncomingItem {
     required this.qty,
     required this.costPerUnit,
     this.expiryDate,
-    this.unit = 'pcs',
+    this.unit = 'шт',
   });
 
   double get subtotal => qty * costPerUnit;

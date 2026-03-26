@@ -8,6 +8,8 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/bottom_numpad.dart';
 
+const _units = ['шт', 'кг', 'г', 'л', 'упак', 'коробка'];
+
 class IncomingScreen extends ConsumerStatefulWidget {
   const IncomingScreen({super.key});
 
@@ -16,78 +18,145 @@ class IncomingScreen extends ConsumerStatefulWidget {
 }
 
 class _IncomingScreenState extends ConsumerState<IncomingScreen> {
-  final _barcodeCtrl = TextEditingController();
-  final _barcodeFocus = FocusNode();
-  final _supplierCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
-
   final List<IncomingItem> _items = [];
   bool _submitting = false;
   String? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    // Auto-focus barcode input
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _barcodeFocus.requestFocus();
-    });
-  }
+  final _fmt = NumberFormat('#,##0.00');
 
-  @override
-  void dispose() {
-    _barcodeCtrl.dispose();
-    _barcodeFocus.dispose();
-    _supplierCtrl.dispose();
-    _notesCtrl.dispose();
-    super.dispose();
-  }
+  double get _total => _items.fold(0.0, (s, i) => s + i.subtotal);
 
-  Future<void> _onBarcode() async {
-    final code = _barcodeCtrl.text.trim();
-    if (code.isEmpty) return;
-    _barcodeCtrl.clear();
-    try {
-      final res = await apiService.get('/api/products/barcode/$code');
-      final product = Product.fromJson(res.data as Map<String, dynamic>);
-      _addItem(product);
-    } catch (_) {
-      // Product not found — show dialog
-      _showNotFound(code);
-    }
-  }
-
-  void _addItem(Product product) {
-    final existing = _items.indexWhere((i) => i.productId == product.id);
-    if (existing >= 0) {
-      setState(() => _items[existing].qty += 1);
+  void _addProduct(Product product) {
+    final idx = _items.indexWhere((i) => i.productId == product.id);
+    if (idx >= 0) {
+      setState(() => _items[idx].qty += 1);
+      _showSnack('Количество обновлено: ${product.name}', isInfo: true);
     } else {
       setState(() {
         _items.insert(
-            0,
-            IncomingItem(
-              productId: product.id,
-              productName: product.name,
-              barcode: product.barcode,
-              qty: 1,
-              costPerUnit: product.cost,
-              unit: product.unit,
-            ));
+          0,
+          IncomingItem(
+            productId: product.id,
+            productName: product.name,
+            barcode: product.barcode,
+            qty: 1,
+            costPerUnit: (product.cost ?? 0).toDouble(),
+            unit: product.unit.isNotEmpty ? product.unit : 'шт',
+          ),
+        );
       });
+      _showSnack('Добавлено: ${product.name}');
     }
   }
 
-  void _showNotFound(String barcode) {
-    showDialog(
+  void _addCreatedProduct(Map<String, dynamic> data) {
+    setState(() {
+      _items.insert(
+        0,
+        IncomingItem(
+          productId: data['id'] as int?,
+          productName: data['name'] as String? ?? '',
+          barcode: data['barcode'] as String?,
+          qty: 1,
+          costPerUnit: (data['cost'] ?? data['price'] ?? 0).toDouble(),
+          unit: data['unit'] as String? ?? 'шт',
+        ),
+      );
+    });
+  }
+
+  void _openManualAdd() {
+    showModalBottomSheet(
       context: context,
-      builder: (_) => _ProductNotFoundDialog(
-        barcode: barcode,
-        onCreated: (product) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ManualAddSheet(
+        onSelected: (p) {
           Navigator.pop(context);
-          _addItem(product);
+          _addProduct(p);
+        },
+        onCreateNew: (prefillName) {
+          Navigator.pop(context);
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) _showNotFound(null, prefillName: prefillName);
+          });
         },
       ),
     );
+  }
+
+  void _showNotFound(String? barcode, {String prefillName = ''}) {
+    showDialog(
+      context: context,
+      builder: (_) => _ProductNotFoundDialog(
+        barcode: barcode ?? '',
+        prefillName: prefillName,
+        onCreated: (data) {
+          Navigator.pop(context);
+          _addCreatedProduct(data);
+        },
+      ),
+    );
+  }
+
+  Future<void> _editField(int idx, String field) async {
+    final item = _items[idx];
+    final title = field == 'qty'
+        ? 'Количество'
+        : field == 'cost'
+            ? 'Цена за единицу'
+            : 'Общая сумма';
+    final initial = field == 'qty'
+        ? item.qty.toStringAsFixed(0)
+        : field == 'cost'
+            ? item.costPerUnit.toString()
+            : item.subtotal.toString();
+
+    final result = await BottomNumPad.show(
+      context,
+      title: title,
+      initialValue: initial,
+      allowDecimal: field != 'qty',
+    );
+    if (result == null || result.isEmpty) return;
+    final v = double.tryParse(result) ?? 0;
+    setState(() {
+      if (field == 'qty') {
+        _items[idx].qty = v;
+      } else if (field == 'cost') {
+        _items[idx].costPerUnit = v;
+      } else {
+        // edit total → recalculate qty
+        final cost = _items[idx].costPerUnit;
+        _items[idx].qty = cost > 0 ? double.parse((v / cost).toStringAsFixed(3)) : 0;
+      }
+    });
+  }
+
+  Future<void> _editExpiry(int idx) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 10),
+      helpText: 'Срок годности',
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.accent1,
+            surface: AppColors.bgElevated,
+            onSurface: AppColors.textPrimary,
+          ),
+          dialogBackgroundColor: AppColors.bgElevated,
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() =>
+          _items[idx].expiryDate = DateFormat('yyyy-MM-dd').format(picked));
+    }
   }
 
   Future<void> _submit() async {
@@ -98,25 +167,19 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     });
     final auth = ref.read(authProvider);
     try {
-      await apiService.post('/api/incoming', data: {
+      final res = await apiService.post('/api/incoming', data: {
         'received_by': auth.user!.id,
-        'supplier': _supplierCtrl.text.trim(),
-        'notes': _notesCtrl.text.trim(),
         'items': _items.map((i) => i.toJson()).toList(),
       });
+      final data = res.data as Map<String, dynamic>;
+      final refNo = data['ref_no'] ?? '';
+      final totalCost = _fmt.format(_total);
       setState(() {
         _items.clear();
-        _supplierCtrl.clear();
-        _notesCtrl.clear();
         _submitting = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Поступление подтверждено!'),
-            backgroundColor: AppColors.successBg,
-          ),
-        );
+        _showSnack('Приёмка подтверждена: $refNo — $totalCost');
       }
     } catch (e) {
       setState(() {
@@ -126,84 +189,66 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     }
   }
 
+  void _showSnack(String msg, {bool isInfo = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor:
+            isInfo ? AppColors.bgElevated : AppColors.successBg,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
-    final total = _items.fold(0.0, (s, i) => s + i.subtotal);
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
         child: Column(
           children: [
-            // Barcode input (always focused)
+            // Header
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _barcodeCtrl,
-                      focusNode: _barcodeFocus,
-                      onSubmitted: (_) => _onBarcode(),
-                      style:
-                          const TextStyle(color: AppColors.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Сканировать штрихкод...',
-                        prefixIcon: const Icon(Icons.qr_code_scanner,
-                            color: AppColors.textMuted),
-                        suffixIcon: Container(
-                          margin: const EdgeInsets.all(6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.successBg,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                color: AppColors.success.withOpacity(0.3)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.circle,
-                                  color: AppColors.success, size: 8),
-                              SizedBox(width: 4),
-                              Text('Готов',
-                                  style: TextStyle(
-                                      color: AppColors.success,
-                                      fontSize: 10)),
-                            ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Приёмка товара',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '${_items.length} позиций',
+                    style: const TextStyle(
+                      color: AppColors.textAccent,
+                      fontSize: 14,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Manual add button
+                  GestureDetector(
+                    onTap: _openManualAdd,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgSurface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.accent1.withOpacity(0.4)),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Supplier / Notes
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _supplierCtrl,
-                      style:
-                          const TextStyle(color: AppColors.textPrimary),
-                      decoration:
-                          const InputDecoration(hintText: 'Поставщик'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _notesCtrl,
-                      style:
-                          const TextStyle(color: AppColors.textPrimary),
-                      decoration:
-                          const InputDecoration(hintText: 'Примечание'),
+                      child: const Icon(Icons.add,
+                          color: AppColors.textAccent, size: 20),
                     ),
                   ),
                 ],
@@ -213,29 +258,19 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
             // Items list
             Expanded(
               child: _items.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.inventory_2_outlined,
-                              color: AppColors.textMuted, size: 48),
-                          SizedBox(height: 8),
-                          Text('Сканируйте товары для добавления',
-                              style:
-                                  TextStyle(color: AppColors.textMuted)),
-                        ],
-                      ),
-                    )
+                  ? _EmptyState(onAdd: _openManualAdd)
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      padding:
+                          const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       itemCount: _items.length,
                       itemBuilder: (_, i) => _IncomingItemCard(
                         item: _items[i],
-                        onQtyChanged: (v) =>
-                            setState(() => _items[i].qty = v),
-                        onCostChanged: (v) =>
-                            setState(() => _items[i].costPerUnit = v),
-                        onRemove: () => setState(() => _items.removeAt(i)),
+                        onRemove: () =>
+                            setState(() => _items.removeAt(i)),
+                        onEditField: (field) => _editField(i, field),
+                        onEditExpiry: () => _editExpiry(i),
+                        onEditUnit: (unit) =>
+                            setState(() => _items[i].unit = unit),
                       ),
                     ),
             ),
@@ -245,10 +280,12 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
               padding: EdgeInsets.fromLTRB(
                   16, 12, 16, MediaQuery.of(context).viewPadding.bottom + 12),
               decoration: const BoxDecoration(
-                color: AppColors.bgElevated,
-                border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+                color: AppColors.bgSidebar,
+                border:
+                    Border(top: BorderSide(color: AppColors.borderSubtle)),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_error != null) ...[
                     Text(_error!,
@@ -259,27 +296,67 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('${_items.length} поз. · Итого: ${fmt.format(total)}',
-                          style: const TextStyle(
+                      const Text('Итого',
+                          style: TextStyle(
                               color: AppColors.textSecondary,
-                              fontSize: 13)),
-                      GradientButton(
-                        height: 48,
-                        onTap: _submitting || _items.isEmpty
-                            ? () {}
-                            : _submit,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _submitting
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2)
-                              : const Text('Подтвердить поступление',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600)),
+                              fontSize: 15)),
+                      ShaderMask(
+                        shaderCallback: (b) =>
+                            AppColors.gradientHero.createShader(b),
+                        child: Text(
+                          _fmt.format(_total),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap:
+                        _submitting || _items.isEmpty ? null : _submit,
+                    child: Container(
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: (_submitting || _items.isEmpty)
+                            ? null
+                            : AppColors.gradientHero,
+                        color: (_submitting || _items.isEmpty)
+                            ? AppColors.bgSurface
+                            : null,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: (_submitting || _items.isEmpty)
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: AppColors.accent1.withOpacity(0.35),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                      ),
+                      alignment: Alignment.center,
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : Text(
+                              'Подтвердить приёмку (${_items.length} поз.)',
+                              style: TextStyle(
+                                color: _items.isEmpty
+                                    ? AppColors.textMuted
+                                    : Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
                   ),
                 ],
               ),
@@ -291,113 +368,48 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
   }
 }
 
-class _IncomingItemCard extends StatelessWidget {
-  final IncomingItem item;
-  final void Function(double) onQtyChanged;
-  final void Function(double) onCostChanged;
-  final VoidCallback onRemove;
+// ─── Empty State ────────────────────────────────────────────────────────────
 
-  const _IncomingItemCard({
-    required this.item,
-    required this.onQtyChanged,
-    required this.onCostChanged,
-    required this.onRemove,
-  });
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _EmptyState({required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(item.productName,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600)),
+          const Icon(Icons.add_circle_outline,
+              color: AppColors.textMuted, size: 48),
+          const SizedBox(height: 12),
+          const Text('Нажмите + чтобы добавить товар',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 15)),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: onAdd,
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: AppColors.accent1.withOpacity(0.4)),
               ),
-              IconButton(
-                icon: const Icon(Icons.close,
-                    color: AppColors.danger, size: 18),
-                onPressed: onRemove,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          if (item.barcode != null)
-            Text(item.barcode!,
-                style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                    fontFamily: 'monospace')),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _EditableField(
-                  label: 'Кол-во',
-                  value: item.qty.toInt().toString(),
-                  onTap: () async {
-                    final result = await BottomNumPad.show(
-                      context,
-                      title: 'Количество',
-                      initialValue: item.qty.toInt().toString(),
-                      allowDecimal: false,
-                    );
-                    if (result != null && result.isNotEmpty) {
-                      final v = double.tryParse(result);
-                      if (v != null) onQtyChanged(v);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _EditableField(
-                  label: 'Себест.',
-                  value: fmt.format(item.costPerUnit),
-                  onTap: () async {
-                    final result = await BottomNumPad.show(
-                      context,
-                      title: 'Себестоимость единицы',
-                      initialValue: item.costPerUnit.toString(),
-                      allowDecimal: true,
-                    );
-                    if (result != null && result.isNotEmpty) {
-                      final v = double.tryParse(result);
-                      if (v != null) onCostChanged(v);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Сумма',
+                  Icon(Icons.add, color: AppColors.textAccent, size: 18),
+                  SizedBox(width: 8),
+                  Text('Добавить',
                       style: TextStyle(
-                          color: AppColors.textMuted, fontSize: 11)),
-                  Text(
-                    fmt.format(item.subtotal),
-                    style: const TextStyle(
-                        color: AppColors.textAccent,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace'),
-                  ),
+                          color: AppColors.textAccent,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600)),
                 ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -405,14 +417,201 @@ class _IncomingItemCard extends StatelessWidget {
   }
 }
 
-class _EditableField extends StatelessWidget {
+// ─── Incoming Item Card ──────────────────────────────────────────────────────
+
+class _IncomingItemCard extends StatelessWidget {
+  final IncomingItem item;
+  final VoidCallback onRemove;
+  final void Function(String field) onEditField;
+  final VoidCallback onEditExpiry;
+  final void Function(String unit) onEditUnit;
+
+  const _IncomingItemCard({
+    required this.item,
+    required this.onRemove,
+    required this.onEditField,
+    required this.onEditExpiry,
+    required this.onEditUnit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0.00');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: AppColors.gradientCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: name + remove
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.productName,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.barcode ?? 'Без штрихкода',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.close,
+                      color: AppColors.danger, size: 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 3-column: Qty | Cost/unit | Expiry
+          Row(
+            children: [
+              Expanded(
+                child: _FieldButton(
+                  label: 'КОЛ-ВО',
+                  value: item.qty % 1 == 0
+                      ? item.qty.toInt().toString()
+                      : item.qty.toStringAsFixed(3),
+                  icon: Icons.edit_outlined,
+                  onTap: () => onEditField('qty'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _FieldButton(
+                  label: 'ЦЕНА/ЕД.',
+                  value: fmt.format(item.costPerUnit),
+                  icon: Icons.edit_outlined,
+                  onTap: () => onEditField('cost'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _FieldButton(
+                  label: 'СРОК ГОДН.',
+                  value: item.expiryDate ?? 'Нет',
+                  icon: Icons.calendar_today_outlined,
+                  onTap: onEditExpiry,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Unit chips
+          Row(
+            children: [
+              const Text(
+                'ЕДИНИЦА',
+                style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _units
+                        .map((u) => _UnitChip(
+                              label: u,
+                              active: item.unit == u,
+                              onTap: () => onEditUnit(u),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+
+          // Subtotal row (tappable)
+          GestureDetector(
+            onTap: () => onEditField('total'),
+            child: Container(
+              padding: const EdgeInsets.only(top: 10),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Сумма',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 14)),
+                  Row(
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (b) =>
+                            AppColors.gradientHero.createShader(b),
+                        child: Text(
+                          fmt.format(item.subtotal),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.edit_outlined,
+                          color: AppColors.textMuted, size: 13),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldButton extends StatelessWidget {
   final String label;
   final String value;
+  final IconData icon;
   final VoidCallback onTap;
 
-  const _EditableField({
+  const _FieldButton({
     required this.label,
     required this.value,
+    required this.icon,
     required this.onTap,
   });
 
@@ -421,10 +620,10 @@ class _EditableField extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.bgInput,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.borderDefault),
         ),
         child: Column(
@@ -432,13 +631,26 @@ class _EditableField extends StatelessWidget {
           children: [
             Text(label,
                 style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 10)),
-            const SizedBox(height: 2),
-            Text(value,
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.textMuted,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    fontFamily: 'monospace')),
+                    letterSpacing: 0.4)),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(value,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                          fontSize: 14),
+                      overflow: TextOverflow.ellipsis),
+                ),
+                Icon(icon, color: AppColors.textMuted, size: 12),
+              ],
+            ),
           ],
         ),
       ),
@@ -446,12 +658,431 @@ class _EditableField extends StatelessWidget {
   }
 }
 
+class _UnitChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _UnitChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: active
+              ? AppColors.accent1.withOpacity(0.15)
+              : AppColors.bgInput,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? AppColors.accent1 : AppColors.borderDefault,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? AppColors.textAccent : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Manual Add Sheet ────────────────────────────────────────────────────────
+
+class _ManualAddSheet extends StatefulWidget {
+  final void Function(Product) onSelected;
+  final void Function(String prefillName) onCreateNew;
+
+  const _ManualAddSheet({
+    required this.onSelected,
+    required this.onCreateNew,
+  });
+
+  @override
+  State<_ManualAddSheet> createState() => _ManualAddSheetState();
+}
+
+class _ManualAddSheetState extends State<_ManualAddSheet> {
+  final _searchCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
+  List<Map<String, dynamic>> _results = [];
+  bool _loading = false;
+  bool _searched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search(String q) async {
+    if (q.trim().isEmpty) {
+      setState(() {
+        _results = [];
+        _loading = false;
+        _searched = false;
+      });
+      return;
+    }
+    setState(() => _loading = true);
+
+    // 1. Try exact barcode lookup
+    try {
+      final bRes = await apiService.get(
+          '/api/products/barcode/${Uri.encodeComponent(q.trim())}');
+      final product = bRes.data as Map<String, dynamic>;
+      setState(() {
+        _results = [product];
+        _loading = false;
+        _searched = true;
+      });
+      return;
+    } catch (_) {}
+
+    // 2. Fall back to name search
+    try {
+      final res = await apiService
+          .get('/api/products?search=${Uri.encodeComponent(q.trim())}&limit=30');
+      final data = res.data;
+      List<Map<String, dynamic>> list = [];
+      if (data is List) {
+        list = data.cast<Map<String, dynamic>>();
+      } else if (data is Map) {
+        final inner = data['data'] ?? data['products'] ?? [];
+        list = (inner as List).cast<Map<String, dynamic>>();
+      }
+      setState(() {
+        _results = list;
+        _loading = false;
+        _searched = true;
+      });
+    } catch (_) {
+      setState(() {
+        _results = [];
+        _loading = false;
+        _searched = true;
+      });
+    }
+  }
+
+  Color _stockColor(int qty) {
+    if (qty <= 0) return AppColors.danger;
+    if (qty <= 5) return AppColors.warning;
+    return AppColors.success;
+  }
+
+  Color _stockBg(int qty) {
+    if (qty <= 0) return AppColors.dangerBg;
+    if (qty <= 5) return AppColors.warningBg;
+    return AppColors.successBg;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _searchCtrl.text.trim();
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(bottom: BorderSide(color: AppColors.borderDefault)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            decoration: BoxDecoration(
+              color: AppColors.borderDefault,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Добавить товар',
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgSurface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.close,
+                        color: AppColors.textSecondary, size: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Search field
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.bgInput,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderDefault),
+              ),
+              child: Row(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: Icon(Icons.search,
+                        color: AppColors.textMuted, size: 20),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      focusNode: _searchFocus,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary, fontSize: 16),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Название или штрихкод...',
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                      ),
+                      onChanged: (v) {
+                        setState(() {}); // rebuild clear button
+                        // debounce via a simple approach
+                        Future.delayed(const Duration(milliseconds: 300),
+                            () {
+                          if (_searchCtrl.text == v) _search(v);
+                        });
+                      },
+                    ),
+                  ),
+                  if (_searchCtrl.text.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchCtrl.clear();
+                        setState(() {
+                          _results = [];
+                          _searched = false;
+                        });
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Icon(Icons.close,
+                            color: AppColors.textMuted, size: 18),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // Results
+          Flexible(
+            child: _loading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(48),
+                      child: CircularProgressIndicator(
+                          color: AppColors.accent1),
+                    ),
+                  )
+                : q.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(48),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.search,
+                                  color: AppColors.textMuted, size: 36),
+                              SizedBox(height: 12),
+                              Text('Введите название или штрихкод товара',
+                                  style: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 15),
+                                  textAlign: TextAlign.center),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _searched && _results.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(48),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.inventory_2_outlined,
+                                      color: AppColors.textMuted, size: 36),
+                                  const SizedBox(height: 12),
+                                  const Text('Товар не найден',
+                                      style: TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 15)),
+                                  const SizedBox(height: 16),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        widget.onCreateNew(q),
+                                    child: Container(
+                                      height: 52,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 24),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.bgSurface,
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: AppColors.borderDefault),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.add,
+                                              color: AppColors.textAccent,
+                                              size: 18),
+                                          SizedBox(width: 8),
+                                          Text('Создать новый товар',
+                                              style: TextStyle(
+                                                  color: AppColors.textAccent,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            itemCount: _results.length,
+                            itemBuilder: (_, i) {
+                              final p = _results[i];
+                              final stock = (p['stock_qty'] ?? 0) as int;
+                              return GestureDetector(
+                                onTap: () =>
+                                    widget.onSelected(Product.fromJson(p)),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgSurface,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                        color: AppColors.borderSubtle),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              p['name'] as String? ?? '',
+                                              style: const TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${p['barcode'] ?? '—'} · ${p['unit'] ?? 'шт'}',
+                                              style: const TextStyle(
+                                                  color: AppColors.textMuted,
+                                                  fontSize: 12,
+                                                  fontFamily: 'monospace'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _stockBg(stock),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          '$stock',
+                                          style: TextStyle(
+                                            color: _stockColor(stock),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Icon(Icons.add,
+                                          color: AppColors.textAccent,
+                                          size: 20),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Product Not Found Dialog ────────────────────────────────────────────────
+
 class _ProductNotFoundDialog extends StatefulWidget {
   final String barcode;
-  final void Function(Product) onCreated;
+  final String prefillName;
+  final void Function(Map<String, dynamic>) onCreated;
 
   const _ProductNotFoundDialog({
     required this.barcode,
+    required this.prefillName,
     required this.onCreated,
   });
 
@@ -461,10 +1092,17 @@ class _ProductNotFoundDialog extends StatefulWidget {
 }
 
 class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
-  final _nameCtrl = TextEditingController();
+  late final TextEditingController _nameCtrl;
   final _priceCtrl = TextEditingController();
+  String _unit = 'шт';
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.prefillName);
+  }
 
   @override
   void dispose() {
@@ -478,15 +1116,14 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
     setState(() => _loading = true);
     try {
       final res = await apiService.post('/api/products', data: {
-        'barcode': widget.barcode,
+        'barcode': widget.barcode.isNotEmpty ? widget.barcode : null,
         'name': _nameCtrl.text.trim(),
         'price': double.tryParse(_priceCtrl.text) ?? 0,
         'cost': 0,
-        'unit': 'pcs',
+        'unit': _unit,
         'is_active': true,
       });
-      final product = Product.fromJson(res.data as Map<String, dynamic>);
-      widget.onCreated(product);
+      widget.onCreated(res.data as Map<String, dynamic>);
     } catch (e) {
       setState(() {
         _error = 'Ошибка создания товара';
@@ -503,13 +1140,18 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
           style: TextStyle(color: AppColors.textPrimary)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Штрихкод: ${widget.barcode}',
+          if (widget.barcode.isNotEmpty) ...[
+            Text(
+              'Штрихкод: ${widget.barcode}',
               style: const TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
-                  fontFamily: 'monospace')),
-          const SizedBox(height: 12),
+                  fontFamily: 'monospace'),
+            ),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _nameCtrl,
             style: const TextStyle(color: AppColors.textPrimary),
@@ -522,11 +1164,31 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'Цена'),
           ),
+          const SizedBox(height: 12),
+          const Text('ЕДИНИЦА',
+              style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _units
+                  .map((u) => _UnitChip(
+                        label: u,
+                        active: _unit == u,
+                        onTap: () => setState(() => _unit = u),
+                      ))
+                  .toList(),
+            ),
+          ),
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!,
-                style:
-                    const TextStyle(color: AppColors.danger, fontSize: 12)),
+                style: const TextStyle(
+                    color: AppColors.danger, fontSize: 12)),
           ],
         ],
       ),
@@ -542,7 +1204,8 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(
+                      color: AppColors.accent1, strokeWidth: 2))
               : const Text('Создать',
                   style: TextStyle(color: AppColors.accent1)),
         ),
