@@ -114,7 +114,32 @@ class ProductCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                StockBadge(qty: product.stockQty),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StockBadge(qty: product.stockQty),
+                    if (product.unit.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.bgInput,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.borderDefault),
+                        ),
+                        child: Text(
+                          product.unit,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
 

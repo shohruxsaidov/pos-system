@@ -7,7 +7,7 @@ class ConnectivityNotifier extends StateNotifier<bool> {
 
   ConnectivityNotifier() : super(true) {
     _probe();
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _probe());
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _probe());
   }
 
   Future<void> _probe() async {

@@ -67,6 +67,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     );
   }
 
+  String _formatCompact(double n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return n.toStringAsFixed(2);
+  }
+
   Future<void> _printLabel(Product product) async {
     try {
       await apiService.post('/api/barcode/print', data: {
@@ -162,6 +168,72 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               ),
             ),
 
+            // Stats bar
+            if (!state.loading)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderSubtle),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${filtered.length}',
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const Text('Products',
+                                style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                          width: 1,
+                          height: 32,
+                          color: AppColors.borderDefault),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _formatCompact(filtered.fold<double>(
+                                  0,
+                                  (s, p) =>
+                                      s + p.price * p.stockQty)),
+                              style: const TextStyle(
+                                color: AppColors.textAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const Text('Total value',
+                                style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // Product list
             Expanded(
               child: state.loading
@@ -173,20 +245,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           child: Text('No products',
                               style:
                                   TextStyle(color: AppColors.textMuted)))
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 20),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 0.75,
-                          ),
+                      : ListView.builder(
+                          padding:
+                              const EdgeInsets.fromLTRB(12, 4, 12, 20),
                           itemCount: filtered.length,
-                          itemBuilder: (_, i) => ProductCard(
-                            product: filtered[i],
-                            onAdjust: () => _openAdjust(filtered[i]),
-                            onPrint: () => _printLabel(filtered[i]),
+                          itemBuilder: (_, i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: ProductCard(
+                              product: filtered[i],
+                              onAdjust: () => _openAdjust(filtered[i]),
+                              onPrint: () => _printLabel(filtered[i]),
+                            ),
                           ),
                         ),
             ),
