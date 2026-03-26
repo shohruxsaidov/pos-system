@@ -17,7 +17,8 @@
       "Bash(gem install:*)",
       "Bash(pod:*)",
       "Bash(xcrun simctl:*)",
-      "Bash(open -a Simulator)"
+      "Bash(open -a Simulator)",
+      "Bash(dart run:*)"
     ]
   }
 }
