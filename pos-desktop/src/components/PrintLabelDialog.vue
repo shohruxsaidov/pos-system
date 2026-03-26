@@ -84,7 +84,7 @@ watch([() => props.product, visible], async ([prod, vis]) => {
     selectedBarcode.value = primary?.barcode || prod.barcode || null
     await nextTick()
     if (svgRef.value && selectedBarcode.value) {
-      renderBarcode(svgRef.value, selectedBarcode.value, { displayValue: false, height: 36 })
+      renderBarcode(svgRef.value, selectedBarcode.value, { displayValue: false, height: 30 })
     }
   }
 })
@@ -134,7 +134,7 @@ function print() {
     .label-store { font-size: 9px; color: #555; height: 11px; }
     .label-name  { font-size: 12px; font-weight: 700; color: #111; text-align: center; }
     .label-barcode svg { width: 100%; height: auto; }
-    .label-price { font-size: 22px; font-weight: 700; color: #111; font-family: monospace; }
+    .label-price { font-size: 30px; font-weight: 700; color: #111; font-family: monospace; }
     @page { margin: 0; size: ${labelWidth} auto; }
   </style>
 </head>
