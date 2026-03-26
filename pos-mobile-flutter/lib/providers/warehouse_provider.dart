@@ -83,8 +83,8 @@ class WarehouseNotifier extends StateNotifier<WarehouseState> {
     final items = payload['items'] as List?;
     if (items == null) return;
     final updated = state.products.map((p) {
-      final item = items.firstWhere(
-        (i) => i['product_id'] == p.id,
+      final item = items.cast<Map<String, dynamic>?>().firstWhere(
+        (i) => i!['product_id'] == p.id,
         orElse: () => null,
       );
       if (item == null) return p;

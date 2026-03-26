@@ -80,13 +80,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
             product: product, qty: 1, unitPrice: product.price));
       }
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} added to cart'),
-        duration: const Duration(seconds: 1),
-        backgroundColor: AppColors.successBg,
-      ),
-    );
   }
 
   void _removeFromCart(CartItem item) {
@@ -134,20 +127,24 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
         _paymentOpen = false;
         _cartOpen = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sale completed!'),
-            backgroundColor: AppColors.successBg,
-          ),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('Sale completed!'),
+      //       backgroundColor: AppColors.successBg,
+      //       behavior: SnackBarBehavior.floating,
+      //       margin: EdgeInsets.all(16),
+      //     ),
+      //   );
+      // }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: AppColors.dangerBg,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
           ),
         );
       }

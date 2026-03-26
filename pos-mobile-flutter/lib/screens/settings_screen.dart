@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
+import 'qr_scanner_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -25,6 +26,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _urlCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _scanQr() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (result != null && mounted) {
+      _urlCtrl.text = result;
+      await _saveUrl();
+    }
   }
 
   Future<void> _saveUrl() async {
@@ -114,11 +126,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          TextField(
-            controller: _urlCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration:
-                const InputDecoration(hintText: 'http://192.168.1.x:3000'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _urlCtrl,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                      hintText: 'http://192.168.1.x:3000'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Tooltip(
+                message: 'Scan QR code',
+                child: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner,
+                      color: AppColors.accent1),
+                  onPressed: _scanQr,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           ElevatedButton(onPressed: _saveUrl, child: const Text('Save URL')),

@@ -15,7 +15,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
 
   # HTTP client
-  dio: ^5.8.0+1
+  http: ^1.2.2
 
   # Local storage (localStorage / sessionStorage equivalent)
   shared_preferences: ^2.3.3
@@ -34,12 +34,6 @@ dependencies:
 
   # Barcode rendering
   barcode_widget: ^2.0.4
-
-  # Icons
-  cupertino_icons: ^1.0.8
-
-  # Toasts
-  fluttertoast: ^8.2.12
 
   # Intl for date/number formatting
   intl: ^0.20.2

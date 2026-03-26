@@ -76,7 +76,6 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
         onError: Colors.white,
       ),
-      fontFamily: 'PlusJakartaSans',
       textTheme: const TextTheme(
         displayLarge: TextStyle(color: AppColors.textPrimary),
         displayMedium: TextStyle(color: AppColors.textPrimary),

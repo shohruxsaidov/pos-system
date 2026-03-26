@@ -268,7 +268,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  (m['method'] as String).toUpperCase(),
+                  (m['method'] ?? '').toUpperCase(),
                   style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w500),
