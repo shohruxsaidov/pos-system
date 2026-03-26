@@ -122,11 +122,29 @@
           <InputText v-model="form.name" class="w-full" placeholder="Название товара" />
         </div>
         <div class="field-group">
-          <label class="field-label">Штрихкод</label>
-          <div class="p-inputgroup" style="position: relative;">
-            <InputText v-model="form.barcode" class="w-full" placeholder="Сканировать или ввести штрихкод" />
-            <Button style="position: absolute; right: 0; top: 0;" icon="pi pi-refresh" class="p-button-secondary"
-              @click="generateBarcodeInForm" v-tooltip="'Сгенерировать штрихкод'" />
+          <label class="field-label">Штрихкоды</label>
+          <div class="barcodes-list">
+            <div v-for="(bc, idx) in form.barcodes" :key="idx" class="barcode-entry">
+              <button
+                class="primary-star"
+                :class="{ active: bc.is_primary }"
+                @click="setPrimaryBarcode(idx)"
+                type="button"
+                title="Сделать основным"
+              >★</button>
+              <InputText v-model="bc.barcode" class="flex-1" placeholder="Сканировать или ввести" style="font-family:var(--font-mono);font-size:13px" />
+              <button class="bc-remove-btn" @click="form.barcodes.splice(idx, 1)" type="button" title="Удалить">
+                <i class="pi pi-times" />
+              </button>
+            </div>
+            <div class="barcode-add-row">
+              <button class="add-barcode-btn" type="button" @click="addBarcodeField">
+                <i class="pi pi-plus" /> Добавить
+              </button>
+              <button class="add-barcode-btn" type="button" @click="generateBarcodeInForm">
+                <i class="pi pi-refresh" /> Сгенерировать
+              </button>
+            </div>
           </div>
         </div>
         <div class="field-row">
@@ -267,7 +285,7 @@ const adjustReasons = ['Корректировка приёма', 'Повреж�
 const UNITS = ['шт', 'кг', 'г', 'л', 'упак', 'коробка']
 
 const defaultForm = () => ({
-  name: '', barcode: '', price: '', cost: '', stock_qty: 0,
+  name: '', barcodes: [], price: '', cost: '', stock_qty: 0,
   unit: 'шт', category_id: null, image_url: '', low_stock_threshold: 5
 })
 
@@ -307,6 +325,7 @@ const filteredProducts = computed(() => {
     const q = search.value.toLowerCase()
     items = items.filter(p =>
       p.name.toLowerCase().includes(q) ||
+      (Array.isArray(p.barcodes) && p.barcodes.some(b => b.barcode.includes(q))) ||
       (p.barcode && p.barcode.includes(q)) ||
       (p.category_name && p.category_name.toLowerCase().includes(q))
     )
@@ -374,7 +393,10 @@ function openCreate() {
 
 function openEdit(product) {
   editingProduct.value = product
-  form.value = { ...product }
+  form.value = {
+    ...product,
+    barcodes: Array.isArray(product.barcodes) ? product.barcodes.map(b => ({ ...b })) : []
+  }
   showDrawer.value = true
 }
 
@@ -401,11 +423,17 @@ function openPrintLabel(product) {
 async function saveProduct() {
   saving.value = true
   try {
+    const cleanBarcodes = form.value.barcodes.filter(b => b.barcode?.trim())
+    if (cleanBarcodes.length > 0 && !cleanBarcodes.some(b => b.is_primary)) {
+      cleanBarcodes[0].is_primary = 1
+    }
+    const payload = { ...form.value, barcodes: cleanBarcodes }
+
     if (editingProduct.value) {
-      await api.put(`/api/products/${editingProduct.value.id}`, form.value)
+      await api.put(`/api/products/${editingProduct.value.id}`, payload)
       toast.add({ severity: 'success', summary: 'Обновлено', detail: form.value.name, life: 2000 })
     } else {
-      await api.post('/api/products', form.value)
+      await api.post('/api/products', payload)
       toast.add({ severity: 'success', summary: 'Создано', detail: form.value.name, life: 2000 })
     }
     showDrawer.value = false
@@ -453,23 +481,24 @@ async function generateBarcode(product) {
   }
 }
 
+function addBarcodeField() {
+  const isPrimary = form.value.barcodes.length === 0 ? 1 : 0
+  form.value.barcodes.push({ barcode: '', is_primary: isPrimary })
+}
+
+function setPrimaryBarcode(idx) {
+  form.value.barcodes.forEach((b, i) => { b.is_primary = i === idx ? 1 : 0 })
+}
+
 async function generateBarcodeInForm() {
-  if (editingProduct.value?.id) {
-    try {
-      const data = await api.get(`/api/barcode/generate?product_id=${editingProduct.value.id}`)
-      form.value.barcode = data.barcode
-      toast.add({ severity: 'success', summary: 'Штрихкод сгенерирован', detail: data.barcode, life: 3000 })
-    } catch (e) {
-      toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
-    }
-  } else {
-    const base = String(Math.floor(Math.random() * 1_000_000_000_000)).padStart(12, '0')
-    let sum = 0
-    base.split('').forEach((d, i) => { sum += parseInt(d) * (i % 2 === 0 ? 1 : 3) })
-    const check = (10 - (sum % 10)) % 10
-    form.value.barcode = base + check
-    toast.add({ severity: 'success', summary: 'Штрихкод сгенерирован', detail: form.value.barcode, life: 3000 })
-  }
+  const base = String(Math.floor(Math.random() * 1_000_000_000_000)).padStart(12, '0')
+  let sum = 0
+  base.split('').forEach((d, i) => { sum += parseInt(d) * (i % 2 === 0 ? 1 : 3) })
+  const check = (10 - (sum % 10)) % 10
+  const newBarcode = base + check
+  const isPrimary = form.value.barcodes.length === 0 ? 1 : 0
+  form.value.barcodes.push({ barcode: newBarcode, is_primary: isPrimary })
+  toast.add({ severity: 'success', summary: 'Штрихкод сгенерирован', detail: newBarcode, life: 3000 })
 }
 
 async function deleteProduct(product) {
@@ -483,11 +512,11 @@ async function deleteProduct(product) {
   }
 }
 
-async function handlePrint({ product, copies, size }) {
+async function handlePrint({ product, barcode, copies, size }) {
   try {
     await api.post('/api/barcode/print', {
       product_id: product.id,
-      barcode: product.barcode,
+      barcode: barcode || product.barcode,
       product_name: product.name,
       price: product.price,
       copies, size
@@ -924,6 +953,91 @@ function stockBadgeClass(qty, threshold = 5) {
 }
 
 .w-full { width: 100%; }
+
+/* Barcode management */
+.barcodes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barcode-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.primary-star {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.primary-star.active {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.bc-remove-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.bc-remove-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.barcode-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.add-barcode-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.add-barcode-btn:hover {
+  border-color: var(--accent-1);
+  color: var(--text-accent);
+  background: var(--accent-glow);
+}
 
 .unit-chips {
   display: flex;

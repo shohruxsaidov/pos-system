@@ -10,6 +10,24 @@
       </div>
 
       <div class="print-fields">
+        <!-- Barcode selector (only if product has multiple barcodes) -->
+        <div v-if="productBarcodes.length > 1" class="field-group">
+          <label class="field-label">Штрихкод</label>
+          <div class="barcode-options">
+            <button
+              v-for="bc in productBarcodes"
+              :key="bc.barcode"
+              class="barcode-option"
+              :class="{ active: selectedBarcode === bc.barcode }"
+              type="button"
+              @click="selectedBarcode = bc.barcode"
+            >
+              <span class="bc-value font-mono">{{ bc.barcode }}</span>
+              <span v-if="bc.is_primary" class="bc-primary-tag">основной</span>
+            </button>
+          </div>
+        </div>
+
         <div class="field-group">
           <label class="field-label">Копии</label>
           <div class="copies-control">
@@ -31,11 +49,10 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { renderBarcode } from '../composables/useBarcode.js'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import SelectButton from 'primevue/selectbutton'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -48,19 +65,34 @@ const visible = computed({
   set: v => emit('update:modelValue', v)
 })
 
-import { computed } from 'vue'
-
 const svgRef = ref(null)
 const size = ref('80mm')
 const copies = ref(1)
 const storeName = ref('Main Market Store')
+const selectedBarcode = ref(null)
+
+const productBarcodes = computed(() => {
+  if (!props.product) return []
+  const barcodes = Array.isArray(props.product.barcodes) ? props.product.barcodes : []
+  return barcodes.filter(b => b.barcode)
+})
 
 watch([() => props.product, visible], async ([prod, vis]) => {
   if (prod && vis) {
+    const barcodes = Array.isArray(prod.barcodes) ? prod.barcodes.filter(b => b.barcode) : []
+    const primary = barcodes.find(b => b.is_primary) || barcodes[0]
+    selectedBarcode.value = primary?.barcode || prod.barcode || null
     await nextTick()
-    if (svgRef.value && prod.barcode) {
-      renderBarcode(svgRef.value, prod.barcode)
+    if (svgRef.value && selectedBarcode.value) {
+      renderBarcode(svgRef.value, selectedBarcode.value)
     }
+  }
+})
+
+watch(selectedBarcode, async (bc) => {
+  if (bc && svgRef.value) {
+    await nextTick()
+    renderBarcode(svgRef.value, bc)
   }
 })
 
@@ -116,6 +148,7 @@ function print() {
   // fallback if onload already fired
   setTimeout(() => { try { win.print(); win.close() } catch { } }, 500)
 
+  emit('print', { product: props.product, barcode: selectedBarcode.value, copies: copies.value, size: size.value })
   visible.value = false
 }
 </script>
@@ -202,5 +235,42 @@ function print() {
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.barcode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barcode-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.barcode-option.active {
+  border-color: var(--accent-1);
+  background: var(--accent-glow);
+}
+
+.bc-value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bc-primary-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-bg);
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 </style>

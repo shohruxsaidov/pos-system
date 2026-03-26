@@ -12,7 +12,7 @@ export default async function inventoryRoutes(fastify) {
     let where = 'WHERE p.is_active=true'
 
     if (search) {
-      where += ` AND (p.name ILIKE $${pIdx} OR p.barcode ILIKE $${pIdx})`
+      where += ` AND (p.name ILIKE $${pIdx} OR EXISTS (SELECT 1 FROM product_barcodes pb WHERE pb.product_id = p.id AND pb.barcode LIKE $${pIdx}))`
       params.push(`%${search}%`)
       pIdx++
     }
@@ -21,7 +21,12 @@ export default async function inventoryRoutes(fastify) {
     else if (status === 'out') where += ` AND COALESCE(ws.stock_qty, 0) = 0`
 
     const { rows } = await pool.query(`
-      SELECT p.id, p.name, p.barcode, COALESCE(ws.stock_qty, 0) as stock_qty, p.price, p.unit, p.cost, c.name as category_name
+      SELECT p.id, p.name, COALESCE(ws.stock_qty, 0) as stock_qty, p.price, p.unit, p.cost, c.name as category_name,
+        COALESCE(
+          (SELECT json_group_array(json_object('id', pb2.id, 'barcode', pb2.barcode, 'is_primary', pb2.is_primary))
+           FROM product_barcodes pb2 WHERE pb2.product_id = p.id),
+          '[]'
+        ) as barcodes
       FROM products p
       LEFT JOIN categories c ON c.id=p.category_id
       LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
@@ -29,7 +34,14 @@ export default async function inventoryRoutes(fastify) {
       ORDER BY p.name
     `, params)
 
-    return rows
+    // Attach primary barcode for backward compat
+    const result = rows.map(p => {
+      const barcodes = Array.isArray(p.barcodes) ? p.barcodes : []
+      const primary = barcodes.find(b => b.is_primary) || barcodes[0]
+      return { ...p, barcode: primary?.barcode || null }
+    })
+
+    return result
   })
 
   // GET /api/inventory/adjustments — audit of adjustments

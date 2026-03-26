@@ -39,7 +39,7 @@ export default async function barcodeRoutes(fastify) {
     return { success: true }
   })
 
-  // GET /api/barcode/generate — auto-generate barcode for product
+  // GET /api/barcode/generate — auto-generate + save a barcode for product
   fastify.get('/api/barcode/generate', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const { product_id } = req.query
     if (!product_id) return reply.code(400).send({ error: 'product_id required' })
@@ -47,22 +47,26 @@ export default async function barcodeRoutes(fastify) {
     const { rows } = await pool.query('SELECT * FROM products WHERE id=$1', [product_id])
     if (!rows[0]) return reply.code(404).send({ error: 'Product not found' })
 
-    const product = rows[0]
-    if (product.barcode) {
-      return { barcode: product.barcode, generated: false }
+    // If product has no barcodes at all, generate one as primary
+    const { rows: existing } = await pool.query(
+      'SELECT barcode FROM product_barcodes WHERE product_id=$1 LIMIT 1',
+      [product_id]
+    )
+    if (existing.length > 0) {
+      return { barcode: existing[0].barcode, generated: false }
     }
 
     const barcode = generateBarcode(parseInt(product_id))
 
-    // Check uniqueness
-    const { rows: existing } = await pool.query('SELECT id FROM products WHERE barcode=$1', [barcode])
-    if (existing.length > 0) {
+    // Check global uniqueness
+    const { rows: conflict } = await pool.query('SELECT id FROM product_barcodes WHERE barcode=$1', [barcode])
+    if (conflict.length > 0) {
       return reply.code(409).send({ error: 'Generated barcode conflicts, try again' })
     }
 
     await pool.query(
-      'UPDATE products SET barcode=$1, updated_at=NOW() WHERE id=$2 AND barcode IS NULL',
-      [barcode, product_id]
+      'INSERT INTO product_barcodes (product_id, barcode, is_primary) VALUES ($1,$2,1)',
+      [product_id, barcode]
     )
 
     return { barcode, generated: true }

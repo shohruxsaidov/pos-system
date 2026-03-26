@@ -3,6 +3,30 @@ import { logAudit } from '../services/auditService.js'
 import { sendLowStockAlert, sendOversoldAlert } from '../services/notificationService.js'
 import { broadcastStatus } from '../services/statusService.js'
 
+const BARCODES_SUBQUERY = `
+  COALESCE(
+    (SELECT json_group_array(json_object('id', pb2.id, 'barcode', pb2.barcode, 'is_primary', pb2.is_primary))
+     FROM product_barcodes pb2 WHERE pb2.product_id = p.id),
+    '[]'
+  ) as barcodes`
+
+function withPrimaryBarcode(product) {
+  const barcodes = Array.isArray(product.barcodes) ? product.barcodes : []
+  const primary = barcodes.find(b => b.is_primary) || barcodes[0]
+  return { ...product, barcode: primary?.barcode || null }
+}
+
+async function saveBarcodes(productId, barcodes) {
+  await pool.query('DELETE FROM product_barcodes WHERE product_id=$1', [productId])
+  for (const bc of barcodes) {
+    if (!bc.barcode?.trim()) continue
+    await pool.query(
+      'INSERT INTO product_barcodes (product_id, barcode, is_primary) VALUES ($1,$2,$3) ON CONFLICT (barcode) DO NOTHING',
+      [productId, bc.barcode.trim(), bc.is_primary ? 1 : 0]
+    )
+  }
+}
+
 async function checkStockAlerts(product, warehouseId) {
   try {
     const threshold = product.low_stock_threshold ?? 5
@@ -31,7 +55,7 @@ export default async function productRoutes(fastify) {
     let whereClause = 'WHERE p.is_active=true'
 
     if (search) {
-      whereClause += ` AND (p.name ILIKE $${pIdx} OR p.barcode ILIKE $${pIdx})`
+      whereClause += ` AND (p.name ILIKE $${pIdx} OR EXISTS (SELECT 1 FROM product_barcodes pb WHERE pb.product_id = p.id AND pb.barcode LIKE $${pIdx}))`
       params.push(`%${search}%`)
       pIdx++
     }
@@ -49,7 +73,7 @@ export default async function productRoutes(fastify) {
     }
 
     const { rows } = await pool.query(`
-      SELECT p.*, c.name as category_name, COALESCE(ws.stock_qty, 0) AS stock_qty
+      SELECT p.*, c.name as category_name, COALESCE(ws.stock_qty, 0) AS stock_qty, ${BARCODES_SUBQUERY}
       FROM products p
       LEFT JOIN categories c ON c.id=p.category_id
       LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
@@ -65,68 +89,79 @@ export default async function productRoutes(fastify) {
       ${whereClause}
     `, params)
 
-    return { data: rows, total: parseInt(countRows[0].count), page: parseInt(page), limit: parseInt(limit) }
+    return { data: rows.map(withPrimaryBarcode), total: parseInt(countRows[0].count), page: parseInt(page), limit: parseInt(limit) }
   })
 
   // GET /api/products/barcode/:code
   fastify.get('/api/products/barcode/:code', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const warehouseId = req.user.warehouse_id || 1
     const { rows } = await pool.query(`
-      SELECT p.*, c.name as category_name, COALESCE(ws.stock_qty, 0) AS stock_qty
+      SELECT p.*, c.name as category_name, COALESCE(ws.stock_qty, 0) AS stock_qty, ${BARCODES_SUBQUERY}
       FROM products p
+      INNER JOIN product_barcodes pb ON pb.product_id = p.id
       LEFT JOIN categories c ON c.id=p.category_id
       LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
-      WHERE p.barcode=$2 AND p.is_active=true
+      WHERE pb.barcode=$2 AND p.is_active=true
     `, [warehouseId, req.params.code])
     if (!rows[0]) return reply.code(404).send({ error: 'Product not found' })
-    return rows[0]
+    return withPrimaryBarcode(rows[0])
   })
 
   // POST /api/products
   fastify.post('/api/products', { onRequest: [fastify.authenticate] }, async (req, reply) => {
-    const { barcode, name, category_id, price, cost, stock_qty, unit, image_url, low_stock_threshold } = req.body
+    const { barcode, barcodes, name, category_id, price, cost, stock_qty, unit, image_url, low_stock_threshold } = req.body
     if (!name || price === undefined) {
       return reply.code(400).send({ error: 'name and price are required' })
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO products (barcode, name, category_id, price, cost, unit, image_url, low_stock_threshold)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
-    `, [barcode || null, name, category_id || null, price, cost || 0, unit || 'pcs', image_url || null, low_stock_threshold ?? 5])
+      INSERT INTO products (name, category_id, price, cost, unit, image_url, low_stock_threshold)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
+    `, [name, category_id || null, price, cost || 0, unit || 'pcs', image_url || null, low_stock_threshold ?? 5])
 
+    const productId = rows[0].id
     const warehouseId = req.user.warehouse_id || 1
     const initialStock = stock_qty || 0
+
     await pool.query(`
       INSERT INTO warehouse_stock (warehouse_id, product_id, stock_qty)
       VALUES ($1, $2, $3)
       ON CONFLICT (warehouse_id, product_id) DO UPDATE SET stock_qty = EXCLUDED.stock_qty
-    `, [warehouseId, rows[0].id, initialStock])
+    `, [warehouseId, productId, initialStock])
+
+    // Save barcodes
+    const barcodesToSave = Array.isArray(barcodes) && barcodes.length > 0
+      ? barcodes.filter(b => b.barcode?.trim())
+      : (barcode ? [{ barcode, is_primary: 1 }] : [])
+    if (barcodesToSave.length > 0 && !barcodesToSave.some(b => b.is_primary)) {
+      barcodesToSave[0].is_primary = 1
+    }
+    await saveBarcodes(productId, barcodesToSave)
 
     await logAudit({
       action: 'product_create',
       actor: req.user,
-      target: { type: 'product', id: rows[0].id, name: rows[0].name },
+      target: { type: 'product', id: productId, name: rows[0].name },
       ip: req.ip
     })
 
-    return reply.code(201).send({ ...rows[0], stock_qty: initialStock })
+    return reply.code(201).send({ ...rows[0], stock_qty: initialStock, barcodes: barcodesToSave, barcode: barcodesToSave.find(b => b.is_primary)?.barcode || barcodesToSave[0]?.barcode || null })
   })
 
   // PUT /api/products/:id
   fastify.put('/api/products/:id', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const { id } = req.params
-    const { barcode, name, category_id, price, cost, unit, image_url, is_active, low_stock_threshold } = req.body
+    const { barcodes, name, category_id, price, cost, unit, image_url, is_active, low_stock_threshold } = req.body
 
     const { rows: before } = await pool.query('SELECT * FROM products WHERE id=$1', [id])
     if (!before[0]) return reply.code(404).send({ error: 'Product not found' })
 
     const { rows } = await pool.query(`
       UPDATE products SET
-        barcode=$1, name=$2, category_id=$3, price=$4, cost=$5,
-        unit=$6, image_url=$7, is_active=$8, low_stock_threshold=$9, updated_at=NOW()
-      WHERE id=$10 RETURNING *
+        name=$1, category_id=$2, price=$3, cost=$4,
+        unit=$5, image_url=$6, is_active=$7, low_stock_threshold=$8, updated_at=NOW()
+      WHERE id=$9 RETURNING *
     `, [
-      barcode ?? before[0].barcode,
       name ?? before[0].name,
       category_id ?? before[0].category_id,
       price ?? before[0].price,
@@ -138,6 +173,15 @@ export default async function productRoutes(fastify) {
       id
     ])
 
+    // Update barcodes if provided
+    if (Array.isArray(barcodes)) {
+      const barcodesToSave = barcodes.filter(b => b.barcode?.trim())
+      if (barcodesToSave.length > 0 && !barcodesToSave.some(b => b.is_primary)) {
+        barcodesToSave[0].is_primary = 1
+      }
+      await saveBarcodes(id, barcodesToSave)
+    }
+
     await logAudit({
       action: 'product_edit',
       actor: req.user,
@@ -148,12 +192,12 @@ export default async function productRoutes(fastify) {
 
     const warehouseId = req.user.warehouse_id || 1
     const { rows: result } = await pool.query(`
-      SELECT p.*, COALESCE(ws.stock_qty, 0) as stock_qty
+      SELECT p.*, COALESCE(ws.stock_qty, 0) as stock_qty, ${BARCODES_SUBQUERY}
       FROM products p
       LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
       WHERE p.id=$2
     `, [warehouseId, id])
-    return result[0]
+    return withPrimaryBarcode(result[0])
   })
 
   // PATCH /api/products/:id/stock
