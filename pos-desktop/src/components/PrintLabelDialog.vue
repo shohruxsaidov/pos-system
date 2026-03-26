@@ -132,7 +132,7 @@ function print() {
     }
     .label:last-child { page-break-after: avoid; break-after: avoid; }
     .label-store { font-size: 9px; color: #555; height: 11px; }
-    .label-name  { font-size: 12px; font-weight: 700; color: #111; text-align: center; }
+    .label-name  { font-size: 20px; font-weight: 700; color: #111; text-align: center; }
     .label-barcode svg { width: 100%; height: auto; }
     .label-price { font-size: 30px; font-weight: 700; color: #111; font-family: monospace; }
     @page { margin: 0; size: ${labelWidth} auto; }
