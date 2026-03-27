@@ -14,7 +14,10 @@ import { testConnection } from "./db/connection.js";
 import { setFastify, broadcastStatus } from "./services/statusService.js";
 import { startCronJobs } from "./services/cronService.js";
 import { startBot, stopBot } from "./services/botService.js";
-import { sendStartupNotification, sendShutdownNotification } from "./services/notificationService.js";
+import {
+  sendStartupNotification,
+  sendShutdownNotification,
+} from "./services/notificationService.js";
 import { runBackupSafe } from "./services/backupService.js";
 
 // Route imports
@@ -86,24 +89,6 @@ await fastify.register(multipart, {
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-// Serve mobile SPA
-const mobileDist = join(__dirname, "../../pos-mobile/dist");
-try {
-  await fastify.register(staticFiles, {
-    root: mobileDist,
-    prefix: "/mobile",
-    decorateReply: false,
-  });
-  fastify.get("/mobile", (req, reply) => {
-    const stream = fs.createReadStream(mobileDist + "/index.html");
-    reply.type("text/html").send(stream);
-  });
-} catch (e) {
-  fastify.log.warn(
-    "pos-mobile/dist not found — run: cd pos-mobile && npm run build",
-  );
-}
-
 // Register all routes
 await fastify.register(authRoutes);
 await fastify.register(productRoutes);
@@ -146,10 +131,13 @@ fastify.addHook("onReady", async () => {
   await startCronJobs();
 
   // Run backup 5 minutes after startup
-  setTimeout(() => {
-    console.log("[backup] Running startup backup (5min delay)...");
-    runBackupSafe().catch(() => {});
-  }, 5 * 60 * 1000);
+  setTimeout(
+    () => {
+      console.log("[backup] Running startup backup (5min delay)...");
+      runBackupSafe().catch(() => {});
+    },
+    5 * 60 * 1000,
+  );
 });
 
 fastify.addHook("onClose", async () => {
