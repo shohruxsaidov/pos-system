@@ -34,8 +34,10 @@ GoRouter buildRouter(WidgetRef ref) {
     initialLocation: '/sales',
     redirect: (context, state) {
       final auth = ref.read(authProvider);
-      final isLoggingIn = state.matchedLocation == '/login';
-      if (!auth.isLoggedIn && !isLoggingIn) return '/login';
+      final loc = state.matchedLocation;
+      final isLoggingIn = loc == '/login';
+      final isOfflineDrafts = loc == '/drafts';
+      if (!auth.isLoggedIn && !isLoggingIn && !isOfflineDrafts) return '/login';
       if (auth.isLoggedIn && isLoggingIn) return '/sales';
       return null;
     },

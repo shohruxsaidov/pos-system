@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/connectivity_provider.dart';
+import '../providers/offline_draft_provider.dart';
 import 'qr_scanner_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -225,6 +227,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             onTap: () =>
                                 setState(() => _selectedUser = user),
                           )),
+
+                    // Offline draft selling button
+                    const SizedBox(height: 24),
+                    _OfflineDraftButton(),
                   ] else ...[
                     // PIN entry
                     _buildPinEntry(),
@@ -369,6 +375,82 @@ class _UserCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OfflineDraftButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(connectivityProvider);
+    final pendingCount = ref.watch(offlineDraftProvider).pendingCount;
+
+    return Column(
+      children: [
+        if (!isOnline)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppColors.warningBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.wifi_off, color: AppColors.warning, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Нет подключения',
+                  style: TextStyle(color: AppColors.warning, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => context.push('/drafts'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textAccent,
+              side: const BorderSide(color: AppColors.borderDefault),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.edit_note_outlined, size: 18),
+                const SizedBox(width: 8),
+                const Text('Офлайн продажи'),
+                if (pendingCount > 0) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningBg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: AppColors.warning.withOpacity(0.4)),
+                    ),
+                    child: Text(
+                      '$pendingCount',
+                      style: const TextStyle(
+                        color: AppColors.warning,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

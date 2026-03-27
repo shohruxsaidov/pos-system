@@ -177,11 +177,40 @@ class _MainShellState extends ConsumerState<MainShell> {
                   child: Container(
                     width: 48,
                     alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.settings_outlined,
-                      color: AppColors.textMuted,
-                      size: 22,
-                    ),
+                    child: Builder(builder: (context) {
+                      final pendingCount = ref.watch(offlineDraftProvider).pendingCount;
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
+                            Icons.settings_outlined,
+                            color: AppColors.textMuted,
+                            size: 22,
+                          ),
+                          if (pendingCount > 0)
+                            Positioned(
+                              top: -4,
+                              right: -6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: AppColors.warning,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '$pendingCount',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    }),
                   ),
                 ),
               ],

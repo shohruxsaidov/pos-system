@@ -5,6 +5,7 @@ import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
+import '../providers/offline_draft_provider.dart';
 import 'offline_draft_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'reports_screen.dart';
@@ -158,30 +159,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // Draft sales (cashier / manager / admin)
           if (auth.user?.role == 'cashier' || auth.user?.role == 'manager' || auth.user?.role == 'admin') ...[
-            ListTile(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const OfflineDraftScreen()),
-              ),
-              tileColor: AppColors.bgSurface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(
-                  color: !isOnline ? AppColors.warning.withOpacity(0.4) : AppColors.borderSubtle,
+            Builder(builder: (context) {
+              final pendingCount = ref.watch(offlineDraftProvider).pendingCount;
+              return ListTile(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OfflineDraftScreen()),
                 ),
-              ),
-              leading: Icon(
-                Icons.edit_note,
-                color: !isOnline ? AppColors.warning : AppColors.accent1,
-              ),
-              title: const Text('Черновые продажи',
-                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-              subtitle: !isOnline
-                  ? const Text('Офлайн — режим активен',
-                      style: TextStyle(color: AppColors.warning, fontSize: 12))
-                  : null,
-              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-            ),
+                tileColor: AppColors.bgSurface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(
+                    color: !isOnline ? AppColors.warning.withOpacity(0.4) : AppColors.borderSubtle,
+                  ),
+                ),
+                leading: Icon(
+                  Icons.edit_note,
+                  color: !isOnline ? AppColors.warning : AppColors.accent1,
+                ),
+                title: const Text('Черновые продажи',
+                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                subtitle: !isOnline
+                    ? const Text('Офлайн — режим активен',
+                        style: TextStyle(color: AppColors.warning, fontSize: 12))
+                    : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (pendingCount > 0)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          '$pendingCount',
+                          style: const TextStyle(
+                            color: AppColors.warning,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 12),
           ],
 
