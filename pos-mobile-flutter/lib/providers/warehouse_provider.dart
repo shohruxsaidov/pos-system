@@ -52,6 +52,23 @@ class WarehouseNotifier extends StateNotifier<WarehouseState> {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<void> renameProduct(int id, String name) async {
+    await apiService.put('/api/products/$id', data: {'name': name});
+    final updated = state.products.map((p) {
+      if (p.id == id) return p.copyWith(name: name);
+      return p;
+    }).toList();
+    state = state.copyWith(products: updated);
+  }
+
+  void updateStockLocally(int id, int delta) {
+    final updated = state.products.map((p) {
+      if (p.id == id) return p.copyWith(stockQty: p.stockQty + delta);
+      return p;
+    }).toList();
+    state = state.copyWith(products: updated);
+  }
+
   void _deductStockLocally(Map<String, dynamic> payload) {
     final items = payload['items'] as List?;
     if (items == null) return;

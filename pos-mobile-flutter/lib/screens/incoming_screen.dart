@@ -746,43 +746,45 @@ class _ManualAddSheetState extends State<_ManualAddSheet> {
     }
     setState(() => _loading = true);
 
+    Map<String, dynamic>? barcodeMatch;
+    List<Map<String, dynamic>> nameResults = [];
+
     // 1. Try exact barcode lookup
     try {
       final bRes = await apiService.get(
           '/api/products/barcode/${Uri.encodeComponent(q.trim())}');
-      final product = bRes.data as Map<String, dynamic>;
-      setState(() {
-        _results = [product];
-        _loading = false;
-        _searched = true;
-      });
-      return;
+      barcodeMatch = bRes.data as Map<String, dynamic>;
     } catch (_) {}
 
-    // 2. Fall back to name search
+    // 2. Also search by name
     try {
       final res = await apiService
           .get('/api/products?search=${Uri.encodeComponent(q.trim())}&limit=30');
       final data = res.data;
-      List<Map<String, dynamic>> list = [];
       if (data is List) {
-        list = data.cast<Map<String, dynamic>>();
+        nameResults = data.cast<Map<String, dynamic>>();
       } else if (data is Map) {
         final inner = data['data'] ?? data['products'] ?? [];
-        list = (inner as List).cast<Map<String, dynamic>>();
+        nameResults = (inner as List).cast<Map<String, dynamic>>();
       }
-      setState(() {
-        _results = list;
-        _loading = false;
-        _searched = true;
-      });
-    } catch (_) {
-      setState(() {
-        _results = [];
-        _loading = false;
-        _searched = true;
-      });
+    } catch (_) {}
+
+    // Merge: barcode match first, then name results (deduplicated)
+    final List<Map<String, dynamic>> merged = [];
+    if (barcodeMatch != null) {
+      merged.add(barcodeMatch);
     }
+    for (final p in nameResults) {
+      if (barcodeMatch == null || p['id'] != barcodeMatch['id']) {
+        merged.add(p);
+      }
+    }
+
+    setState(() {
+      _results = merged;
+      _loading = false;
+      _searched = true;
+    });
   }
 
   Color _stockColor(int qty) {
@@ -879,8 +881,12 @@ class _ManualAddSheetState extends State<_ManualAddSheet> {
                       style: const TextStyle(
                           color: AppColors.textPrimary, fontSize: 16),
                       decoration: const InputDecoration(
-                        border: InputBorder.none,
                         hintText: 'Название или штрихкод...',
+                        hintStyle: TextStyle(color: AppColors.textMuted),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
                         contentPadding: EdgeInsets.zero,
                         isDense: true,
                       ),

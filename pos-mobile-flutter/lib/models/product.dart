@@ -9,6 +9,7 @@ class Product {
   final String unit;
   final int stockQty;
   final bool isActive;
+  final List<Map<String, dynamic>> barcodes;
 
   const Product({
     required this.id,
@@ -21,6 +22,7 @@ class Product {
     required this.unit,
     required this.stockQty,
     this.isActive = true,
+    this.barcodes = const [],
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -34,6 +36,9 @@ class Product {
         unit: json['unit'] as String? ?? 'pcs',
         stockQty: (json['stock_qty'] as num? ?? 0).toInt(),
         isActive: json['is_active'] as bool? ?? true,
+        barcodes: (json['barcodes'] as List?)
+                ?.cast<Map<String, dynamic>>() ??
+            [],
       );
 
   Map<String, dynamic> toJson() => {
@@ -47,12 +52,13 @@ class Product {
         'unit': unit,
         'stock_qty': stockQty,
         'is_active': isActive,
+        'barcodes': barcodes,
       };
 
-  Product copyWith({int? stockQty}) => Product(
+  Product copyWith({int? stockQty, String? name}) => Product(
         id: id,
         barcode: barcode,
-        name: name,
+        name: name ?? this.name,
         categoryName: categoryName,
         categoryId: categoryId,
         price: price,
@@ -60,5 +66,6 @@ class Product {
         unit: unit,
         stockQty: stockQty ?? this.stockQty,
         isActive: isActive,
+        barcodes: barcodes,
       );
 }

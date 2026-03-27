@@ -10,6 +10,7 @@ class ProductCard extends StatelessWidget {
   final int? cartQty;
   final VoidCallback? onAdjust;
   final VoidCallback? onPrint;
+  final VoidCallback? onRename;
   final VoidCallback? onTap;
 
   const ProductCard({
@@ -18,6 +19,7 @@ class ProductCard extends StatelessWidget {
     this.cartQty,
     this.onAdjust,
     this.onPrint,
+    this.onRename,
     this.onTap,
   });
 
@@ -144,7 +146,7 @@ class ProductCard extends StatelessWidget {
             ),
 
             // Action buttons
-            if (onAdjust != null || onPrint != null) ...[
+            if (onAdjust != null || onPrint != null || onRename != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -152,21 +154,31 @@ class ProductCard extends StatelessWidget {
                     Expanded(
                       child: _ActionBtn(
                         icon: Icons.tune,
-                        label: 'Adjust',
+                        label: 'Коррекция',
                         color: AppColors.warning,
                         onTap: onAdjust!,
                       ),
                     ),
-                  if (onAdjust != null && onPrint != null)
+                  if (onAdjust != null && onRename != null)
                     const SizedBox(width: 6),
-                  if (onPrint != null)
+                  if (onRename != null)
                     Expanded(
                       child: _ActionBtn(
-                        icon: Icons.print,
-                        label: 'Print',
+                        icon: Icons.edit_outlined,
+                        label: 'Переименовать',
                         color: AppColors.accent1,
-                        onTap: onPrint!,
+                        onTap: onRename!,
                       ),
+                    ),
+                  if ((onAdjust != null || onRename != null) && onPrint != null)
+                    const SizedBox(width: 6),
+                  if (onPrint != null)
+                    _ActionBtn(
+                      icon: Icons.print_outlined,
+                      label: '',
+                      color: AppColors.textSecondary,
+                      onTap: onPrint!,
+                      compact: true,
                     ),
                 ],
               ),
@@ -183,12 +195,14 @@ class _ActionBtn extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
+  final bool compact;
 
   const _ActionBtn({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
+    this.compact = false,
   });
 
   @override
@@ -196,22 +210,27 @@ class _ActionBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: compact
+            ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+            : const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
           children: [
             Icon(icon, color: color, size: 14),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500)),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Text(label,
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500)),
+            ],
           ],
         ),
       ),

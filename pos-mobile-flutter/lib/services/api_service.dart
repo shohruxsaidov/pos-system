@@ -51,6 +51,16 @@ class ApiService {
     return _parse(res);
   }
 
+  Future<ApiResponse> put(String path, {dynamic data}) async {
+    final uri = Uri.parse(ApiConfig.endpoint(path));
+    final res = await _client
+        .put(uri,
+            headers: _headers,
+            body: data != null ? jsonEncode(data) : null)
+        .timeout(const Duration(seconds: 10));
+    return _parse(res);
+  }
+
   Future<ApiResponse> patch(String path, {dynamic data}) async {
     final uri = Uri.parse(ApiConfig.endpoint(path));
     final res = await _client
