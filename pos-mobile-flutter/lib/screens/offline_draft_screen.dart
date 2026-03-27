@@ -19,6 +19,7 @@ class OfflineDraftScreen extends ConsumerStatefulWidget {
 
 class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
   final _barcodeCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
   final _qtyFocus = FocusNode();
   final _barcodeFocus = FocusNode();
   String _qtyValue = '1';
@@ -27,6 +28,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
   @override
   void dispose() {
     _barcodeCtrl.dispose();
+    _notesCtrl.dispose();
     _qtyFocus.dispose();
     _barcodeFocus.dispose();
     super.dispose();
@@ -80,8 +82,9 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
       return;
     }
 
-    await ref.read(offlineDraftProvider.notifier).addDraft(barcode, qty);
+    await ref.read(offlineDraftProvider.notifier).addDraft(barcode, qty, notes: _notesCtrl.text);
     _barcodeCtrl.clear();
+    _notesCtrl.clear();
     setState(() {
       _resolvedProduct = null;
       _qtyValue = '1';
@@ -198,6 +201,19 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                         ],
                       ),
                     ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Notes field
+                  TextField(
+                    controller: _notesCtrl,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(
+                      hintText: 'Комментарий (необязательно)',
+                      prefixIcon: Icon(Icons.comment_outlined, color: AppColors.textMuted),
+                    ),
+                    maxLines: 1,
                   ),
 
                   const SizedBox(height: 14),
@@ -445,6 +461,14 @@ class _DraftRow extends StatelessWidget {
                     ],
                   ],
                 ),
+                if (draft.notes != null && draft.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    draft.notes!,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   timeFmt.format(draft.createdAt),

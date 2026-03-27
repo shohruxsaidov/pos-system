@@ -42,7 +42,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     state = state.copyWith(drafts: drafts);
   }
 
-  Future<void> addDraft(String barcode, double qty) async {
+  Future<void> addDraft(String barcode, double qty, {String? notes}) async {
     final product = await resolveProductByBarcode(barcode);
     final draft = OfflineDraft(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -52,6 +52,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
       resolvedPrice: product?.price,
       createdAt: DateTime.now(),
       status: OfflineDraftStatus.pending,
+      notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
     );
     final updated = [...state.drafts, draft];
     state = state.copyWith(drafts: updated);
@@ -115,6 +116,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
         'total': subtotal,
         'payment_method': 'cash',
         'tendered': subtotal,
+        if (draft.notes != null && draft.notes!.isNotEmpty) 'notes': draft.notes,
       };
 
       try {

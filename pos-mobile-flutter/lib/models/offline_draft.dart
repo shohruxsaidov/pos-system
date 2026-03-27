@@ -9,6 +9,7 @@ class OfflineDraft {
   final DateTime createdAt;
   final OfflineDraftStatus status;
   final String? errorMessage;
+  final String? notes;
 
   const OfflineDraft({
     required this.id,
@@ -19,6 +20,7 @@ class OfflineDraft {
     required this.createdAt,
     this.status = OfflineDraftStatus.pending,
     this.errorMessage,
+    this.notes,
   });
 
   OfflineDraft copyWith({
@@ -30,6 +32,7 @@ class OfflineDraft {
     DateTime? createdAt,
     OfflineDraftStatus? status,
     String? errorMessage,
+    String? notes,
   }) =>
       OfflineDraft(
         id: id ?? this.id,
@@ -40,6 +43,7 @@ class OfflineDraft {
         createdAt: createdAt ?? this.createdAt,
         status: status ?? this.status,
         errorMessage: errorMessage ?? this.errorMessage,
+        notes: notes ?? this.notes,
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,6 +55,7 @@ class OfflineDraft {
         'createdAt': createdAt.toIso8601String(),
         'status': status.name,
         'errorMessage': errorMessage,
+        'notes': notes,
       };
 
   factory OfflineDraft.fromJson(Map<String, dynamic> json) => OfflineDraft(
@@ -67,5 +72,6 @@ class OfflineDraft {
           orElse: () => OfflineDraftStatus.pending,
         ),
         errorMessage: json['errorMessage'] as String?,
+        notes: json['notes'] as String?,
       );
 }
