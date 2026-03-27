@@ -9,6 +9,7 @@
         <Tab value="general">Общие</Tab>
         <Tab value="users">Пользователи</Tab>
         <Tab value="telegram">Telegram</Tab>
+        <Tab value="barcode">Этикетки</Tab>
         <Tab value="audit">Журнал аудита</Tab>
       </TabList>
 
@@ -154,6 +155,82 @@
           </div>
         </TabPanel>
 
+        <!-- Barcode Labels -->
+        <TabPanel value="barcode">
+          <div class="barcode-tab-layout">
+            <!-- Controls -->
+            <div class="settings-section">
+              <div class="field-group">
+                <label class="field-label">Размер этикетки по умолчанию</label>
+                <div class="size-toggle">
+                  <button class="size-btn" :class="{ active: settings.label_default_size !== '58mm' }"
+                    type="button" @click="settings.label_default_size = '80mm'">80mm</button>
+                  <button class="size-btn" :class="{ active: settings.label_default_size === '58mm' }"
+                    type="button" @click="settings.label_default_size = '58mm'">58mm</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Количество копий по умолчанию</label>
+                <div class="copies-control">
+                  <Button icon="pi pi-minus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="decrementCopies" />
+                  <div class="copies-display font-mono">{{ settings.label_default_copies || '1' }}</div>
+                  <Button icon="pi pi-plus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="incrementCopies" />
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Размер шрифта (px)</label>
+                <div class="copies-control">
+                  <Button icon="pi pi-minus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="decrementFontSize" />
+                  <div class="copies-display font-mono">{{ settings.label_font_size || '14' }}</div>
+                  <Button icon="pi pi-plus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="incrementFontSize" />
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Высота штрихкода (px)</label>
+                <div class="copies-control">
+                  <Button icon="pi pi-minus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="decrementBarcodeHeight" />
+                  <div class="copies-display font-mono">{{ settings.label_barcode_height || '48' }}</div>
+                  <Button icon="pi pi-plus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="incrementBarcodeHeight" />
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Показывать название магазина</label>
+                <ToggleSwitch v-model="labelShowStore"
+                  @change="settings.label_show_store = labelShowStore ? 'true' : 'false'" />
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Показывать цену</label>
+                <ToggleSwitch v-model="labelShowPrice"
+                  @change="settings.label_show_price = labelShowPrice ? 'true' : 'false'" />
+              </div>
+
+              <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" style="width:180px" />
+            </div>
+
+            <!-- Live preview -->
+            <div class="bc-preview-col">
+              <div class="field-label" style="margin-bottom:12px">Предпросмотр</div>
+              <div class="bc-preview" :class="settings.label_default_size === '58mm' ? 'bc-size-58mm' : 'bc-size-80mm'">
+                <div v-if="labelShowStore" class="bc-store">{{ settings.store_name || 'Main Market Store' }}</div>
+                <div class="bc-name" :style="{ fontSize: (settings.label_font_size || 14) + 'px' }">Рис 5кг</div>
+                <svg ref="svgPreviewRef" class="bc-barcode" />
+                <div v-if="labelShowPrice" class="bc-price font-mono">45.00</div>
+              </div>
+            </div>
+          </div>
+        </TabPanel>
+
         <!-- Audit Log -->
         <TabPanel value="audit">
           <div class="audit-section">
@@ -227,8 +304,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useApi } from '../composables/useApi.js'
+import { renderBarcode } from '../composables/useBarcode.js'
 import { useToast } from 'primevue/usetoast'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -259,7 +337,23 @@ const testingAI = ref(false)
 const telegramEnabled = ref(false)
 const aiSummaryEnabled = ref(false)
 const telegramStatus = ref(null)
+const labelShowStore = ref(true)
+const labelShowPrice = ref(true)
 const aiSummaryStatus = ref(null)
+const svgPreviewRef = ref(null)
+const PREVIEW_BARCODE = '2000001234560'
+
+function renderPreview() {
+  nextTick(() => {
+    if (svgPreviewRef.value) {
+      renderBarcode(svgPreviewRef.value, PREVIEW_BARCODE, {
+        displayValue: true,
+        height: parseInt(settings.value.label_barcode_height) || 48,
+        lineColor: '#000',
+      })
+    }
+  })
+}
 
 const users = ref([])
 const loadingUsers = ref(false)
@@ -286,13 +380,18 @@ onMounted(async () => {
 
 watch(activeTab, async (tab) => {
   if (tab === 'audit' && !auditLogs.value.length) await loadAudit()
+  if (tab === 'barcode') renderPreview()
 })
+
+watch(() => settings.value.label_barcode_height, renderPreview)
 
 async function loadSettings() {
   try {
     settings.value = await api.get('/api/settings')
     telegramEnabled.value = settings.value.telegram_enabled === 'true'
     aiSummaryEnabled.value = settings.value.ai_summary_enabled === 'true'
+    labelShowStore.value = settings.value.label_show_store !== 'false'
+    labelShowPrice.value = settings.value.label_show_price !== 'false'
   } catch (e) { }
 }
 
@@ -332,6 +431,36 @@ async function testAISummary() {
   } finally {
     testingAI.value = false
   }
+}
+
+function decrementCopies() {
+  const cur = parseInt(settings.value.label_default_copies || 1)
+  settings.value.label_default_copies = String(Math.max(1, cur - 1))
+}
+
+function incrementCopies() {
+  const cur = parseInt(settings.value.label_default_copies || 1)
+  settings.value.label_default_copies = String(Math.min(50, cur + 1))
+}
+
+function decrementFontSize() {
+  const cur = parseInt(settings.value.label_font_size || 14)
+  settings.value.label_font_size = String(Math.max(8, cur - 1))
+}
+
+function incrementFontSize() {
+  const cur = parseInt(settings.value.label_font_size || 14)
+  settings.value.label_font_size = String(Math.min(40, cur + 1))
+}
+
+function decrementBarcodeHeight() {
+  const cur = parseInt(settings.value.label_barcode_height || 48)
+  settings.value.label_barcode_height = String(Math.max(20, cur - 4))
+}
+
+function incrementBarcodeHeight() {
+  const cur = parseInt(settings.value.label_barcode_height || 48)
+  settings.value.label_barcode_height = String(Math.min(120, cur + 4))
 }
 
 async function loadUsers() {
@@ -529,5 +658,97 @@ function actionSeverity(action) {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.size-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.size-btn {
+  padding: 0 20px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.size-btn.active {
+  border-color: var(--accent-1);
+  background: var(--accent-glow);
+  color: var(--text-accent);
+}
+
+.copies-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.copies-display {
+  width: 80px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.barcode-tab-layout {
+  display: flex;
+  gap: 40px;
+  padding: 16px 0;
+  align-items: flex-start;
+}
+
+.bc-preview-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.bc-preview {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+}
+
+.bc-size-80mm { width: 302px; }
+.bc-size-58mm { width: 220px; }
+
+.bc-store {
+  font-size: 10px;
+  color: #666;
+  font-family: var(--font-sans);
+  align-self: flex-start;
+}
+
+.bc-name {
+  font-weight: 700;
+  color: #111;
+  text-align: center;
+  line-height: 1.2;
+  width: 100%;
+}
+
+.bc-barcode {
+  width: 100%;
+}
+
+.bc-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111;
+  font-family: monospace;
 }
 </style>
