@@ -54,7 +54,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       _items.insert(
         0,
         IncomingItem(
-          productId: data['id'] as int?,
+          productId: (data['id'] as num?)?.toInt(),
           productName: data['name'] as String? ?? '',
           barcode: data['barcode'] as String?,
           qty: 1,
@@ -1003,7 +1003,7 @@ class _ManualAddSheetState extends State<_ManualAddSheet> {
                             itemCount: _results.length,
                             itemBuilder: (_, i) {
                               final p = _results[i];
-                              final stock = (p['stock_qty'] ?? 0) as int;
+                              final stock = ((p['stock_qty'] ?? 0) as num).toInt();
                               return GestureDetector(
                                 onTap: () =>
                                     widget.onSelected(Product.fromJson(p)),

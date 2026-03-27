@@ -26,11 +26,11 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
-        id: json['id'] as int,
+        id: (json['id'] as num).toInt(),
         barcode: json['barcode'] as String?,
         name: json['name'] as String,
         categoryName: json['category_name'] as String?,
-        categoryId: json['category_id'] as int?,
+        categoryId: (json['category_id'] as num?)?.toInt(),
         price: (json['price'] as num).toDouble(),
         cost: (json['cost'] as num? ?? 0).toDouble(),
         unit: json['unit'] as String? ?? 'pcs',

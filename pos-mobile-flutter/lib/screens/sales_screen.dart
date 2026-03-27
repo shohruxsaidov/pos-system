@@ -9,7 +9,7 @@ import '../providers/warehouse_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/cart_sheet.dart';
 import '../widgets/payment_sheet.dart';
-import '../widgets/product_card.dart';
+import '../widgets/sale_product_card.dart';
 
 class SalesScreen extends ConsumerStatefulWidget {
   const SalesScreen({super.key});
@@ -207,9 +207,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 0.85,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                mainAxisExtent: 130,
                               ),
                               itemCount: filtered.length,
                               itemBuilder: (_, i) {
@@ -220,7 +220,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                                         0,
                                         (s, c) =>
                                             s + c.qty.toInt());
-                                return ProductCard(
+                                return SaleProductCard(
                                   product: p,
                                   cartQty: cqty,
                                   onTap: () => _addToCart(p),
