@@ -3,11 +3,13 @@ import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
 import '../utils/stock_status.dart';
+import 'highlight_text.dart';
 
 /// MobileProductCard — equivalent to MobileProductCard.vue
 class ProductCard extends StatelessWidget {
   final Product product;
   final int? cartQty;
+  final String query;
   final VoidCallback? onAdjust;
   final VoidCallback? onPrint;
   final VoidCallback? onRename;
@@ -17,6 +19,7 @@ class ProductCard extends StatelessWidget {
     super.key,
     required this.product,
     this.cartQty,
+    this.query = '',
     this.onAdjust,
     this.onPrint,
     this.onRename,
@@ -43,8 +46,9 @@ class ProductCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    product.name,
+                  child: HighlightText(
+                    text: product.name,
+                    query: query,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -78,8 +82,9 @@ class ProductCard extends StatelessWidget {
 
             // Barcode
             if (product.barcode != null)
-              Text(
-                product.barcode!,
+              HighlightText(
+                text: product.barcode!,
+                query: query,
                 style: const TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 11,

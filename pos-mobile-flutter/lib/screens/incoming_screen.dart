@@ -7,6 +7,7 @@ import '../models/product.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/bottom_numpad.dart';
+import '../widgets/highlight_text.dart';
 
 const _units = ['шт', 'кг', 'г', 'л', 'упак', 'коробка'];
 
@@ -1024,8 +1025,9 @@ class _ManualAddSheetState extends State<_ManualAddSheet> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              p['name'] as String? ?? '',
+                                            HighlightText(
+                                              text: p['name'] as String? ?? '',
+                                              query: _searchCtrl.text.trim(),
                                               style: const TextStyle(
                                                 color: AppColors.textPrimary,
                                                 fontSize: 15,
@@ -1033,8 +1035,9 @@ class _ManualAddSheetState extends State<_ManualAddSheet> {
                                               ),
                                             ),
                                             const SizedBox(height: 4),
-                                            Text(
-                                              '${p['barcode'] ?? '—'} · ${p['unit'] ?? 'шт'}',
+                                            HighlightText(
+                                              text: '${p['barcode'] ?? '—'} · ${p['unit'] ?? 'шт'}',
+                                              query: _searchCtrl.text.trim(),
                                               style: const TextStyle(
                                                   color: AppColors.textMuted,
                                                   fontSize: 12,

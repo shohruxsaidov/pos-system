@@ -327,6 +327,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                     const EdgeInsets.only(bottom: 10),
                                 child: ProductCard(
                                   product: filtered[i],
+                                  query: _query,
                                   onAdjust: () =>
                                       _openAdjust(filtered[i]),
                                   onPrint: () =>

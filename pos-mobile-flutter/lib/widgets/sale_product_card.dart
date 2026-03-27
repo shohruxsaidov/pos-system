@@ -3,17 +3,20 @@ import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
 import '../utils/stock_status.dart';
+import 'highlight_text.dart';
 
 /// Compact sale card — matches MobileSaleView.vue product grid card
 class SaleProductCard extends StatelessWidget {
   final Product product;
   final int cartQty;
+  final String query;
   final VoidCallback onTap;
 
   const SaleProductCard({
     super.key,
     required this.product,
     required this.cartQty,
+    this.query = '',
     required this.onTap,
   });
 
@@ -51,8 +54,9 @@ class SaleProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Product name — 2 lines max
-                  Text(
-                    product.name,
+                  HighlightText(
+                    text: product.name,
+                    query: query,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14,

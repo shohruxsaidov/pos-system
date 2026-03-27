@@ -223,6 +223,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                                 return SaleProductCard(
                                   product: p,
                                   cartQty: cqty,
+                                  query: _query,
                                   onTap: () => _addToCart(p),
                                 );
                               },
