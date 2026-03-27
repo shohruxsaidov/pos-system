@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +33,6 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     final idx = _items.indexWhere((i) => i.productId == product.id);
     if (idx >= 0) {
       setState(() => _items[idx].qty += 1);
-      _showSnack('Количество обновлено: ${product.name}', isInfo: true);
     } else {
       setState(() {
         _items.insert(
@@ -46,7 +47,6 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
           ),
         );
       });
-      _showSnack('Добавлено: ${product.name}');
     }
   }
 
@@ -87,11 +87,14 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
   }
 
   void _showNotFound(String? barcode, {String prefillName = ''}) {
+    // If searched text is all digits, treat it as a barcode
+    final isNumeric =
+        prefillName.isNotEmpty && RegExp(r'^\d+$').hasMatch(prefillName);
     showDialog(
       context: context,
       builder: (_) => _ProductNotFoundDialog(
-        barcode: barcode ?? '',
-        prefillName: prefillName,
+        barcode: barcode ?? (isNumeric ? prefillName : ''),
+        prefillName: isNumeric ? '' : prefillName,
         onCreated: (data) {
           Navigator.pop(context);
           _addCreatedProduct(data);
@@ -1100,8 +1103,18 @@ class _ProductNotFoundDialog extends StatefulWidget {
       _ProductNotFoundDialogState();
 }
 
+String _generateBarcode() {
+  final base = '200${Random().nextInt(999999).toString().padLeft(6, '0')}';
+  int sum = 0;
+  for (int i = 0; i < base.length; i++) {
+    sum += int.parse(base[i]) * (i % 2 == 0 ? 1 : 3);
+  }
+  return '$base${(10 - (sum % 10)) % 10}';
+}
+
 class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
   late final TextEditingController _nameCtrl;
+  late final TextEditingController _barcodeCtrl;
   final _priceCtrl = TextEditingController();
   String _unit = 'шт';
   bool _loading = false;
@@ -1111,11 +1124,15 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.prefillName);
+    _barcodeCtrl = TextEditingController(
+      text: widget.barcode.isNotEmpty ? widget.barcode : _generateBarcode(),
+    );
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _barcodeCtrl.dispose();
     _priceCtrl.dispose();
     super.dispose();
   }
@@ -1124,8 +1141,9 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
     if (_nameCtrl.text.trim().isEmpty) return;
     setState(() => _loading = true);
     try {
+      final barcode = _barcodeCtrl.text.trim();
       final res = await apiService.post('/api/products', data: {
-        'barcode': widget.barcode.isNotEmpty ? widget.barcode : null,
+        'barcode': barcode.isNotEmpty ? barcode : null,
         'name': _nameCtrl.text.trim(),
         'price': double.tryParse(_priceCtrl.text) ?? 0,
         'cost': 0,
@@ -1151,18 +1169,17 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.barcode.isNotEmpty) ...[
-            Text(
-              'Штрихкод: ${widget.barcode}',
-              style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 13,
-                  fontFamily: 'monospace'),
-            ),
-            const SizedBox(height: 12),
-          ],
+          TextField(
+            controller: _barcodeCtrl,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(
+                color: AppColors.textPrimary, fontFamily: 'monospace'),
+            decoration: const InputDecoration(labelText: 'Штрихкод'),
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'Название товара'),
           ),

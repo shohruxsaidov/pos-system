@@ -1,6 +1,7 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
 import '../providers/warehouse_provider.dart';
@@ -93,6 +94,55 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               .renameProduct(product.id, newName);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Название изменено')),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openAddBarcode(Product product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddBarcodeSheet(
+        product: product,
+        onSaved: (barcode) {
+          Navigator.pop(context);
+          ref.read(warehouseProvider.notifier).addBarcode(product.id, barcode);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Штрихкод добавлен')),
+          );
+        },
+        onGenerate: () async {
+          final barcode = await ref
+              .read(warehouseProvider.notifier)
+              .generateBarcode(product.id);
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Штрихкод сгенерирован: $barcode')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _openChangePrice(Product product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ChangePriceSheet(
+        product: product,
+        onSaved: (newPrice) {
+          Navigator.pop(context);
+          ref
+              .read(warehouseProvider.notifier)
+              .updatePrice(product.id, newPrice);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Цена изменена')),
           );
         },
       ),
@@ -334,6 +384,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                       _openPrint(filtered[i]),
                                   onRename: () =>
                                       _openRename(filtered[i]),
+                                  onChangePrice: () =>
+                                      _openChangePrice(filtered[i]),
+                                  onAddBarcode: () =>
+                                      _openAddBarcode(filtered[i]),
                                 ),
                               );
                             },
@@ -640,6 +694,229 @@ class _PrintSheetState extends State<_PrintSheet> {
   }
 }
 
+// ─── Add Barcode Sheet ────────────────────────────────────────────────────────
+
+class _AddBarcodeSheet extends StatefulWidget {
+  final Product product;
+  final void Function(String) onSaved;
+  final Future<void> Function() onGenerate;
+
+  const _AddBarcodeSheet({
+    required this.product,
+    required this.onSaved,
+    required this.onGenerate,
+  });
+
+  @override
+  State<_AddBarcodeSheet> createState() => _AddBarcodeSheetState();
+}
+
+class _AddBarcodeSheetState extends State<_AddBarcodeSheet> {
+  late final TextEditingController _ctrl;
+  bool _saving = false;
+  bool _generating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.product.barcode ?? '');
+    if (_ctrl.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ctrl.selection =
+          TextSelection(baseOffset: 0, extentOffset: _ctrl.text.length));
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final barcode = _ctrl.text.trim();
+    if (barcode.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    widget.onSaved(barcode);
+  }
+
+  Future<void> _generate() async {
+    if (_generating || _saving) return;
+    setState(() => _generating = true);
+    try {
+      await widget.onGenerate();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppColors.dangerBg,
+          ),
+        );
+        setState(() => _generating = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          20, 0, 20, 24 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.borderDefault,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          const Text(
+            'Добавить штрихкод',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+
+          Text(
+            widget.product.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+
+          // Barcode input
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _ctrl,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontFamily: 'monospace'),
+                  onSubmitted: (_) => _save(),
+                  decoration:
+                      const InputDecoration(hintText: 'Сканируйте или введите штрихкод'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Auto-generate button
+              GestureDetector(
+                onTap: _generate,
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.bgInput,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.borderDefault),
+                  ),
+                  child: _generating
+                      ? const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                color: AppColors.accent1, strokeWidth: 2),
+                          ),
+                        )
+                      : const Icon(Icons.auto_awesome,
+                          color: AppColors.accent1, size: 20),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '✦ Нажмите на иконку для автогенерации',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side:
+                          const BorderSide(color: AppColors.borderDefault),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Отмена'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 56,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.gradientHero,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: TextButton(
+                      onPressed: _saving ? null : _save,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check, size: 18),
+                                SizedBox(width: 6),
+                                Text('Сохранить',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CopiesBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -761,6 +1038,168 @@ class _RenameSheetState extends State<_RenameSheet> {
                       foregroundColor: AppColors.textSecondary,
                       side:
                           const BorderSide(color: AppColors.borderDefault),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Отмена'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 56,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.gradientHero,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: TextButton(
+                      onPressed: _saving ? null : _save,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check, size: 18),
+                                SizedBox(width: 6),
+                                Text('Сохранить',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Change Price Sheet ───────────────────────────────────────────────────────
+
+class _ChangePriceSheet extends StatefulWidget {
+  final Product product;
+  final void Function(double) onSaved;
+  const _ChangePriceSheet({required this.product, required this.onSaved});
+
+  @override
+  State<_ChangePriceSheet> createState() => _ChangePriceSheetState();
+}
+
+class _ChangePriceSheetState extends State<_ChangePriceSheet> {
+  late final TextEditingController _ctrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(
+        text: widget.product.price.toStringAsFixed(2));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ctrl.selection =
+        TextSelection(baseOffset: 0, extentOffset: _ctrl.text.length));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final price = double.tryParse(_ctrl.text.trim().replaceAll(',', '.'));
+    if (price == null || price < 0 || _saving) return;
+    setState(() => _saving = true);
+    widget.onSaved(price);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0.00');
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          20, 0, 20, 24 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.borderDefault,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          const Text(
+            'Изменить цену',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+
+          Text(
+            widget.product.name,
+            style:
+                const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Текущая цена: ${fmt.format(widget.product.price)}',
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            style:
+                const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            onSubmitted: (_) => _save(),
+            decoration: const InputDecoration(hintText: 'Новая цена'),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: const BorderSide(
+                          color: AppColors.borderDefault),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                     ),

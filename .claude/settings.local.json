@@ -18,7 +18,9 @@
       "Bash(pod:*)",
       "Bash(xcrun simctl:*)",
       "Bash(open -a Simulator)",
-      "Bash(dart run:*)"
+      "Bash(dart run:*)",
+      "Bash(ls -1 /Users/shohruxsaidov/Documents/projects/pos/pos-mobile-flutter/lib/screens/*.dart)",
+      "Bash(xargs -I {} basename {})"
     ]
   }
 }

@@ -35,7 +35,11 @@ class Product {
         cost: (json['cost'] as num? ?? 0).toDouble(),
         unit: json['unit'] as String? ?? 'pcs',
         stockQty: (json['stock_qty'] as num? ?? 0).toInt(),
-        isActive: json['is_active'] as bool? ?? true,
+        isActive: switch (json['is_active']) {
+          bool b => b,
+          num n => n != 0,
+          _ => true,
+        },
         barcodes: (json['barcodes'] as List?)
                 ?.cast<Map<String, dynamic>>() ??
             [],
@@ -55,13 +59,13 @@ class Product {
         'barcodes': barcodes,
       };
 
-  Product copyWith({int? stockQty, String? name}) => Product(
+  Product copyWith({int? stockQty, String? name, double? price, String? barcode}) => Product(
         id: id,
-        barcode: barcode,
+        barcode: barcode ?? this.barcode,
         name: name ?? this.name,
         categoryName: categoryName,
         categoryId: categoryId,
-        price: price,
+        price: price ?? this.price,
         cost: cost,
         unit: unit,
         stockQty: stockQty ?? this.stockQty,

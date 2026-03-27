@@ -13,6 +13,8 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onAdjust;
   final VoidCallback? onPrint;
   final VoidCallback? onRename;
+  final VoidCallback? onChangePrice;
+  final VoidCallback? onAddBarcode;
   final VoidCallback? onTap;
 
   const ProductCard({
@@ -23,6 +25,8 @@ class ProductCard extends StatelessWidget {
     this.onAdjust,
     this.onPrint,
     this.onRename,
+    this.onChangePrice,
+    this.onAddBarcode,
     this.onTap,
   });
 
@@ -151,7 +155,11 @@ class ProductCard extends StatelessWidget {
             ),
 
             // Action buttons
-            if (onAdjust != null || onPrint != null || onRename != null) ...[
+            if (onAdjust != null ||
+                onPrint != null ||
+                onRename != null ||
+                onChangePrice != null ||
+                onAddBarcode != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -170,12 +178,41 @@ class ProductCard extends StatelessWidget {
                     Expanded(
                       child: _ActionBtn(
                         icon: Icons.edit_outlined,
-                        label: 'Переименовать',
+                        label: 'Переим.',
                         color: AppColors.accent1,
                         onTap: onRename!,
                       ),
                     ),
-                  if ((onAdjust != null || onRename != null) && onPrint != null)
+                  if ((onAdjust != null || onRename != null) &&
+                      onChangePrice != null)
+                    const SizedBox(width: 6),
+                  if (onChangePrice != null)
+                    Expanded(
+                      child: _ActionBtn(
+                        icon: Icons.sell_outlined,
+                        label: 'Цена',
+                        color: AppColors.success,
+                        onTap: onChangePrice!,
+                      ),
+                    ),
+                  if ((onAdjust != null ||
+                          onRename != null ||
+                          onChangePrice != null) &&
+                      onAddBarcode != null)
+                    const SizedBox(width: 6),
+                  if (onAddBarcode != null)
+                    _ActionBtn(
+                      icon: Icons.qr_code,
+                      label: '',
+                      color: AppColors.textSecondary,
+                      onTap: onAddBarcode!,
+                      compact: true,
+                    ),
+                  if ((onAdjust != null ||
+                          onRename != null ||
+                          onChangePrice != null ||
+                          onAddBarcode != null) &&
+                      onPrint != null)
                     const SizedBox(width: 6),
                   if (onPrint != null)
                     _ActionBtn(

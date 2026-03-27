@@ -61,6 +61,40 @@ class WarehouseNotifier extends StateNotifier<WarehouseState> {
     state = state.copyWith(products: updated);
   }
 
+  Future<void> updatePrice(int id, double price) async {
+    await apiService.put('/api/products/$id', data: {'price': price});
+    final updated = state.products.map((p) {
+      if (p.id == id) return p.copyWith(price: price);
+      return p;
+    }).toList();
+    state = state.copyWith(products: updated);
+  }
+
+  Future<String> addBarcode(int id, String barcode) async {
+    await apiService.put('/api/products/$id', data: {'barcode': barcode});
+    final updated = state.products.map((p) {
+      if (p.id == id) return p.copyWith(barcode: barcode);
+      return p;
+    }).toList();
+    state = state.copyWith(products: updated);
+    return barcode;
+  }
+
+  Future<String> generateBarcode(int id) async {
+    final res = await apiService.get(
+      '/api/barcode/generate',
+      queryParams: {'product_id': id},
+    );
+    final data = res.data as Map<String, dynamic>;
+    final barcode = data['barcode'] as String;
+    final updated = state.products.map((p) {
+      if (p.id == id) return p.copyWith(barcode: barcode);
+      return p;
+    }).toList();
+    state = state.copyWith(products: updated);
+    return barcode;
+  }
+
   void updateStockLocally(int id, int delta) {
     final updated = state.products.map((p) {
       if (p.id == id) return p.copyWith(stockQty: p.stockQty + delta);
