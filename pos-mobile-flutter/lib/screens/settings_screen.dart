@@ -177,7 +177,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Icons.edit_note,
                   color: !isOnline ? AppColors.warning : AppColors.accent1,
                 ),
-                title: const Text('Черновые продажи',
+                title: const Text('Offline продажа',
                     style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
                 subtitle: !isOnline
                     ? const Text('Офлайн — режим активен',

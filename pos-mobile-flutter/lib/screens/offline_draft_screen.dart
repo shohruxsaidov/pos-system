@@ -109,7 +109,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
-        title: const Text('Черновые продажи'),
+        title: const Text('Offline продажа'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
