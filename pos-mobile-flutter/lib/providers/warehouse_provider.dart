@@ -22,8 +22,9 @@ class WarehouseState {
       );
 }
 
-class WarehouseNotifier extends StateNotifier<WarehouseState> {
-  WarehouseNotifier() : super(const WarehouseState());
+class WarehouseNotifier extends Notifier<WarehouseState> {
+  @override
+  WarehouseState build() => const WarehouseState();
 
   Future<void> fetchProducts() async {
     state = state.copyWith(loading: true);
@@ -118,6 +119,4 @@ class WarehouseNotifier extends StateNotifier<WarehouseState> {
 }
 
 final warehouseProvider =
-    StateNotifierProvider<WarehouseNotifier, WarehouseState>(
-  (ref) => WarehouseNotifier(),
-);
+    NotifierProvider<WarehouseNotifier, WarehouseState>(WarehouseNotifier.new);

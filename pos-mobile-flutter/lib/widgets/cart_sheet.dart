@@ -93,7 +93,7 @@ class _CartSheetState extends State<CartSheet> {
             child: ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: widget.items.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const SizedBox(height: 8),
               itemBuilder: (_, i) => _CartItemRow(
                 item: widget.items[i],

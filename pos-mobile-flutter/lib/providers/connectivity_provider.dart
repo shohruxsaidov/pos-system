@@ -2,12 +2,13 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
 
-class ConnectivityNotifier extends StateNotifier<bool> {
-  Timer? _timer;
-
-  ConnectivityNotifier() : super(true) {
+class ConnectivityNotifier extends Notifier<bool> {
+  @override
+  bool build() {
     _probe();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _probe());
+    final timer = Timer.periodic(const Duration(seconds: 5), (_) => _probe());
+    ref.onDispose(timer.cancel);
+    return true;
   }
 
   Future<void> _probe() async {
@@ -16,14 +17,7 @@ class ConnectivityNotifier extends StateNotifier<bool> {
   }
 
   Future<void> probe() => _probe();
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
 }
 
-final connectivityProvider = StateNotifierProvider<ConnectivityNotifier, bool>(
-  (ref) => ConnectivityNotifier(),
-);
+final connectivityProvider =
+    NotifierProvider<ConnectivityNotifier, bool>(ConnectivityNotifier.new);

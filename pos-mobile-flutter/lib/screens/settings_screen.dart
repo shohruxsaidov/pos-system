@@ -170,7 +170,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                   side: BorderSide(
-                    color: !isOnline ? AppColors.warning.withOpacity(0.4) : AppColors.borderSubtle,
+                    color: !isOnline ? AppColors.warning.withValues(alpha: 0.4) : AppColors.borderSubtle,
                   ),
                 ),
                 leading: Icon(
@@ -193,7 +193,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.warningBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+                          border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           '$pendingCount',

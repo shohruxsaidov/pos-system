@@ -109,7 +109,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 final active = _tab == i;
                 final offlineDisabled = !isOnline && (tab['offlineDisabled'] as bool);
                 final effectiveColor = offlineDisabled
-                    ? AppColors.textMuted.withOpacity(0.3)
+                    ? AppColors.textMuted.withValues(alpha: 0.3)
                     : active
                         ? AppColors.accent1
                         : AppColors.textMuted;
@@ -169,7 +169,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
                 // Settings / logout
                 GestureDetector(
                   onTap: () => context.push('/settings'),

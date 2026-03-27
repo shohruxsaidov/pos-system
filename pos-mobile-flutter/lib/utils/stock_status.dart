@@ -55,7 +55,7 @@ class StockBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: status.bgColor,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: status.color.withOpacity(0.3)),
+        border: Border.all(color: status.color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.label,

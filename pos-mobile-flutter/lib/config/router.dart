@@ -44,31 +44,31 @@ GoRouter buildRouter(WidgetRef ref) {
     routes: [
       GoRoute(
         path: '/login',
-        pageBuilder: (_, __) => _fadePage(const LoginScreen()),
+        pageBuilder: (_, _) => _fadePage(const LoginScreen()),
       ),
       GoRoute(
         path: '/sales',
-        pageBuilder: (_, __) => _fadePage(const MainShell()),
+        pageBuilder: (_, _) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/incoming',
-        pageBuilder: (_, __) => _fadePage(const MainShell()),
+        pageBuilder: (_, _) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/inventory',
-        pageBuilder: (_, __) => _fadePage(const MainShell()),
+        pageBuilder: (_, _) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/reports',
-        pageBuilder: (_, __) => _fadePage(const MainShell()),
+        pageBuilder: (_, _) => _fadePage(const MainShell()),
       ),
       GoRoute(
         path: '/drafts',
-        pageBuilder: (_, __) => _slidePage(const OfflineDraftScreen()),
+        pageBuilder: (_, _) => _slidePage(const OfflineDraftScreen()),
       ),
       GoRoute(
         path: '/settings',
-        pageBuilder: (_, __) => _slidePage(const SettingsScreen()),
+        pageBuilder: (_, _) => _slidePage(const SettingsScreen()),
       ),
     ],
   );

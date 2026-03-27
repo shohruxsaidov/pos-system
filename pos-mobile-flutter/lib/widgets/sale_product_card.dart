@@ -41,8 +41,8 @@ class SaleProductCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(16),
-            splashColor: AppColors.accent1.withOpacity(0.12),
-            highlightColor: AppColors.bgHover.withOpacity(0.6),
+            splashColor: AppColors.accent1.withValues(alpha: 0.12),
+            highlightColor: AppColors.bgHover.withValues(alpha: 0.6),
             child: Ink(
               decoration: BoxDecoration(
                 color: AppColors.bgSurface,
@@ -114,7 +114,7 @@ class SaleProductCard extends StatelessWidget {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: AppColors.accent1.withOpacity(0.15),
+                          color: AppColors.accent1.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
@@ -151,7 +151,7 @@ class SaleProductCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(11),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.hero2.withOpacity(0.4),
+                    color: AppColors.hero2.withValues(alpha: 0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

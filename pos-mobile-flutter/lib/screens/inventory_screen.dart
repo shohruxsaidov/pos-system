@@ -1470,7 +1470,7 @@ class _FilterTab extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? c.withOpacity(0.15) : AppColors.bgInput,
+          color: active ? c.withValues(alpha: 0.15) : AppColors.bgInput,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: active ? c : AppColors.borderDefault),

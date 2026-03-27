@@ -30,9 +30,11 @@ class OfflineDraftState {
       drafts.where((d) => d.status == OfflineDraftStatus.synced).length;
 }
 
-class OfflineDraftNotifier extends StateNotifier<OfflineDraftState> {
-  OfflineDraftNotifier() : super(const OfflineDraftState()) {
+class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
+  @override
+  OfflineDraftState build() {
     _load();
+    return const OfflineDraftState();
   }
 
   Future<void> _load() async {
@@ -133,6 +135,4 @@ class OfflineDraftNotifier extends StateNotifier<OfflineDraftState> {
 }
 
 final offlineDraftProvider =
-    StateNotifierProvider<OfflineDraftNotifier, OfflineDraftState>(
-  (ref) => OfflineDraftNotifier(),
-);
+    NotifierProvider<OfflineDraftNotifier, OfflineDraftState>(OfflineDraftNotifier.new);

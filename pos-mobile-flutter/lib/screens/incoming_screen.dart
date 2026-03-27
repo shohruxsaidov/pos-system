@@ -42,7 +42,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
             productName: product.name,
             barcode: product.barcode,
             qty: 1,
-            costPerUnit: (product.cost ?? 0).toDouble(),
+            costPerUnit: product.cost,
             unit: product.unit.isNotEmpty ? product.unit : 'шт',
           ),
         );
@@ -152,7 +152,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
             surface: AppColors.bgElevated,
             onSurface: AppColors.textPrimary,
           ),
-          dialogBackgroundColor: AppColors.bgElevated,
+          dialogTheme: const DialogThemeData(backgroundColor: AppColors.bgElevated),
         ),
         child: child!,
       ),
@@ -249,7 +249,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                         color: AppColors.bgSurface,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: AppColors.accent1.withOpacity(0.4)),
+                            color: AppColors.accent1.withValues(alpha: 0.4)),
                       ),
                       child: const Icon(Icons.add,
                           color: AppColors.textAccent, size: 20),
@@ -337,7 +337,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                             ? null
                             : [
                                 BoxShadow(
-                                  color: AppColors.accent1.withOpacity(0.35),
+                                  color: AppColors.accent1.withValues(alpha: 0.35),
                                   blurRadius: 20,
                                   offset: const Offset(0, 4),
                                 ),
@@ -399,7 +399,7 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.bgSurface,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                    color: AppColors.accent1.withOpacity(0.4)),
+                    color: AppColors.accent1.withValues(alpha: 0.4)),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -682,7 +682,7 @@ class _UnitChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.accent1.withOpacity(0.15)
+              ? AppColors.accent1.withValues(alpha: 0.15)
               : AppColors.bgInput,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(

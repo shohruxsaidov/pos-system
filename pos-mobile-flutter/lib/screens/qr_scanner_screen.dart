@@ -98,7 +98,7 @@ class _ScanOverlayPainter extends CustomPainter {
     final top = (size.height - cutSize) / 2;
     final cutRect = Rect.fromLTWH(left, top, cutSize, cutSize);
 
-    final dimPaint = Paint()..color = Colors.black.withOpacity(0.55);
+    final dimPaint = Paint()..color = Colors.black.withValues(alpha: 0.55);
     final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
 
     // Dim everything outside the cutout

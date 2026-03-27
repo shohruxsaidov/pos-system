@@ -215,12 +215,10 @@ class _BottomNumPadState extends State<BottomNumPad> {
 class _GradientButton extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
-  final double height;
 
   const _GradientButton({
     required this.child,
     required this.onTap,
-    this.height = 56,
   });
 
   @override
@@ -228,7 +226,7 @@ class _GradientButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: height,
+        height: 56,
         decoration: BoxDecoration(
           gradient: AppColors.gradientHero,
           borderRadius: BorderRadius.circular(12),

@@ -156,7 +156,7 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.warningBg,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                              border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                             ),
                             child: const Row(
                               children: [
@@ -318,7 +318,7 @@ class _SyncButton extends ConsumerWidget {
       onPressed: canSync ? onSync : null,
       style: TextButton.styleFrom(
         foregroundColor: AppColors.accent1,
-        disabledForegroundColor: AppColors.textMuted.withOpacity(0.5),
+        disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.5),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       icon: draftState.syncing

@@ -434,7 +434,7 @@ class _OfflineDraftButton extends ConsumerWidget {
                       color: AppColors.warningBg,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: AppColors.warning.withOpacity(0.4)),
+                          color: AppColors.warning.withValues(alpha: 0.4)),
                     ),
                     child: Text(
                       '$pendingCount',

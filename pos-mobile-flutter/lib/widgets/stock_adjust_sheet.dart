@@ -233,7 +233,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
 
           // Reason dropdown
           DropdownButtonFormField<String>(
-            value: _reason,
+            initialValue: _reason,
             dropdownColor: AppColors.bgElevated,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'Причина'),
