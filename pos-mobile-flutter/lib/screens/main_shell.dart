@@ -19,6 +19,19 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   int _tab = 0;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +49,11 @@ class _MainShellState extends ConsumerState<MainShell> {
         final draftsIdx = tabs.indexWhere((t) => t['id'] == 'drafts');
         if (draftsIdx >= 0 && _tab != draftsIdx) {
           setState(() => _tab = draftsIdx);
+          _pageController.animateToPage(
+            draftsIdx,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+          );
         }
       }
     });
@@ -68,19 +86,10 @@ class _MainShellState extends ConsumerState<MainShell> {
 
           // Screens
           Expanded(
-            child: Stack(
-              children: screens.asMap().entries.map((e) {
-                final isActive = _tab == e.key;
-                return IgnorePointer(
-                  ignoring: !isActive,
-                  child: AnimatedOpacity(
-                    opacity: isActive ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    child: e.value,
-                  ),
-                );
-              }).toList(),
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: screens,
             ),
           ),
         ],
@@ -121,6 +130,11 @@ class _MainShellState extends ConsumerState<MainShell> {
                         return;
                       }
                       setState(() => _tab = i);
+                      _pageController.animateToPage(
+                        i,
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                      );
                     },
                     behavior: HitTestBehavior.opaque,
                     child: Column(
