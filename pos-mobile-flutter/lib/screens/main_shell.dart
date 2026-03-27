@@ -221,13 +221,15 @@ class _MainShellState extends ConsumerState<MainShell> {
       });
     }
 
-    tabs.add({
-      'id': 'drafts',
-      'label': 'Черновики',
-      'icon': Icons.edit_note_outlined,
-      'activeIcon': Icons.edit_note,
-      'offlineDisabled': false,
-    });
+    if (role == 'cashier' || role == 'manager' || role == 'admin') {
+      tabs.add({
+        'id': 'drafts',
+        'label': 'Черновики',
+        'icon': Icons.edit_note_outlined,
+        'activeIcon': Icons.edit_note,
+        'offlineDisabled': false,
+      });
+    }
 
     tabs.add({
       'id': 'incoming',
@@ -265,7 +267,9 @@ class _MainShellState extends ConsumerState<MainShell> {
       screens.add(const SalesScreen());
     }
 
-    screens.add(const OfflineDraftScreen());
+    if (role == 'cashier' || role == 'manager' || role == 'admin') {
+      screens.add(const OfflineDraftScreen());
+    }
 
     screens.add(const IncomingScreen());
     screens.add(const InventoryScreen());
