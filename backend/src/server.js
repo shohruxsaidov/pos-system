@@ -164,7 +164,6 @@ async function start() {
 
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
     console.log(`[server] POS Backend running at http://0.0.0.0:${PORT}`);
-    console.log(`[server] Mobile UI: http://0.0.0.0:${PORT}/mobile`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
