@@ -108,32 +108,20 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        title: const Text('Черновые продажи'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          _SyncButton(onSync: () => ref.read(offlineDraftProvider.notifier).syncAll()),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.wifi_off, color: AppColors.warning, size: 18),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Черновые продажи',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  _SyncButton(onSync: () => ref.read(offlineDraftProvider.notifier).syncAll()),
-                ],
-              ),
-            ),
-
-            const Divider(color: AppColors.borderSubtle, height: 1),
-
             // ── Input form ──────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),

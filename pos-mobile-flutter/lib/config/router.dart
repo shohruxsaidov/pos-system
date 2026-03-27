@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_shell.dart';
+import '../screens/offline_draft_screen.dart';
 import '../screens/settings_screen.dart';
 
 Page<void> _fadePage(Widget child) => CustomTransitionPage(
@@ -58,6 +59,10 @@ GoRouter buildRouter(WidgetRef ref) {
       GoRoute(
         path: '/reports',
         pageBuilder: (_, __) => _fadePage(const MainShell()),
+      ),
+      GoRoute(
+        path: '/drafts',
+        pageBuilder: (_, __) => _slidePage(const OfflineDraftScreen()),
       ),
       GoRoute(
         path: '/settings',

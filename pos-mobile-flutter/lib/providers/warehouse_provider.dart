@@ -70,14 +70,18 @@ class WarehouseNotifier extends StateNotifier<WarehouseState> {
     state = state.copyWith(products: updated);
   }
 
-  Future<String> addBarcode(int id, String barcode) async {
-    await apiService.put('/api/products/$id', data: {'barcode': barcode});
+  Future<void> updateBarcodes(int id, List<Map<String, dynamic>> barcodes) async {
+    await apiService.put('/api/products/$id', data: {'barcodes': barcodes});
+    final primary = barcodes.firstWhere(
+      (b) => b['is_primary'] == 1 || b['is_primary'] == true,
+      orElse: () => barcodes.isNotEmpty ? barcodes.first : <String, dynamic>{},
+    );
+    final primaryBarcode = primary.isNotEmpty ? primary['barcode'] as String? : null;
     final updated = state.products.map((p) {
-      if (p.id == id) return p.copyWith(barcode: barcode);
+      if (p.id == id) return p.copyWith(barcode: primaryBarcode, barcodes: barcodes);
       return p;
     }).toList();
     state = state.copyWith(products: updated);
-    return barcode;
   }
 
   Future<String> generateBarcode(int id) async {
@@ -86,13 +90,7 @@ class WarehouseNotifier extends StateNotifier<WarehouseState> {
       queryParams: {'product_id': id},
     );
     final data = res.data as Map<String, dynamic>;
-    final barcode = data['barcode'] as String;
-    final updated = state.products.map((p) {
-      if (p.id == id) return p.copyWith(barcode: barcode);
-      return p;
-    }).toList();
-    state = state.copyWith(products: updated);
-    return barcode;
+    return data['barcode'] as String;
   }
 
   void updateStockLocally(int id, int delta) {

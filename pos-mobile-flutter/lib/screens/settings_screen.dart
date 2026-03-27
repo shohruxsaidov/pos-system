@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/connectivity_provider.dart';
+import 'offline_draft_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'reports_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -59,6 +62,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+    final isOnline = ref.watch(connectivityProvider);
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -151,6 +155,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
           ElevatedButton(onPressed: _saveUrl, child: const Text('Сохранить адрес')),
           const SizedBox(height: 32),
+
+          // Draft sales (cashier / manager / admin)
+          if (auth.user?.role == 'cashier' || auth.user?.role == 'manager' || auth.user?.role == 'admin') ...[
+            ListTile(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OfflineDraftScreen()),
+              ),
+              tileColor: AppColors.bgSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: !isOnline ? AppColors.warning.withOpacity(0.4) : AppColors.borderSubtle,
+                ),
+              ),
+              leading: Icon(
+                Icons.edit_note,
+                color: !isOnline ? AppColors.warning : AppColors.accent1,
+              ),
+              title: const Text('Черновые продажи',
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              subtitle: !isOnline
+                  ? const Text('Офлайн — режим активен',
+                      style: TextStyle(color: AppColors.warning, fontSize: 12))
+                  : null,
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Reports (manager / admin only)
+          if (auth.user?.role == 'manager' || auth.user?.role == 'admin') ...[
+            ListTile(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReportsScreen()),
+              ),
+              tileColor: AppColors.bgSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: const BorderSide(color: AppColors.borderSubtle),
+              ),
+              leading: const Icon(Icons.bar_chart, color: AppColors.accent1),
+              title: const Text('Отчёты',
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Logout
           OutlinedButton.icon(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
@@ -7,8 +8,6 @@ import '../providers/offline_draft_provider.dart';
 import 'sales_screen.dart';
 import 'incoming_screen.dart';
 import 'inventory_screen.dart';
-import 'reports_screen.dart';
-import 'offline_draft_screen.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -40,21 +39,21 @@ class _MainShellState extends ConsumerState<MainShell> {
     if (user == null) return const SizedBox();
 
     final isOnline = ref.watch(connectivityProvider);
-    final pendingCount = ref.watch(offlineDraftProvider).pendingCount;
 
-    // Auto-switch to Drafts tab when connectivity drops
+    // Connectivity transitions
     ref.listen<bool>(connectivityProvider, (prev, next) {
-      if (!next) {
-        final tabs = _buildTabs(user.role);
-        final draftsIdx = tabs.indexWhere((t) => t['id'] == 'drafts');
-        if (draftsIdx >= 0 && _tab != draftsIdx) {
-          setState(() => _tab = draftsIdx);
-          _pageController.animateToPage(
-            draftsIdx,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-          );
+      final isSalesRole = user.role == 'cashier' || user.role == 'manager' || user.role == 'admin';
+
+      if (next == false && prev == true) {
+        // Going offline → immediately open draft selling screen for sales roles
+        if (isSalesRole) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.push('/drafts');
+          });
         }
+      } else if (next == true && prev == false) {
+        // Coming back online → auto-sync any pending drafts
+        ref.read(offlineDraftProvider.notifier).syncAll();
       }
     });
 
@@ -103,13 +102,12 @@ class _MainShellState extends ConsumerState<MainShell> {
           child: SizedBox(
             height: 60,
             child: Row(
-              children: tabs.asMap().entries.map((e) {
+              children: [
+                ...tabs.asMap().entries.map((e) {
                 final i = e.key;
                 final tab = e.value;
                 final active = _tab == i;
                 final offlineDisabled = !isOnline && (tab['offlineDisabled'] as bool);
-                final isDraftsTab = tab['id'] == 'drafts';
-
                 final effectiveColor = offlineDisabled
                     ? AppColors.textMuted.withOpacity(0.3)
                     : active
@@ -140,41 +138,12 @@ class _MainShellState extends ConsumerState<MainShell> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Icon with optional pending badge for Drafts tab
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Icon(
-                              active
-                                  ? tab['activeIcon'] as IconData
-                                  : tab['icon'] as IconData,
-                              color: effectiveColor,
-                              size: 22,
-                            ),
-                            if (isDraftsTab && pendingCount > 0)
-                              Positioned(
-                                top: -4,
-                                right: -8,
-                                child: Container(
-                                  width: 15,
-                                  height: 15,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.warning,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      pendingCount > 9 ? '9+' : '$pendingCount',
-                                      style: const TextStyle(
-                                        fontSize: 8,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
+                        Icon(
+                          active
+                              ? tab['activeIcon'] as IconData
+                              : tab['icon'] as IconData,
+                          color: effectiveColor,
+                          size: 22,
                         ),
                         const SizedBox(height: 3),
                         Text(
@@ -201,6 +170,21 @@ class _MainShellState extends ConsumerState<MainShell> {
                   ),
                 );
               }).toList(),
+                // Settings / logout
+                GestureDetector(
+                  onTap: () => context.push('/settings'),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 48,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.settings_outlined,
+                      color: AppColors.textMuted,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -221,16 +205,6 @@ class _MainShellState extends ConsumerState<MainShell> {
       });
     }
 
-    if (role == 'cashier' || role == 'manager' || role == 'admin') {
-      tabs.add({
-        'id': 'drafts',
-        'label': 'Черновики',
-        'icon': Icons.edit_note_outlined,
-        'activeIcon': Icons.edit_note,
-        'offlineDisabled': false,
-      });
-    }
-
     tabs.add({
       'id': 'incoming',
       'label': 'Поступление',
@@ -247,16 +221,6 @@ class _MainShellState extends ConsumerState<MainShell> {
       'offlineDisabled': true,
     });
 
-    if (role == 'manager' || role == 'admin') {
-      tabs.add({
-        'id': 'reports',
-        'label': 'Отчёты',
-        'icon': Icons.bar_chart_outlined,
-        'activeIcon': Icons.bar_chart,
-        'offlineDisabled': true,
-      });
-    }
-
     return tabs;
   }
 
@@ -267,16 +231,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       screens.add(const SalesScreen());
     }
 
-    if (role == 'cashier' || role == 'manager' || role == 'admin') {
-      screens.add(const OfflineDraftScreen());
-    }
-
     screens.add(const IncomingScreen());
     screens.add(const InventoryScreen());
-
-    if (role == 'manager' || role == 'admin') {
-      screens.add(const ReportsScreen());
-    }
 
     return screens;
   }
