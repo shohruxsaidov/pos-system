@@ -213,7 +213,7 @@
           <label class="field-label">{{ adjustMode === 'set' ? 'Точное количество' : 'Количество' }}</label>
           <div class="qty-input-row">
             <button class="qty-step-btn" @click="stepQty(-1)"><i class="pi pi-minus" /></button>
-            <InputText v-model="adjustQty" type="number" class="w-full" style="text-align:center;font-size:18px;font-weight:700" placeholder="0" min="0" />
+            <InputText v-model="adjustQty" type="number" class="w-full" style="text-align:center;font-size:18px;font-weight:700" placeholder="0.00" min="0" step="0.001" />
             <button class="qty-step-btn" @click="stepQty(1)"><i class="pi pi-plus" /></button>
           </div>
         </div>
@@ -295,7 +295,7 @@ const adjustReason = ref('')
 
 const adjustPreviewQty = computed(() => {
   const current = adjustingProduct.value?.stock_qty ?? 0
-  const val = parseInt(adjustQty.value)
+  const val = parseFloat(adjustQty.value)
   if (isNaN(val)) return current
   if (adjustMode.value === 'add') return current + val
   if (adjustMode.value === 'remove') return current - val
@@ -409,8 +409,8 @@ function openStockAdjust(product) {
 }
 
 function stepQty(dir) {
-  const current = parseInt(adjustQty.value) || 0
-  const next = current + dir
+  const current = parseFloat(adjustQty.value) || 0
+  const next = Math.round((current + dir) * 1000) / 1000
   if (adjustMode.value !== 'set' && next < 0) return
   adjustQty.value = String(next)
 }
@@ -448,7 +448,7 @@ async function saveProduct() {
 async function applyStockAdjust() {
   saving.value = true
   try {
-    const qty = parseInt(adjustQty.value)
+    const qty = parseFloat(adjustQty.value)
     let delta
     if (adjustMode.value === 'add') delta = qty
     else if (adjustMode.value === 'remove') delta = -qty
