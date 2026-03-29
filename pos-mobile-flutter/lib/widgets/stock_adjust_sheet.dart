@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
@@ -60,8 +61,11 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
               : _qty - widget.product.stockQty;
       await apiService.patch('/api/products/${widget.product.id}/stock',
           data: {'delta': delta, 'reason': _reason});
+      Sentry.logger.fmt.info('Stock adjusted: product=%s delta=%s reason=%s', [widget.product.name, delta, _reason]);
       widget.onDone();
-    } catch (e) {
+    } catch (e, st) {
+      Sentry.logger.fmt.error('Stock adjust failed: product=%s error=%s', [widget.product.name, e]);
+      await Sentry.captureException(e, stackTrace: st);
       setState(() {
         _error = 'Ошибка коррекции остатка';
         _loading = false;

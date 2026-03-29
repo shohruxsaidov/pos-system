@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../config/app_theme.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
@@ -118,6 +119,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
       'tendered': tendered,
     };
 
+    Sentry.logger.fmt.info('Payment initiated: method=%s items=%d total=%s', [method, _cart.length, net]);
     try {
       await ref.read(warehouseProvider.notifier).submitSale(payload);
       setState(() {
@@ -135,7 +137,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
       //     ),
       //   );
       // }
-    } catch (e) {
+    } catch (e, st) {
+      Sentry.logger.fmt.error('Payment failed: method=%s total=%s error=%s', [method, net, e]);
+      await Sentry.captureException(e, stackTrace: st);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
 import '../services/offline_queue_service.dart';
@@ -35,22 +36,34 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
           .toList();
       await saveProductsCache(products.map((p) => p.toJson()).toList());
       state = state.copyWith(products: products, loading: false);
-    } catch (_) {
+      Sentry.logger.fmt.info('Products fetched from server: %d items', [products.length]);
+    } catch (e) {
       // Fallback to cache
+      Sentry.logger.fmt.warning('Product fetch failed, falling back to cache: %s', [e]);
       final cached = await loadProductsCache();
       if (cached != null) {
         final products = cached.map((e) => Product.fromJson(e)).toList();
         state = state.copyWith(products: products, loading: false);
+        Sentry.logger.fmt.info('Loaded %d products from cache', [products.length]);
       } else {
+        Sentry.logger.fmt.error('Product fetch failed and no cache available');
         state = state.copyWith(loading: false);
       }
     }
   }
 
   Future<Map<String, dynamic>> submitSale(Map<String, dynamic> payload) async {
-    final res = await apiService.post('/api/transactions', data: payload);
-    _deductStockLocally(payload);
-    return res.data as Map<String, dynamic>;
+    try {
+      final res = await apiService.post('/api/transactions', data: payload);
+      _deductStockLocally(payload);
+      final txn = res.data as Map<String, dynamic>;
+      Sentry.logger.fmt.info('Sale submitted: ref=%s total=%s', [txn['ref_no'] ?? '-', payload['total']]);
+      return txn;
+    } catch (e, st) {
+      Sentry.logger.fmt.error('Sale submission failed: %s', [e]);
+      await Sentry.captureException(e, stackTrace: st);
+      rethrow;
+    }
   }
 
   Future<void> renameProduct(int id, String name) async {

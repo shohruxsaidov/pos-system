@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../config/app_theme.dart';
 import '../models/incoming_item.dart';
 import '../models/product.dart';
@@ -170,6 +171,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       _error = null;
     });
     final auth = ref.read(authProvider);
+    Sentry.logger.fmt.info('Incoming receipt submission started: %d items total=%s', [_items.length, _fmt.format(_total)]);
     try {
       final res = await apiService.post('/api/incoming', data: {
         'received_by': auth.user!.id,
@@ -178,6 +180,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       final data = res.data as Map<String, dynamic>;
       final refNo = data['ref_no'] ?? '';
       final totalCost = _fmt.format(_total);
+      Sentry.logger.fmt.info('Incoming receipt confirmed: ref=%s total=%s', [refNo, totalCost]);
       setState(() {
         _items.clear();
         _submitting = false;
@@ -185,7 +188,9 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       if (mounted) {
         _showSnack('Приёмка подтверждена: $refNo — $totalCost');
       }
-    } catch (e) {
+    } catch (e, st) {
+      Sentry.logger.fmt.error('Incoming receipt submission failed: %s', [e]);
+      await Sentry.captureException(e, stackTrace: st);
       setState(() {
         _error = 'Ошибка отправки: $e';
         _submitting = false;

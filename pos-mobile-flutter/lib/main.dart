@@ -20,9 +20,10 @@ Future<void> main() async {
 
   await SentryFlutter.init(
     (options) {
-      options.dsn = 'https://d109233c3a72a805572e74936358c071@o4511127905763328.ingest.de.sentry.io/4511127907139664';
+      options.dsn = 'https://72befecd6239f2eabfeed46eaa27972c@o4507340253036544.ingest.de.sentry.io/4511127900192848';
       options.tracesSampleRate = 1.0;
       options.profilesSampleRate = 1.0;
+      options.enableLogs = true;
     },
     appRunner: () => runApp(const ProviderScope(child: PosApp())),
   );

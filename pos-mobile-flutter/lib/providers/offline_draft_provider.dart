@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../models/offline_draft.dart';
 import '../services/api_service.dart';
 import '../services/offline_queue_service.dart';
@@ -77,9 +78,12 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     final pending = state.pending;
     if (pending.isEmpty) return;
 
+    Sentry.logger.fmt.info('Offline sync started: %d drafts pending', [pending.length]);
     state = state.copyWith(syncing: true);
 
     final updatedDrafts = List<OfflineDraft>.from(state.drafts);
+    int synced = 0;
+    int failed = 0;
 
     for (final draft in pending) {
       // Mark as syncing
@@ -91,11 +95,13 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
       // Resolve product
       final product = await resolveProductByBarcode(draft.barcode);
       if (product == null) {
+        Sentry.logger.fmt.warning('Offline sync: product not found for barcode %s (draft %s)', [draft.barcode, draft.id]);
         updatedDrafts[syncingIdx] = draft.copyWith(
           status: OfflineDraftStatus.error,
           errorMessage: 'Product not found in cache',
         );
         state = state.copyWith(drafts: List.from(updatedDrafts));
+        failed++;
         continue;
       }
 
@@ -122,17 +128,22 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
       try {
         await apiService.post('/api/transactions', data: payload);
         updatedDrafts[syncingIdx] = draft.copyWith(status: OfflineDraftStatus.synced);
-      } catch (e) {
+        synced++;
+      } catch (e, st) {
+        Sentry.logger.fmt.error('Offline sync failed for draft %s: %s', [draft.id, e]);
+        await Sentry.captureException(e, stackTrace: st);
         updatedDrafts[syncingIdx] = draft.copyWith(
           status: OfflineDraftStatus.error,
           errorMessage: e.toString(),
         );
+        failed++;
       }
       state = state.copyWith(drafts: List.from(updatedDrafts));
     }
 
     await saveDrafts(updatedDrafts);
     state = state.copyWith(syncing: false);
+    Sentry.logger.fmt.info('Offline sync complete: %d synced, %d failed', [synced, failed]);
   }
 }
 
