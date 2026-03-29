@@ -14,7 +14,7 @@
     "@fastify/multipart": "^8.3.0",
     "@fastify/static": "^7.0.4",
     "@fastify/websocket": "^8.3.1",
-    "@google/generative-ai": "^0.24.1",
+    "@anthropic-ai/sdk": "^0.39.0",
     "argon2": "^0.44.0",
     "better-sqlite3": "^12.8.0",
     "bwip-js": "^4.8.0",

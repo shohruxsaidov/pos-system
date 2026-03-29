@@ -64,21 +64,25 @@ export async function sendOversoldAlert(product) {
 export async function generateAISummary(data) {
   try {
     const settings = await getSettings();
-    const apiKey = settings.gemini_api_key;
+    const apiKey = settings.claude_api_key;
     if (!apiKey) return null;
 
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: "You are a retail market analyst. Give concise, practical daily summaries in Russian. Focus on trends, anomalies, and one actionable tip.",
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const client = new Anthropic({ apiKey });
+
+    const message = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      system: "You are a retail market analyst. Give concise, practical daily summaries in Russian. Focus on trends, anomalies, and one actionable tip.",
+      messages: [
+        {
+          role: "user",
+          content: `Analyze this POS daily data and give a brief market summary in Russian (3-5 sentences, practical insights):\n${JSON.stringify(data, null, 2)}`,
+        },
+      ],
     });
 
-    const result = await model.generateContent(
-      `Analyze this POS daily data and give a brief market summary in Russian (3-5 sentences, practical insights):\n${JSON.stringify(data, null, 2)}`
-    );
-
-    return result.response.text() || null;
+    return message.content[0]?.text || null;
   } catch (err) {
     console.error("[ai-summary] Failed:", err.message);
     return null;
