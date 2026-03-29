@@ -40,6 +40,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
     } catch (e) {
       // Fallback to cache
       Sentry.logger.fmt.warning('Product fetch failed, falling back to cache: %s', [e]);
+      Sentry.metrics.count('products.cache_fallback', value: 1);
       final cached = await loadProductsCache();
       if (cached != null) {
         final products = cached.map((e) => Product.fromJson(e)).toList();
@@ -47,6 +48,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
         Sentry.logger.fmt.info('Loaded %d products from cache', [products.length]);
       } else {
         Sentry.logger.fmt.error('Product fetch failed and no cache available');
+        Sentry.metrics.count('products.cache_miss', value: 1);
         state = state.copyWith(loading: false);
       }
     }
@@ -57,11 +59,17 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       final res = await apiService.post('/api/transactions', data: payload);
       _deductStockLocally(payload);
       final txn = res.data as Map<String, dynamic>;
-      Sentry.logger.fmt.info('Sale submitted: ref=%s total=%s', [txn['ref_no'] ?? '-', payload['total']]);
+      final total = (payload['total'] as num).toDouble();
+      final itemCount = (payload['items'] as List).length;
+      Sentry.logger.fmt.info('Sale submitted: ref=%s total=%s', [txn['ref_no'] ?? '-', total]);
+      Sentry.metrics.count('sales.completed', value: 1, tags: {'method': payload['payment_method'] as String? ?? 'cash'});
+      Sentry.metrics.distribution('sales.amount', total, unit: SentryMeasurementUnit.none);
+      Sentry.metrics.distribution('sales.items_per_transaction', itemCount.toDouble(), unit: SentryMeasurementUnit.none);
       return txn;
     } catch (e, st) {
       Sentry.logger.fmt.error('Sale submission failed: %s', [e]);
       await Sentry.captureException(e, stackTrace: st);
+      Sentry.metrics.count('sales.failed', value: 1);
       rethrow;
     }
   }

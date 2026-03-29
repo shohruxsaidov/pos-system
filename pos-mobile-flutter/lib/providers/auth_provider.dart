@@ -57,14 +57,17 @@ class AuthNotifier extends Notifier<AuthState> {
 
       state = AuthState(user: user, token: token);
       Sentry.logger.fmt.info('Login successful: %s (role: %s)', [user.name, user.role]);
+      Sentry.metrics.count('auth.login_success', value: 1, tags: {'role': user.role});
     } catch (e, st) {
       Sentry.logger.fmt.warning('Login failed for user_id %d: %s', [userId, e]);
       await Sentry.captureException(e, stackTrace: st);
+      Sentry.metrics.count('auth.login_failed', value: 1);
       rethrow;
     }
   }
 
   Future<void> logout() async {
+    final role = state.user?.role ?? 'unknown';
     final name = state.user?.name ?? 'unknown';
     apiService.setToken(null);
     final prefs = await SharedPreferences.getInstance();
@@ -72,6 +75,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await prefs.remove(_userKey);
     state = const AuthState();
     Sentry.logger.fmt.info('User logged out: %s', [name]);
+    Sentry.metrics.count('auth.logout', value: 1, tags: {'role': role});
   }
 }
 

@@ -17,8 +17,10 @@ class ConnectivityNotifier extends Notifier<bool> {
     if (online != state) {
       if (online) {
         Sentry.logger.fmt.info('Server connection restored');
+        Sentry.metrics.count('connectivity.restored', value: 1);
       } else {
         Sentry.logger.fmt.warning('Server connection lost — app is offline');
+        Sentry.metrics.count('connectivity.lost', value: 1);
       }
     }
     state = online;
