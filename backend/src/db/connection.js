@@ -50,7 +50,7 @@ function convertQuery(sql, params = []) {
     .replace(/::(\w+)/g, '')
     .replace(/\bIS NOT DISTINCT FROM\b/gi, 'IS')
     .replace(/\bIS DISTINCT FROM\b/gi, 'IS NOT')
-    .replace(/EXTRACT\s*\(\s*HOUR\s+FROM\s+(\w+)\)/gi, (_, col) => `CAST(strftime('%H', ${col}) AS INTEGER)`)
+    .replace(/EXTRACT\s*\(\s*HOUR\s+FROM\s+(\w+)\)/gi, (_, col) => `CAST(strftime('%H', ${col}, 'localtime') AS INTEGER)`)
 
   return { sql: converted, params: newParams }
 }

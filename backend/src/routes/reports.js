@@ -2,6 +2,24 @@ import argon from "argon2";
 import { pool } from "../db/connection.js";
 import { logAudit } from "../services/auditService.js";
 
+// Returns today's date in local timezone as 'YYYY-MM-DD'
+function localToday() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Returns [startDate, endDate] covering the full local calendar day.
+// new Date('YYYY-MM-DDT00:00:00') — no timezone suffix — is local midnight in Node.js.
+// connection.js serialises Date objects via .toISOString(), giving the correct UTC equivalent.
+function localDateRange(dateStr) {
+  const start = new Date(dateStr + "T00:00:00");
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return [start, end];
+}
+
 async function getPeriodData(pool, warehouseId) {
   const wid = warehouseId ? parseInt(warehouseId) : null;
 
@@ -13,7 +31,7 @@ async function getPeriodData(pool, warehouseId) {
 
   const openedAt = lastReport[0]
     ? lastReport[0].closed_at
-    : new Date(new Date().toISOString().split("T")[0] + "T00:00:00.000Z");
+    : new Date(localToday() + "T00:00:00"); // local midnight, not UTC midnight
 
   const closedAt = new Date();
 
@@ -128,9 +146,9 @@ export default async function reportRoutes(fastify) {
     "/api/reports/daily",
     { onRequest: [fastify.authenticate] },
     async (req) => {
-      const { date = new Date().toISOString().split("T")[0], warehouse_id } =
-        req.query;
+      const { date = localToday(), warehouse_id } = req.query;
       const wid = warehouse_id ? parseInt(warehouse_id) : null;
+      const [dayStart, dayEnd] = localDateRange(date);
 
       const whFilter = wid ? `AND warehouse_id = ${wid}` : "";
 
@@ -146,9 +164,9 @@ export default async function reportRoutes(fastify) {
         MIN(created_at) as first_sale,
         MAX(created_at) as last_sale
       FROM transactions
-      WHERE DATE(created_at) = $1 AND status != 'voided' ${whFilter}
+      WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
     `,
-        [date],
+        [dayStart, dayEnd],
       );
 
       const { rows: byHour } = await pool.query(
@@ -158,28 +176,28 @@ export default async function reportRoutes(fastify) {
         COUNT(*) as count,
         COALESCE(SUM(total), 0) as sales
       FROM transactions
-      WHERE DATE(created_at) = $1 AND status != 'voided' ${whFilter}
+      WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
       GROUP BY hour ORDER BY hour
     `,
-        [date],
+        [dayStart, dayEnd],
       );
 
       const { rows: byMethod } = await pool.query(
         `
       SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total), 0) as total
       FROM transactions
-      WHERE DATE(created_at) = $1 AND status != 'voided' ${whFilter}
+      WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
       GROUP BY payment_method
     `,
-        [date],
+        [dayStart, dayEnd],
       );
 
       const { rows: refunds } = await pool.query(
         `
       SELECT COUNT(*) as count, COALESCE(SUM(total_refund_amount), 0) as total
-      FROM refunds WHERE DATE(created_at) = $1
+      FROM refunds WHERE created_at >= $1 AND created_at < $2
     `,
-        [date],
+        [dayStart, dayEnd],
       );
 
       const s = summary[0];
@@ -220,9 +238,11 @@ export default async function reportRoutes(fastify) {
     { onRequest: [fastify.authenticate] },
     async (req) => {
       const { from, to, limit = 20, warehouse_id } = req.query;
-      const fromDate = from || new Date().toISOString().split("T")[0];
+      const fromDate = from || localToday();
       const toDate = to || fromDate;
       const wid = warehouse_id ? parseInt(warehouse_id) : null;
+      const [rangeStart] = localDateRange(fromDate);
+      const [, rangeEnd] = localDateRange(toDate);
 
       const whFilter = wid ? `AND t.warehouse_id = ${wid}` : "";
 
@@ -238,12 +258,12 @@ export default async function reportRoutes(fastify) {
       FROM transaction_items ti
       JOIN products p ON p.id = ti.product_id
       JOIN transactions t ON t.id = ti.transaction_id
-      WHERE DATE(t.created_at) BETWEEN $1 AND $2 AND t.status != 'voided' ${whFilter}
+      WHERE t.created_at >= $1 AND t.created_at < $2 AND t.status != 'voided' ${whFilter}
       GROUP BY p.id, p.name, p.barcode, p.price, p.cost
       ORDER BY total_qty DESC
       LIMIT $3
     `,
-        [fromDate, toDate, limit],
+        [rangeStart, rangeEnd, limit],
       );
 
       return rows.map((r) => ({
@@ -262,9 +282,9 @@ export default async function reportRoutes(fastify) {
     "/api/reports/cashiers",
     { onRequest: [fastify.authenticate] },
     async (req) => {
-      const { date = new Date().toISOString().split("T")[0], warehouse_id } =
-        req.query;
+      const { date = localToday(), warehouse_id } = req.query;
       const wid = warehouse_id ? parseInt(warehouse_id) : null;
+      const [dayStart, dayEnd] = localDateRange(date);
 
       const whFilter = wid ? `AND t.warehouse_id = ${wid}` : "";
 
@@ -278,12 +298,12 @@ export default async function reportRoutes(fastify) {
         MIN(t.created_at) as first_sale,
         MAX(t.created_at) as last_sale
       FROM users u
-      LEFT JOIN transactions t ON t.cashier_id = u.id AND DATE(t.created_at) = $1 AND t.status != 'voided' ${whFilter}
+      LEFT JOIN transactions t ON t.cashier_id = u.id AND t.created_at >= $1 AND t.created_at < $2 AND t.status != 'voided' ${whFilter}
       WHERE u.is_active = true AND u.role IN ('cashier','manager','admin')
       GROUP BY u.id, u.name, u.role
       ORDER BY total_sales DESC
     `,
-        [date],
+        [dayStart, dayEnd],
       );
 
       return rows.map((r) => ({
