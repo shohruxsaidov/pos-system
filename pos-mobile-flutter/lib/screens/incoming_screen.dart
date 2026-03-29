@@ -171,7 +171,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       _error = null;
     });
     final auth = ref.read(authProvider);
-    Sentry.logger.fmt.info('Incoming receipt submission started: %d items total=%s', [_items.length, _fmt.format(_total)]);
+    Sentry.logger.fmt.info('Incoming receipt submission started: %s items total=%s', [_items.length, _fmt.format(_total)]);
     try {
       final res = await apiService.post('/api/incoming', data: {
         'received_by': auth.user!.id,

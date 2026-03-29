@@ -27,7 +27,7 @@ class ApiService {
     if (res.statusCode >= 400) {
       final message = body?['error'] ?? 'Request failed: ${res.statusCode}';
       if (res.statusCode >= 500) {
-        Sentry.logger.fmt.error('API server error %d: %s', [res.statusCode, message]);
+        Sentry.logger.fmt.error('API server error %s: %s', [res.statusCode, message]);
       } else {
         Sentry.logger.warn('API client error ${res.statusCode}: $message');
       }

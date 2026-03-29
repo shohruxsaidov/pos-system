@@ -119,7 +119,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
       'tendered': tendered,
     };
 
-    Sentry.logger.fmt.info('Payment initiated: method=%s items=%d total=%s', [method, _cart.length, net]);
+    Sentry.logger.fmt.info('Payment initiated: method=%s items=%s total=%s', [method, _cart.length, net]);
     try {
       await ref.read(warehouseProvider.notifier).submitSale(payload);
       setState(() {

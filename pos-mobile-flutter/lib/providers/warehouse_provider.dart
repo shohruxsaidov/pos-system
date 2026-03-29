@@ -36,7 +36,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
           .toList();
       await saveProductsCache(products.map((p) => p.toJson()).toList());
       state = state.copyWith(products: products, loading: false);
-      Sentry.logger.fmt.info('Products fetched from server: %d items', [products.length]);
+      Sentry.logger.fmt.info('Products fetched from server: %s items', [products.length]);
     } catch (e) {
       // Fallback to cache
       Sentry.logger.warn('Product fetch failed, falling back to cache: $e');

@@ -80,7 +80,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     final pending = state.pending;
     if (pending.isEmpty) return;
 
-    Sentry.logger.fmt.info('Offline sync started: %d drafts pending', [pending.length]);
+    Sentry.logger.fmt.info('Offline sync started: %s drafts pending', [pending.length]);
     state = state.copyWith(syncing: true);
 
     final updatedDrafts = List<OfflineDraft>.from(state.drafts);
@@ -145,7 +145,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
 
     await saveDrafts(updatedDrafts);
     state = state.copyWith(syncing: false);
-    Sentry.logger.fmt.info('Offline sync complete: %d synced, %d failed', [synced, failed]);
+    Sentry.logger.fmt.info('Offline sync complete: %s synced, %s failed', [synced, failed]);
     if (synced > 0) Sentry.metrics.count('offline_drafts.synced', synced);
     if (failed > 0) Sentry.metrics.count('offline_drafts.sync_failed', failed);
     Sentry.metrics.gauge('offline_drafts.pending', updatedDrafts.where((d) => d.status == OfflineDraftStatus.pending).length.toDouble());
