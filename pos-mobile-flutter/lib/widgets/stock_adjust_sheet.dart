@@ -40,10 +40,10 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
   bool _loading = false;
   String? _error;
 
-  int get _preview {
-    if (_mode == 'add') return widget.product.stockQty + _qty.toInt();
-    if (_mode == 'remove') return widget.product.stockQty - _qty.toInt();
-    return _qty.toInt();
+  double get _preview {
+    if (_mode == 'add') return widget.product.stockQty + _qty;
+    if (_mode == 'remove') return widget.product.stockQty - _qty;
+    return _qty;
   }
 
   Future<void> _submit() async {
@@ -54,10 +54,10 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
     });
     try {
       final delta = _mode == 'add'
-          ? _qty.toInt()
+          ? _qty
           : _mode == 'remove'
-              ? -_qty.toInt()
-              : _qty.toInt() - widget.product.stockQty;
+              ? -_qty
+              : _qty - widget.product.stockQty;
       await apiService.patch('/api/products/${widget.product.id}/stock',
           data: {'delta': delta, 'reason': _reason});
       widget.onDone();
@@ -168,7 +168,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                 context,
                 title: 'Количество',
                 initialValue: _qty > 0 ? _qty.toString() : '',
-                allowDecimal: false,
+                allowDecimal: true,
               );
               if (result != null && result.isNotEmpty) {
                 setState(() => _qty = double.tryParse(result) ?? 0);
@@ -188,7 +188,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                   const Text('Количество',
                       style: TextStyle(color: AppColors.textSecondary)),
                   Text(
-                    _qty == 0 ? 'Нажмите для ввода' : _qty.toInt().toString(),
+                    _qty == 0 ? 'Нажмите для ввода' : (_qty % 1 == 0 ? _qty.toInt().toString() : _qty.toString()),
                     style: TextStyle(
                       color: _qty == 0
                           ? AppColors.textMuted
@@ -217,7 +217,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
                 const Text('Новый остаток',
                     style: TextStyle(color: AppColors.textSecondary)),
                 Text(
-                  '${widget.product.stockQty} → $_preview',
+                  '${widget.product.stockQty % 1 == 0 ? widget.product.stockQty.toInt() : widget.product.stockQty} → ${_preview % 1 == 0 ? _preview.toInt() : _preview}',
                   style: TextStyle(
                     color: _preview < 0
                         ? AppColors.danger

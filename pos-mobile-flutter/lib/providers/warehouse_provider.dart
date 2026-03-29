@@ -94,7 +94,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
     return data['barcode'] as String;
   }
 
-  void updateStockLocally(int id, int delta) {
+  void updateStockLocally(int id, double delta) {
     final updated = state.products.map((p) {
       if (p.id == id) return p.copyWith(stockQty: p.stockQty + delta);
       return p;
@@ -111,7 +111,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
         orElse: () => null,
       );
       if (item == null) return p;
-      final qty = (item['qty'] as num).toInt();
+      final qty = (item['qty'] as num).toDouble();
       return p.copyWith(stockQty: p.stockQty - qty);
     }).toList();
     state = state.copyWith(products: updated);

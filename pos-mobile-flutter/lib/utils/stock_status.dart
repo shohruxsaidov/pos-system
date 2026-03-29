@@ -12,7 +12,7 @@ class StockStatus {
     required this.bgColor,
   });
 
-  static StockStatus from(int qty) {
+  static StockStatus from(double qty) {
     if (qty < 0) {
       return StockStatus(
         label: 'Дефицит ($qty)',
@@ -43,7 +43,7 @@ class StockStatus {
 }
 
 class StockBadge extends StatelessWidget {
-  final int qty;
+  final double qty;
 
   const StockBadge({super.key, required this.qty});
 

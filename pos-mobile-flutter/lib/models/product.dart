@@ -7,7 +7,7 @@ class Product {
   final double price;
   final double cost;
   final String unit;
-  final int stockQty;
+  final double stockQty;
   final bool isActive;
   final List<Map<String, dynamic>> barcodes;
 
@@ -34,7 +34,7 @@ class Product {
         price: (json['price'] as num).toDouble(),
         cost: (json['cost'] as num? ?? 0).toDouble(),
         unit: json['unit'] as String? ?? 'pcs',
-        stockQty: (json['stock_qty'] as num? ?? 0).toInt(),
+        stockQty: (json['stock_qty'] as num? ?? 0).toDouble(),
         isActive: switch (json['is_active']) {
           bool b => b,
           num n => n != 0,
@@ -59,7 +59,7 @@ class Product {
         'barcodes': barcodes,
       };
 
-  Product copyWith({int? stockQty, String? name, double? price, String? barcode, List<Map<String, dynamic>>? barcodes}) => Product(
+  Product copyWith({double? stockQty, String? name, double? price, String? barcode, List<Map<String, dynamic>>? barcodes}) => Product(
         id: id,
         barcode: barcode ?? this.barcode,
         name: name ?? this.name,

@@ -20,7 +20,7 @@ class SaleProductCard extends StatelessWidget {
     required this.onTap,
   });
 
-  String _stockLabel(int qty) {
+  String _stockLabel(double qty) {
     if (qty < 0) return '−${qty.abs()}';
     if (qty == 0) return 'Нет';
     if (qty <= 5) return 'Мало: $qty';
