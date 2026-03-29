@@ -29,7 +29,7 @@ class ApiService {
       if (res.statusCode >= 500) {
         Sentry.logger.fmt.error('API server error %d: %s', [res.statusCode, message]);
       } else {
-        Sentry.logger.fmt.warning('API client error %d: %s', [res.statusCode, message]);
+        Sentry.logger.warn('API client error ${res.statusCode}: $message');
       }
       throw Exception(message);
     }

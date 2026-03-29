@@ -58,7 +58,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     final updated = [...state.drafts, draft];
     state = state.copyWith(drafts: updated);
     await saveDrafts(updated);
-    Sentry.metrics.count('offline_drafts.created', value: 1);
+    Sentry.metrics.count('offline_drafts.created', 1);
     Sentry.metrics.gauge('offline_drafts.pending', updated.where((d) => d.status == OfflineDraftStatus.pending).length.toDouble());
   }
 
@@ -97,7 +97,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
       // Resolve product
       final product = await resolveProductByBarcode(draft.barcode);
       if (product == null) {
-        Sentry.logger.fmt.warning('Offline sync: product not found for barcode %s (draft %s)', [draft.barcode, draft.id]);
+        Sentry.logger.warn('Offline sync: product not found for barcode ${draft.barcode} (draft ${draft.id})');
         updatedDrafts[syncingIdx] = draft.copyWith(
           status: OfflineDraftStatus.error,
           errorMessage: 'Product not found in cache',
@@ -146,8 +146,8 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     await saveDrafts(updatedDrafts);
     state = state.copyWith(syncing: false);
     Sentry.logger.fmt.info('Offline sync complete: %d synced, %d failed', [synced, failed]);
-    if (synced > 0) Sentry.metrics.count('offline_drafts.synced', value: synced);
-    if (failed > 0) Sentry.metrics.count('offline_drafts.sync_failed', value: failed);
+    if (synced > 0) Sentry.metrics.count('offline_drafts.synced', synced);
+    if (failed > 0) Sentry.metrics.count('offline_drafts.sync_failed', failed);
     Sentry.metrics.gauge('offline_drafts.pending', updatedDrafts.where((d) => d.status == OfflineDraftStatus.pending).length.toDouble());
   }
 }

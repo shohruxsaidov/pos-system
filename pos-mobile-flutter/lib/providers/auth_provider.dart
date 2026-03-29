@@ -57,11 +57,11 @@ class AuthNotifier extends Notifier<AuthState> {
 
       state = AuthState(user: user, token: token);
       Sentry.logger.fmt.info('Login successful: %s (role: %s)', [user.name, user.role]);
-      Sentry.metrics.count('auth.login_success', value: 1, tags: {'role': user.role});
+      Sentry.metrics.count('auth.login_success', 1);
     } catch (e, st) {
-      Sentry.logger.fmt.warning('Login failed for user_id %d: %s', [userId, e]);
+      Sentry.logger.warn('Login failed for user_id $userId: $e');
       await Sentry.captureException(e, stackTrace: st);
-      Sentry.metrics.count('auth.login_failed', value: 1);
+      Sentry.metrics.count('auth.login_failed', 1);
       rethrow;
     }
   }
@@ -75,7 +75,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await prefs.remove(_userKey);
     state = const AuthState();
     Sentry.logger.fmt.info('User logged out: %s', [name]);
-    Sentry.metrics.count('auth.logout', value: 1, tags: {'role': role});
+    Sentry.metrics.count('auth.logout', 1);
   }
 }
 

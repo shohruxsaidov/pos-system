@@ -181,9 +181,9 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       final refNo = data['ref_no'] ?? '';
       final totalCost = _fmt.format(_total);
       Sentry.logger.fmt.info('Incoming receipt confirmed: ref=%s total=%s', [refNo, totalCost]);
-      Sentry.metrics.count('incoming.confirmed', value: 1);
-      Sentry.metrics.distribution('incoming.items_per_receipt', _items.length.toDouble(), unit: SentryMeasurementUnit.none);
-      Sentry.metrics.distribution('incoming.total_cost', _total, unit: SentryMeasurementUnit.none);
+      Sentry.metrics.count('incoming.confirmed', 1);
+      Sentry.metrics.distribution('incoming.items_per_receipt', _items.length.toDouble());
+      Sentry.metrics.distribution('incoming.total_cost', _total);
       setState(() {
         _items.clear();
         _submitting = false;

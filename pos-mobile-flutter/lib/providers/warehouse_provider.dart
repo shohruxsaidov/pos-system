@@ -39,16 +39,16 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       Sentry.logger.fmt.info('Products fetched from server: %d items', [products.length]);
     } catch (e) {
       // Fallback to cache
-      Sentry.logger.fmt.warning('Product fetch failed, falling back to cache: %s', [e]);
-      Sentry.metrics.count('products.cache_fallback', value: 1);
+      Sentry.logger.warn('Product fetch failed, falling back to cache: $e');
+      Sentry.metrics.count('products.cache_fallback', 1);
       final cached = await loadProductsCache();
       if (cached != null) {
         final products = cached.map((e) => Product.fromJson(e)).toList();
         state = state.copyWith(products: products, loading: false);
         Sentry.logger.fmt.info('Loaded %d products from cache', [products.length]);
       } else {
-        Sentry.logger.fmt.error('Product fetch failed and no cache available');
-        Sentry.metrics.count('products.cache_miss', value: 1);
+        Sentry.logger.error('Product fetch failed and no cache available');
+        Sentry.metrics.count('products.cache_miss', 1);
         state = state.copyWith(loading: false);
       }
     }
@@ -62,14 +62,14 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       final total = (payload['total'] as num).toDouble();
       final itemCount = (payload['items'] as List).length;
       Sentry.logger.fmt.info('Sale submitted: ref=%s total=%s', [txn['ref_no'] ?? '-', total]);
-      Sentry.metrics.count('sales.completed', value: 1, tags: {'method': payload['payment_method'] as String? ?? 'cash'});
-      Sentry.metrics.distribution('sales.amount', total, unit: SentryMeasurementUnit.none);
-      Sentry.metrics.distribution('sales.items_per_transaction', itemCount.toDouble(), unit: SentryMeasurementUnit.none);
+      Sentry.metrics.count('sales.completed', 1);
+      Sentry.metrics.distribution('sales.amount', total);
+      Sentry.metrics.distribution('sales.items_per_transaction', itemCount.toDouble());
       return txn;
     } catch (e, st) {
       Sentry.logger.fmt.error('Sale submission failed: %s', [e]);
       await Sentry.captureException(e, stackTrace: st);
-      Sentry.metrics.count('sales.failed', value: 1);
+      Sentry.metrics.count('sales.failed', 1);
       rethrow;
     }
   }

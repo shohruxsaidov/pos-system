@@ -62,7 +62,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
       await apiService.patch('/api/products/${widget.product.id}/stock',
           data: {'delta': delta, 'reason': _reason});
       Sentry.logger.fmt.info('Stock adjusted: product=%s delta=%s reason=%s', [widget.product.name, delta, _reason]);
-      Sentry.metrics.count('stock.adjusted', value: 1, tags: {'mode': _mode, 'reason': _reason});
+      Sentry.metrics.count('stock.adjusted', 1);
       widget.onDone();
     } catch (e, st) {
       Sentry.logger.fmt.error('Stock adjust failed: product=%s error=%s', [widget.product.name, e]);
