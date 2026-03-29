@@ -193,6 +193,27 @@ export async function sendEODSummary() {
       ORDER BY SUM(ws.stock_qty) ASC LIMIT 5`,
     );
 
+    const { rows: incomingItems } = await pool.query(
+      `SELECT ii.product_name, SUM(ii.qty_received) as qty_received
+      FROM incoming_items ii
+      JOIN incoming_receipts ir ON ir.id = ii.receipt_id
+      WHERE DATE(ir.created_at) = $1
+      GROUP BY ii.product_name
+      ORDER BY qty_received DESC
+      LIMIT 10`,
+      [today],
+    );
+
+    const { rows: stockAdjustments } = await pool.query(
+      `SELECT p.name, sa.delta, sa.reason
+      FROM stock_adjustments sa
+      JOIN products p ON p.id = sa.product_id
+      WHERE DATE(sa.created_at) = $1
+      ORDER BY sa.created_at DESC
+      LIMIT 10`,
+      [today],
+    );
+
     const s = summary[0];
     const r = refunds[0];
     const topList = topProducts
@@ -228,15 +249,13 @@ export async function sendEODSummary() {
         date: today,
         storeName,
         txnCount: parseInt(s.txn_count),
-        netSales: parseFloat(s.net_sales),
-        avgTxn: parseFloat(s.avg_txn),
-        topProducts: topProducts.map((p) => ({ name: p.name, qty: parseInt(p.total_qty), revenue: parseFloat(p.revenue) })),
-        paymentMethods: paymentMethods.map((p) => ({ method: p.method, count: parseInt(p.count), total: parseFloat(p.total) })),
+        topProducts: topProducts.map((p) => ({ name: p.name, qty: parseInt(p.total_qty) })),
+        paymentMethods: paymentMethods.map((p) => ({ method: p.method, count: parseInt(p.count) })),
         refundCount: parseInt(r.count),
-        refundTotal: parseFloat(r.total),
-        lowStockItems: lowStock.map((p) => ({ name: p.name, stock_qty: p.stock_qty })),
-        oversoldItems: oversold.map((p) => ({ name: p.name, stock_qty: p.stock_qty })),
-        yesterdayNetSales: parseFloat(yesterdaySummary[0]?.net_sales || 0),
+        lowStockItems: lowStock.map((p) => ({ name: p.name, stock_qty: parseInt(p.stock_qty) })),
+        oversoldItems: oversold.map((p) => ({ name: p.name, stock_qty: parseInt(p.stock_qty) })),
+        incomingItems: incomingItems.map((p) => ({ name: p.product_name, qty_received: parseInt(p.qty_received) })),
+        stockAdjustments: stockAdjustments.map((a) => ({ name: a.name, delta: parseInt(a.delta), reason: a.reason })),
       };
 
       const aiText = await generateAISummary(aiData);

@@ -22,7 +22,8 @@
       "Bash(ls -1 /Users/shohruxsaidov/Documents/projects/pos/pos-mobile-flutter/lib/screens/*.dart)",
       "Bash(xargs -I {} basename {})",
       "Bash(pnpm remove:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos/backend -name *.sql -type f)"
     ]
   }
 }

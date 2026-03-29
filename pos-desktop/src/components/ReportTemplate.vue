@@ -114,7 +114,7 @@ const props = defineProps({
 })
 
 function formatAmount(n) {
-  return parseFloat(n || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return parseFloat(n || 0).toFixed(2)
 }
 
 function formatDate(dt) {
