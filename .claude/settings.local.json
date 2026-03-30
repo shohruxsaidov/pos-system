@@ -23,7 +23,13 @@
       "Bash(xargs -I {} basename {})",
       "Bash(pnpm remove:*)",
       "Bash(pnpm install:*)",
-      "Bash(find /Users/shohruxsaidov/Documents/projects/pos/backend -name *.sql -type f)"
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos/backend -name *.sql -type f)",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes -type f -name *.js -o -name *.ts)",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos -name *ReportsView* -o -name *reports* -type f)",
+      "Bash(grep -E \"\\\\.\\(vue|js|ts\\)$\")",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos -type f -name *.vue)",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos/pos-mobile-flutter -type f -name *.dart)",
+      "Bash(cat /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes/*.js)"
     ]
   }
 }
