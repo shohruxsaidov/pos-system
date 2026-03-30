@@ -1,114 +1,132 @@
 # Offline POS System — Market Edition
-Stack: Node.js + Fastify · Vue 3 + PrimeVue 4 · PostgreSQL · PWA
+Stack: Node.js + Fastify · Vue 3 + PrimeVue 4 · Flutter · PostgreSQL · PWA
 
 ---
 
 ## 1. Architecture
 
-Two separate frontends, one shared backend.
+Three frontends, one shared backend.
 
-MONOBLOCK (Browser)                    PHONE (WiFi)
-─────────────────────                  ─────────────────────
-pos-desktop/ (Vue SPA)                 pos-mobile/ (Vue SPA)
-Chrome/Edge browser                    Chrome/Safari browser
-     │                                      │
-     └──────────► backend/ (Fastify :3000) ◄┘
-                       │
-                  PostgreSQL (local)
-                       │ (when online)
-                  Cloud / HQ DB (sync)
+```
+MONOBLOCK (Browser)          PHONE — Vue PWA (WiFi)       PHONE — Flutter (native)
+────────────────────         ──────────────────────       ────────────────────────
+pos-desktop/ (Vue SPA)       pos-mobile/ (Vue SPA)        pos-mobile-flutter/
+Chrome/Edge :5173            Chrome/Safari :3000/mobile   Android/iOS native
+       │                            │                            │
+       └─────────────► backend/ (Fastify :3000) ◄───────────────┘
+                              │
+                         PostgreSQL (local)
+                              │ (when online)
+                         Cloud / HQ DB (sync)
+```
 
 Rules:
-- pos-desktop — plain Vue SPA (no Tauri), cashier UI, opened in browser at http://localhost:5173
-- pos-mobile — separate Vue SPA, served by Fastify at /mobile
-- backend — API at /api/* + serves mobile SPA static files at /mobile
-- Phone accesses http://[POS-IP]:3000/mobile over local WiFi
-- Both apps are PWAs (vite-plugin-pwa) for installability and offline support
+- pos-desktop — plain Vue SPA (no Tauri), cashier UI, opened in browser at `http://localhost:5173`
+- pos-mobile — Vue SPA, served by Fastify at `/mobile`, accessed via phone browser over WiFi
+- pos-mobile-flutter — Flutter native app (Android/iOS), connects to same backend API
+- backend — API at `/api/*` + serves mobile SPA static files at `/mobile`
 
 ---
 
 ## 2. Project Structure
 
+```
 pos/
-├── ecosystem.config.cjs    # PM2 process config (backend + pos-desktop dev server)
-├── pos-desktop/            # Vue SPA — monoblock cashier UI
+├── ecosystem.config.cjs        # PM2 config (backend + pos-desktop)
+├── pos-desktop/                # Vue SPA — monoblock cashier UI
 │   └── src/
-│       ├── views/          # HomeView, LoginView, POSView, InventoryView, ReportsView,
-│       │                   # SettingsView, PrinterSettingsView, TransactionsView,
-│       │                   # CustomersView, CategoriesView, WarehouseView
-│       ├── stores/         # cart.js, session.js, status.js (WebSocket)
-│       ├── components/     # NumPad, PinPad, PaymentModal, StatusBar, PrintLabelDialog,
-│       │                   # RefundDialog, ZReportDialog, XReportDialog, ReportTemplate
-│       ├── composables/    # useApi.js, useBarcode.js
-│       ├── router/index.js
+│       ├── views/              # POSView, InventoryView, ReportsView, SettingsView,
+│       │                       # TransactionsView, CustomersView, CategoriesView, WarehouseView
+│       ├── stores/             # cart.js, session.js, status.js (WebSocket)
+│       ├── components/         # NumPad, PinPad, PaymentModal, StatusBar, PrintLabelDialog,
+│       │                       # RefundDialog, ZReportDialog, XReportDialog
+│       ├── composables/        # useApi.js, useBarcode.js
 │       └── assets/style.css
 │
-├── pos-mobile/             # Separate Vue SPA — warehouse phone UI
+├── pos-mobile/                 # Vue SPA — warehouse phone UI (PWA)
 │   └── src/
-│       ├── views/          # MobileLoginView, MobileSaleView, MobileInventoryView,
-│       │                   # MobileReportsView, IncomingFormView
-│       ├── stores/         # warehouse.js
-│       ├── components/     # IncomingItemCard, MobileProductCard, BottomNumPad,
-│       │                   # StockAdjustSheet, ProductNotFound, CartSheet,
-│       │                   # PaymentSheet, ManualAddSheet
-│       ├── composables/    # useConnectivity.js, useOfflineQueue.js
-│       └── assets/         # style.css (shared tokens), mobile.css (overrides)
+│       ├── views/              # MobileLoginView, MobileSaleView, MobileInventoryView,
+│       │                       # MobileReportsView, IncomingFormView
+│       ├── stores/             # warehouse.js
+│       ├── components/         # IncomingItemCard, MobileProductCard, BottomNumPad,
+│       │                       # StockAdjustSheet, ProductNotFound, CartSheet,
+│       │                       # PaymentSheet, ManualAddSheet
+│       ├── composables/        # useConnectivity.js, useOfflineQueue.js
+│       └── assets/             # style.css (shared tokens), mobile.css (overrides)
 │
-└── backend/                # Fastify — API + serves mobile SPA
+├── pos-mobile-flutter/         # Flutter native app — warehouse phone UI
+│   └── lib/
+│       ├── config/             # api_config.dart, app_theme.dart, router.dart
+│       ├── models/             # product.dart, cart_item.dart, user.dart, category.dart,
+│       │                       # incoming_item.dart, offline_draft.dart
+│       ├── providers/          # auth_provider.dart, warehouse_provider.dart,
+│       │                       # connectivity_provider.dart, offline_draft_provider.dart
+│       ├── screens/            # login_screen.dart, main_shell.dart, sales_screen.dart,
+│       │                       # incoming_screen.dart, inventory_screen.dart,
+│       │                       # reports_screen.dart, settings_screen.dart,
+│       │                       # offline_draft_screen.dart, qr_scanner_screen.dart
+│       ├── services/           # api_service.dart, offline_queue_service.dart
+│       ├── utils/              # format.dart (formatPrice), stock_status.dart
+│       └── widgets/            # bottom_numpad.dart, stock_adjust_sheet.dart,
+│                               # cart_sheet.dart, payment_sheet.dart, product_card.dart
+│
+└── backend/                    # Fastify — API + serves mobile SPA
     └── src/
         ├── server.js
         ├── db/
         │   ├── connection.js
         │   ├── migrate.js
-        │   └── migrations/  # 001_schema.sql, 002_add_client_ref.sql,
-        │                    # 003_printer_address.sql, 004_product_barcodes.sql
-        ├── routes/           # products, transactions, reports, customers,
-        │                     # categories, settings, auth, incoming, inventory,
-        │                     # sync, notifications, status, barcode, refunds,
-        │                     # audit, warehouses
-        └── services/         # notificationService, statusService, cronService,
-                              # auditService, printService, botService,
-                              # networkService, backupService
+        │   └── migrations/     # 001_schema.sql, 002_add_client_ref.sql,
+        │                       # 003_printer_address.sql, 004_product_barcodes.sql
+        ├── routes/             # products, transactions, reports, customers,
+        │                       # categories, settings, auth, incoming, inventory,
+        │                       # sync, notifications, status, barcode, refunds,
+        │                       # audit, warehouses
+        └── services/           # notificationService, statusService, cronService,
+                                # auditService, printService, botService,
+                                # networkService, backupService
+```
 
-Fastify serves mobile SPA:
+Fastify serves mobile Vue SPA:
+```js
 fastify.register(fastifyStatic, { root: '../../pos-mobile/dist', prefix: '/mobile' })
-fastify.get('/mobile/*', (req, reply) =>
-  reply.sendFile('index.html', '../../pos-mobile/dist'))
+fastify.get('/mobile/*', (req, reply) => reply.sendFile('index.html', '../../pos-mobile/dist'))
+```
 
 Build / dev commands (use pnpm):
-cd backend     && pnpm dev          # node --watch src/server.js
-cd pos-desktop && pnpm dev          # vite dev on :5173
-cd pos-mobile  && pnpm dev          # vite dev on :5174
-cd pos-mobile  && pnpm build        # → dist served by Fastify at /mobile
-cd pos-desktop && pnpm build        # → dist for production
+```bash
+cd backend              && pnpm dev    # node --watch src/server.js
+cd pos-desktop          && pnpm dev    # vite dev on :5173
+cd pos-mobile           && pnpm dev    # vite dev on :5174
+cd pos-mobile           && pnpm build  # → dist served by Fastify at /mobile
+cd pos-mobile-flutter   && flutter run # run on device/emulator
+```
 
-PM2 (from repo root):
-pm2 start ecosystem.config.cjs     # start backend + pos-desktop
-pm2 logs                            # tail logs
+Flutter key packages: `flutter_riverpod` (state), `go_router` (nav), `mobile_scanner` (barcode), `barcode_widget` (render), `shared_preferences` (storage), `flutter_secure_storage` (tokens), `connectivity_plus`, `sentry_flutter` (monitoring).
+
+PM2 (from repo root): `pm2 start ecosystem.config.cjs` · `pm2 logs` · `pm2 status`
 
 ---
 
 ## 3. Database Schema
 
+```
 categories        (id, name, parent_id, color, icon)
 warehouses        (id, name, location, is_active, created_at)
 products          (id, barcode, name, category_id, price, cost,
-                   unit, image_url, is_active, updated_at)
-product_barcodes  (id, product_id, barcode, is_primary)
-                  -- migration 004: multiple barcodes per product
+                   unit, image_url, is_active, low_stock_threshold, updated_at)
+product_barcodes  (id, product_id, barcode, is_primary)          -- migration 004
 users             (id, name, pin_hash, role, is_active)
                   -- role: 'cashier' | 'manager' | 'admin' | 'warehouse'
 customers         (id, name, phone, email, loyalty_points, created_at)
 warehouse_stock   (id, product_id, warehouse_id, stock_qty, updated_at)
-transactions      (id, ref_no, customer_id, cashier_id, subtotal,
-                   discount, tax, total, payment_method,
-                   status, refund_id, synced, created_at)
+transactions      (id, ref_no, customer_id, cashier_id, subtotal, discount, tax,
+                   total, payment_method, status, refund_id, synced, created_at)
                   -- status: 'completed' | 'refunded' | 'partially_refunded' | 'voided'
 transaction_items (id, transaction_id, product_id, qty, unit_price, discount, subtotal)
 payments          (id, transaction_id, method, amount, change_given, reference, created_at)
 z_reports         (id, ref_no, cashier_id, opened_at, closed_at, total_sales,
                    total_transactions, total_refunds, created_at)
-sync_log          (id, table_name, record_id, action, synced_at, payload)
 settings          (key, value)
 incoming_receipts (id, ref_no, received_by, supplier, notes, total_cost, created_at)
 incoming_items    (id, receipt_id, product_id, product_name,
@@ -120,81 +138,83 @@ refund_items      (id, refund_id, product_id, product_name, qty_returned, unit_p
 audit_log         (id, action, actor_id, actor_name, actor_role, approver_id,
                    target_type, target_id, target_name, details JSONB,
                    ip_address, created_at)
+sync_log          (id, table_name, record_id, action, synced_at, payload)
+```
 
-**Migrations:** 001–004 SQL files, auto-run on app launch via migrate.js.
-`stock_qty` in warehouse_stock has **no lower bound** — negative values allowed (oversold).
+**Migrations:** 001–004 SQL files, auto-run on app launch via `migrate.js`.
+`stock_qty` in `warehouse_stock` has **no lower bound** — negative values allowed (oversold).
 
 ---
 
 ## 4. API Endpoints
 
+```
 # Products
-GET    /api/products                   list + search + filter
-GET    /api/products/barcode/:code     barcode lookup (checks product_barcodes table)
-POST   /api/products                   create
-PUT    /api/products/:id               update
-PATCH  /api/products/:id/stock         adjust stock (logs to stock_adjustments)
-DELETE /api/products/:id               soft delete
+GET    /api/products                     list + search + filter
+GET    /api/products/barcode/:code       lookup (checks product_barcodes table)
+POST   /api/products                     create
+PUT    /api/products/:id                 update
+PATCH  /api/products/:id/stock           adjust stock (logs to stock_adjustments)
+DELETE /api/products/:id                 soft delete
 
 # Transactions
-POST   /api/transactions               create sale → deducts stock
-GET    /api/transactions               list (date filter)
-GET    /api/transactions/:id           detail with items
-POST   /api/transactions/:id/void      void
+POST   /api/transactions                 create sale → deducts stock
+GET    /api/transactions                 list (date filter)
+GET    /api/transactions/:id             detail with items
+POST   /api/transactions/:id/void        void
 
 # Refunds
-POST   /api/refunds                    process refund (requires manager PIN)
-GET    /api/refunds                    list
-GET    /api/refunds/:id                detail
+POST   /api/refunds                      process (requires manager PIN)
+GET    /api/refunds                      list
+GET    /api/refunds/:id                  detail
 GET    /api/transactions/:id/refundable  items still refundable
 
 # Reports
-GET    /api/reports/daily              daily summary
-GET    /api/reports/products           top selling
-GET    /api/reports/cashiers           per-cashier breakdown
-GET    /api/reports/inventory          stock levels
-
-# Z/X Reports
-POST   /api/reports/z                  close shift, generate Z report
-GET    /api/reports/z                  list Z reports
-GET    /api/reports/z/:id              Z report detail
-GET    /api/reports/x                  current shift X report (intra-day)
+GET    /api/reports/daily                daily summary
+GET    /api/reports/products             top selling
+GET    /api/reports/cashiers             per-cashier breakdown
+GET    /api/reports/inventory            stock levels
+POST   /api/reports/z                    close shift, generate Z report
+GET    /api/reports/z                    list Z reports
+GET    /api/reports/z/:id                Z report detail
+GET    /api/reports/x                    current shift X report (intra-day)
 
 # Warehouses
-GET    /api/warehouses                 list warehouses
-POST   /api/warehouses                 create warehouse
-PUT    /api/warehouses/:id             update
-GET    /api/warehouses/:id/stock       stock levels for warehouse
+GET    /api/warehouses                   list
+POST   /api/warehouses                   create
+PUT    /api/warehouses/:id               update
+GET    /api/warehouses/:id/stock         stock levels for warehouse
 
 # Incoming (mobile warehouse)
-POST   /api/incoming/auth              warehouse PIN login → token
-POST   /api/incoming                   confirm receipt → updates stock
-GET    /api/incoming                   list receipts
-GET    /api/incoming/:id               receipt detail
+POST   /api/incoming/auth                warehouse PIN login → token
+POST   /api/incoming                     confirm receipt → updates stock
+GET    /api/incoming                     list receipts
+GET    /api/incoming/:id                 receipt detail
 
 # Inventory (mobile)
-GET    /api/inventory/mobile           product list (id, name, barcode, stock, price, category)
-GET    /api/inventory/adjustments      audit of adjustments (manager only)
+GET    /api/inventory/mobile             product list (id, name, barcode, stock, price, category)
+GET    /api/inventory/adjustments        audit of adjustments (manager only)
 
 # Barcode
-POST   /api/barcode/print              push print cmd to desktop via WS (phone path)
-GET    /api/barcode/generate           auto-generate + save barcode for product
+POST   /api/barcode/print                push print cmd to desktop via WS (phone path)
+GET    /api/barcode/generate             auto-generate + save barcode for product
 
 # Audit
-GET    /api/audit                      paginated (manager+ only)
-                                       ?action= ?actor_id= ?from= ?to= ?target_type=
+GET    /api/audit                        paginated (manager+ only)
+                                         ?action= ?actor_id= ?from= ?to= ?target_type=
 
 # Auth / Settings / Sync / Notifications / Status
 POST   /api/auth/login
-GET    /api/settings/mobile-url        returns LAN IP + /mobile URL
+GET    /api/settings/mobile-url          returns LAN IP + /mobile URL
 POST   /api/sync/push | GET /api/sync/pull | GET /api/sync/status
 POST   /api/notifications/test-telegram
-GET    /health                         uptime + timestamp
-WS     /ws/status                      health + print_label push channel
+GET    /health                           uptime + timestamp
+WS     /ws/status                        health + print_label push channel
+```
 
 ---
 
-## 5. Screen → PrimeVue Component Map
+## 5. Screen → PrimeVue Component Map (Desktop)
 
 | Screen | Key Components |
 |--------|----------------|
@@ -215,14 +235,10 @@ WS     /ws/status                      health + print_label push channel
 
 ## 6. Negative Stock
 
-warehouse_stock.stock_qty INTEGER — no CHECK constraint, freely negative.
-
--- Deduct on sale — no validation
-UPDATE warehouse_stock SET stock_qty = stock_qty - $1
-WHERE product_id = $2 AND warehouse_id = $3
+`warehouse_stock.stock_qty INTEGER` — no CHECK constraint, freely negative.
 
 ```js
-// Vue stock status helper
+// Stock status helper (shared across Vue desktop, Vue mobile, Flutter)
 function stockStatus(qty) {
   if (qty < 0)  return { label: `Oversold (${qty})`, severity: 'danger', glow: true }
   if (qty === 0) return { label: 'Out of Stock',      severity: 'danger' }
@@ -235,30 +251,52 @@ Inventory has **Oversold Items** filter tab: `WHERE stock_qty < 0 ORDER BY stock
 
 ---
 
-## 7. Notifications — Telegram Bot
+## 7. Price Formatting
 
-> **No webhooks. No static IP needed.** Push alerts use outbound `sendMessage` only.
-> The owner dashboard bot (§18) uses long polling (`getUpdates`). No port forwarding required.
+All prices use `formatPrice()` — no currency symbol, space as thousands separator (non-breaking space `\u00A0`).
+
+```js
+// Vue (pos-desktop, pos-mobile) — defined locally per file
+function formatPrice(n) {
+  const [int, dec] = parseFloat(n || 0).toFixed(2).split('.')
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '.' + dec
+}
+// → 1 000 000.00
+```
+
+```dart
+// Flutter (pos-mobile-flutter/lib/utils/format.dart)
+String formatPrice(num n) {
+  return NumberFormat('#,##0.00').format(n).replaceAll(',', '\u00A0');
+}
+```
+
+**Never** use `NumberFormat` / `Intl.NumberFormat` directly in templates — always go through `formatPrice`. Never show ₱ or any currency symbol anywhere in the UI.
+
+---
+
+## 8. Notifications — Telegram Bot
+
+> Push alerts use outbound `sendMessage` only. No webhooks, no static IP.
+> Owner dashboard bot (§17) uses long polling (`getUpdates`). No port forwarding required.
 
 **Triggers:**
-- After every sale: `stock_qty < 0` → 🚨 Oversold alert · `stock_qty ≤ threshold` → ⚠️ Low stock alert
-- Daily cron (configurable time): 📊 End-of-day summary
+- After every sale: `stock_qty < 0` → 🚨 Oversold · `stock_qty ≤ threshold` → ⚠️ Low stock
+- Daily cron (configurable `eod_time`): 📊 End-of-day summary + optional AI analysis
 
-**Settings stored in DB:** `telegram_bot_token`, `telegram_chat_id`, `low_stock_threshold`, `eod_time`, `telegram_enabled`
+**Settings:** `telegram_bot_token`, `telegram_chat_id`, `low_stock_threshold`, `eod_time`, `telegram_enabled`, `claude_api_key`, `ai_summary_enabled`
 
-**Message templates:**
-```
-⚠️ Low Stock Alert          🚨 Oversold Alert           📊 End of Day
-Product: Rice 5kg           Product: Oil 1L             Transactions: 142
-Stock:   3 units            Stock:   -2 (OVERSOLD)      Net Sales: 27,250
-Branch:  Main Market        Action needed: receive       Top: Routes (8 sold)
-```
+**EOD AI Summary** (when `ai_summary_enabled = true`):
+- Provider: Claude via `@anthropic-ai/sdk`, model `claude-haiku-4-5-20251001`
+- Setting key: `claude_api_key`
+- Data sent to AI: txn count, top products, payment methods, refunds, low/oversold stock, incoming items, stock adjustments, yesterday comparison
+- Output appended to EOD message as `🤖 AI Анализ:` block (Russian language)
 
 **Routes:** `POST /api/notifications/test-telegram` · `GET /api/notifications/status`
 
 ---
 
-## 8. Touch-Friendly Input
+## 9. Touch-Friendly Input
 
 All inputs/buttons minimum **56px** height. Primary actions (Pay, Confirm) **72px**.
 
@@ -271,21 +309,19 @@ All inputs/buttons minimum **56px** height. Primary actions (Pay, Confirm) **72p
 .p-inputotp-input          { width: 64px; height: 28px; }
 ```
 
-**NumPad.vue** — `88×88px` keys, replaces system keyboard on all number inputs (`inputmode="none"`). Used for: payment amount, qty adjust, stock adjust, incoming qty/cost.
-**PinPad.vue** — `80×80px` keys for PIN login.
-**Form rules:** Single column only. Drawers always have sticky Save/Cancel footer.
+**NumPad.vue / bottom_numpad.dart** — `88×88px` keys, replaces system keyboard (`inputmode="none"`). Used for: payment amount, qty adjust, stock adjust, incoming qty/cost.
+**PinPad.vue** — `80×80px` keys for PIN login. Form rules: single column only, sticky Save/Cancel footer.
 
 ---
 
-## 9. Server Status (WebSocket)
+## 10. Server Status (WebSocket)
 
-Status bar pinned to app bottom — always visible:
+Status bar pinned to app bottom:
 ```
 [🟢 Server]  [🟢 Database]  [🟡 Sync: 3 pending]   14:32
 ```
 
-`ws://localhost:3000/ws/status` — server pushes on change + heartbeat every 5s.
-Vue marks server offline if 2 pings missed. Reconnect: 3s → 5s → 10s backoff.
+`ws://localhost:3000/ws/status` — server pushes on change + heartbeat every 5s. Vue marks offline if 2 pings missed. Reconnect: 3s → 5s → 10s backoff.
 
 If server **or** DB goes down → full-screen blocking overlay, cashier cannot transact.
 
@@ -295,13 +331,13 @@ If server **or** DB goes down → full-screen blocking overlay, cashier cannot t
   "cloud_reachable": true, "uptime": 3620, "mobile_url": "http://192.168.1.100:3000/mobile" }
 ```
 
-Desktop identifies itself on connect: `{ type: 'identify', client: 'desktop' }` — Fastify tracks these in `desktopClients` Set for broadcasting (barcode print §19).
+Desktop identifies itself: `{ type: 'identify', client: 'desktop' }` — Fastify tracks in `desktopClients` Set for barcode print broadcasting (§18).
 
 **Pinia `statusStore`:** `server`, `db`, `sync`, `syncQueue`, `lastSync`, `uptime`, `missedPings`
 
 ---
 
-## 10. Hardware Requirements
+## 11. Hardware Requirements
 
 | Spec | Minimum | Recommended |
 |------|---------|-------------|
@@ -310,221 +346,143 @@ Desktop identifies itself on connect: `{ type: 'identify', client: 'desktop' }` 
 | Storage | 64 GB HDD | 128 GB SSD |
 | Display | 1024×768 touchscreen | 1280×800 touchscreen |
 | OS | Windows 10 64-bit | Windows 10/11 64-bit |
-| USB | 2 ports | 4 ports |
 
-Memory: OS 1GB + Browser+Vue 200MB + Fastify 80MB + PostgreSQL 256MB = ~2GB actual → 4GB minimum.
+Memory: OS 1GB + Browser+Vue 200MB + Fastify 80MB + PostgreSQL 256MB ≈ 2GB actual → 4GB minimum.
 
 ---
 
-## 11. Local PostgreSQL Setup
-
-Runs entirely on the POS machine. Fastify connects via DATABASE_URL env var.
+## 12. Local PostgreSQL Setup
 
 ```sql
--- One-time setup
 CREATE USER pos_user WITH PASSWORD 'strongpassword';
 CREATE DATABASE market_pos OWNER pos_user;
 ```
 
 **`postgresql.conf` (4 GB machine):**
 ```ini
-shared_buffers       = 512MB
-work_mem             = 16MB
-max_connections      = 20
-wal_level            = minimal
-synchronous_commit   = off    # safe for local POS, faster writes
-log_min_duration_statement = 1000
+shared_buffers = 512MB  work_mem = 16MB  max_connections = 20
+wal_level = minimal     synchronous_commit = off
 ```
 
-**Connection pool:** `pg.Pool` max 10. **Migrations:** plain SQL, auto-run on launch, tracked in `_migrations` table.
+Connection pool: `pg.Pool` max 10. Migrations: plain SQL, auto-run on launch, tracked in `_migrations` table.
+Backups: `backupService.js` → `pg_dump` → `.sql.gz`, keep 30 days, optional AWS S3. ~100 MB/year at 150 txn/day.
 
-**Backups:** `backupService.js` → `pg_dump` → `.sql.gz`, keep 30 days. Also supports AWS S3 backup upload. Path configurable (can point to USB).
-
-**Data estimate:** ~100 MB/year at 150 transactions/day.
+**backend/.env:**
+```
+DATABASE_URL=postgresql://pos_user:pass@localhost:5432/market_pos
+PORT=3000
+JWT_SECRET=change-this-in-production
+NODE_ENV=production
+```
 
 ---
 
-## 12. Incoming Products — Mobile
+## 13. Incoming Products — Mobile
 
-Phone-optimized page for warehouse staff to receive stock via Bluetooth barcode reader.
-Access: `http://[POS-IP]:3000/mobile` → Login → Incoming tab.
+Phone-optimized page for warehouse staff. Access: `http://[POS-IP]:3000/mobile` → Login → Incoming tab (or Flutter app).
 
-**Bluetooth reader** pairs to phone as a keyboard. Hidden `<input>` stays focused at all times. On `keydown Enter` → lookup barcode → add card to list. `🟢 Reader Ready` indicator shows focus state.
+**Bluetooth reader** pairs as keyboard. Hidden `<input>` stays focused. On Enter → barcode lookup → add card. `🟢 Reader Ready` indicator.
 
-**Per-item fields:** Product (from scan), Qty (NumPad integer), Cost (NumPad decimal, pre-fills last cost), Expiry date (DatePicker month/year). Per-receipt: Supplier, Notes.
+Per-item: Product (scan), Qty (NumPad), Cost (NumPad, pre-fills last cost), Expiry. Per-receipt: Supplier, Notes.
 
-**Warehouse role:** Separate `warehouse` role in `users` table. Token from `/api/incoming/auth` only works on `/api/incoming/*` — cannot access POS routes.
+**Warehouse role:** Token from `/api/incoming/auth` only works on `/api/incoming/*`.
 
 **On confirm (POST /api/incoming):**
 ```
-BEGIN transaction
-  INSERT incoming_receipts → receipt_id
-  for each item:
-    INSERT incoming_items
-    UPDATE warehouse_stock SET stock_qty = stock_qty + qty_received
-    UPDATE products SET cost = cost_per_unit
+BEGIN → INSERT incoming_receipts → for each item:
+          INSERT incoming_items
+          UPDATE warehouse_stock SET stock_qty = stock_qty + qty_received
+          UPDATE products SET cost = cost_per_unit
 COMMIT → broadcastStatus() → desktop reflects new stock instantly
 ```
 
-Product not found on scan → `Dialog` quick-create form (ProductNotFound component).
+Product not found → `ProductNotFound` quick-create dialog.
 
 ---
 
-## 13. Inventory — Mobile
+## 14. Inventory — Mobile
 
-Same warehouse session (no second login). Bottom nav tab: `[ 🛒 Sale ] [ 📦 Incoming ] [ 📋 Inventory ] [ 📊 Reports ]`.
+Same session (no re-login). Bottom nav: `[ 🛒 Sale ] [ 📦 Incoming ] [ 📋 Inventory ] [ 📊 Reports ]`.
 
-**Features:** View all products, filter by All/Low/Oversold, BT scan → scroll to + pulse card, Quick stock adjust per card. Cannot edit price/name/delete (manager desktop only).
+Filter by All/Low/Oversold. BT scan → scroll to + pulse card. Quick stock adjust per card. Cannot edit price/name/delete (manager desktop only).
 
-**Mobile Sale (MobileSaleView):** Full cart + payment flow on phone. Barcode scan to add items, CartSheet for cart review, PaymentSheet for checkout.
+**Mobile Sale:** Full cart + payment flow on phone. CartSheet for review, PaymentSheet for checkout. Offline draft support — queues sale locally when disconnected.
 
-**Stock adjust bottom sheet:**
-- Add or Remove toggle + NumPad qty
-- Reason dropdown: Receiving correction / Damaged / Count correction / Return to supplier / Other
-- Logged to `stock_adjustments` table for full audit trail
+**Stock adjust sheet:** Add/Remove toggle + NumPad qty + Reason dropdown → logged to `stock_adjustments`.
 
-**Performance:** `VirtualScroller`, debounced search 300ms, full list fetched once + client-side filter, pull-to-refresh.
+**Performance:** `VirtualScroller` (Vue) / `ListView.builder` (Flutter), debounced search 300ms, full list fetched once + client-side filter.
 
 ---
 
-## 14. Design System — ClickUp Dark
+## 15. Design System — ClickUp Dark
 
 **Fonts:** `Plus Jakarta Sans` (UI) · `JetBrains Mono` (amounts, barcodes, TXN refs)
 
 **CSS Variables:**
 ```css
 /* Backgrounds */
---bg-base:        #1a1a27;   /* app shell */
---bg-sidebar:     #13131e;   /* sidebar */
---bg-surface:     #22223a;   /* cards */
---bg-elevated:    #1e1e32;   /* modals, drawers, bottom sheets */
---bg-input:       #2a2a45;   /* inputs, selects */
---bg-hover:       #2e2e4a;
+--bg-base: #1a1a27;  --bg-sidebar: #13131e;  --bg-surface: #22223a;
+--bg-elevated: #1e1e32;  --bg-input: #2a2a45;  --bg-hover: #2e2e4a;
 
 /* Borders */
---border-subtle:  rgba(255,255,255,0.06);
---border-default: rgba(255,255,255,0.10);
---border-focus:   rgba(123,104,238,0.60);
+--border-subtle: rgba(255,255,255,0.06);  --border-default: rgba(255,255,255,0.10);
+--border-focus: rgba(123,104,238,0.60);
 
-/* Accent — ClickUp purple gradient */
+/* Accent — ClickUp purple */
 --accent-1: #7b68ee;  --accent-2: #9d4edd;  --accent-3: #c77dff;
 --accent-glow: rgba(123,104,238,0.28);
 
-/* Hero CTA gradient */
---hero-1: #4e54c8;  --hero-2: #7b68ee;  --hero-3: #8f94fb;
-
 /* Semantic */
---success: #00d4aa;  --success-bg: rgba(0,212,170,0.10);
---warning: #ffb02e;  --warning-bg: rgba(255,176,46,0.10);
---danger:  #ff5c5c;  --danger-bg:  rgba(255,92,92,0.12);
+--success: #00d4aa;  --warning: #ffb02e;  --danger: #ff5c5c;
+--success-bg: rgba(0,212,170,0.10);  --warning-bg: rgba(255,176,46,0.10);
+--danger-bg: rgba(255,92,92,0.12);
 
 /* Text */
 --text-primary: #e2e2f5;  --text-secondary: #9898bb;
---text-muted:   #55557a;  --text-accent:    #b39dff;
+--text-muted: #55557a;  --text-accent: #b39dff;
 
 /* Gradients */
---gradient-accent:  linear-gradient(135deg, #7b68ee, #9d4edd, #c77dff);
---gradient-hero:    linear-gradient(135deg, #4e54c8, #7b68ee, #8f94fb);
---gradient-card:    linear-gradient(145deg, #252540, #1e1e32);
---gradient-mesh:    /* 3-layer radial purple glow — body background */
-  radial-gradient(ellipse 70% 40% at 50% 0%,  rgba(78,84,200,0.18)  0%, transparent 65%),
-  radial-gradient(ellipse 40% 25% at 85% 15%, rgba(157,78,221,0.12) 0%, transparent 55%),
-  radial-gradient(ellipse 30% 20% at 10% 80%, rgba(123,104,238,0.08) 0%, transparent 50%);
+--gradient-accent: linear-gradient(135deg, #7b68ee, #9d4edd, #c77dff);
+--gradient-hero:   linear-gradient(135deg, #4e54c8, #7b68ee, #8f94fb);
+--gradient-card:   linear-gradient(145deg, #252540, #1e1e32);
 ```
 
 **Key usages:**
-- Primary buttons (Pay/Confirm/Save) → `--gradient-hero` + `--shadow-accent`
-- Active nav pill → `--gradient-accent` + glow
-- Cards → `--gradient-card` border `--border-subtle`, hover border `rgba(123,104,238,0.40)`
-- Amounts/TXN refs → `--gradient-hero` gradient text + `--font-mono`
-- Stock badges → semantic `--success/warning/danger` bg+border pairs
-- NumPad confirm key → `--gradient-hero` · delete key → `--danger-bg`
-- Status bar pills → semantic colors + pulse glow animation on warn/error
-- Mobile bottom nav active tab → `--text-accent` + 2px `--gradient-accent` underline
-- Desktop + mobile share same `:root` tokens — one source of truth
+- Primary buttons → `--gradient-hero` + shadow
+- Active nav → `--gradient-accent` + glow
+- Amounts/TXN refs → `--gradient-hero` gradient text + mono font
+- Stock badges → semantic color pairs
+- Mobile bottom nav active → `--text-accent` + 2px `--gradient-accent` underline
+- Desktop + mobile Vue share same `:root` tokens. Flutter mirrors them in `app_theme.dart`.
 
 ---
 
-## 15. Warehouse QR Code
+## 16. Warehouse QR Code
 
-In `SettingsView.vue` → Warehouse tab. Manager scans to share mobile URL with staff — no typing.
+`SettingsView.vue` → Warehouse tab. Manager scans to share mobile URL with staff.
 
-**IP auto-detection** (no config needed):
-```js
-// networkService.js
-import os from 'os'
-export function getMobileUrl() {
-  for (const ifaces of Object.values(os.networkInterfaces())) {
-    const iface = ifaces.find(i => i.family === 'IPv4' && !i.internal)
-    if (iface) return `http://${iface.address}:3000/mobile`
-  }
-  return 'http://localhost:3000/mobile'
-}
-```
-
-`GET /api/settings/mobile-url` → `{ url, ip }`
-
-**QR generation:** `qrcode` npm package, renders to `<canvas>` client-side — fully offline.
-```js
-await QRCode.toCanvas(canvas, url, {
-  width: 220, margin: 2,
-  color: { dark: '#e2e2f5', light: '#22223a' }  // dark-themed QR
-})
-```
-
-**Refresh button** — re-fetches IP if router reassigned. **Print button** — opens clean print dialog (QR + URL only, no app chrome). `mobile_url` also included in WebSocket health payload so status bar always shows current IP.
+IP auto-detected via `networkService.js` (finds first non-internal IPv4). `GET /api/settings/mobile-url` → `{ url, ip }`. QR rendered client-side with `qrcode` package (fully offline). `mobile_url` included in WebSocket health payload.
 
 ---
 
-## 16. Refunds & Returns
+## 17. Refunds & Returns
 
-**Rules:** Full or partial. Manager PIN required to authorize. Stock auto-restocked. Refund method matches original. Cannot refund twice. Every refund logged to `audit_log`.
+Full or partial. Manager PIN required. Stock auto-restocked. Cannot refund twice. Every refund logged to `audit_log`.
 
-**Tables:** `refunds` (migration 001) + `refund_items`
-```sql
-refunds      (id, ref_no, original_txn_id, processed_by, approved_by,
-              refund_type, reason, total_refund_amount, payment_method, created_at)
-refund_items (id, refund_id, product_id, product_name, qty_returned, unit_price, subtotal)
-transactions -- status TEXT DEFAULT 'completed', refund_id INTEGER
-```
+**Flow:** Verify manager PIN → validate `status = 'completed'` → BEGIN: INSERT refunds + refund_items, UPDATE stock, UPDATE txn status → COMMIT.
 
-**Flow (POST /api/refunds):**
-```
-Verify manager PIN → validate txn status = 'completed'
-  → BEGIN: INSERT refunds + refund_items
-           UPDATE warehouse_stock SET stock_qty = stock_qty + qty_returned (per item)
-           UPDATE transactions SET status = 'refunded' | 'partially_refunded'
-           logAudit(...)
-  → COMMIT
-```
+Entry: TransactionsView → `[Refund]` → RefundDialog (selectable items, qty, reason, manager PIN).
 
-**Entry point:** TransactionsView → transaction row → `[Refund]` button → RefundDialog with selectable items, qty per item, reason dropdown, manager PIN field.
-
-**Status badges:** Completed (teal) · Refunded (purple) · Partial Refund (amber) · Voided (red)
+Status badges: Completed (teal) · Refunded (purple) · Partial Refund (amber) · Voided (red)
 
 ---
 
-## 17. Audit Log
+## 18. Audit Log
 
-Every sensitive action recorded. Manager/admin only.
+Manager/admin only. All sensitive actions recorded.
 
-**Logged actions:** `login` `logout` `sale` `void` `refund` `refund_approved` `stock_adjust` `stock_incoming` `product_create` `product_edit` `product_delete` `price_override` `settings_change` `user_create` `user_edit` `user_delete` `sync_push` `sync_pull` `barcode_print`
+**Actions:** `login` `logout` `sale` `void` `refund` `refund_approved` `stock_adjust` `stock_incoming` `product_create` `product_edit` `product_delete` `price_override` `settings_change` `user_create` `user_edit` `user_delete` `sync_push` `sync_pull` `barcode_print`
 
-**Table:**
-```sql
-audit_log (id, action, actor_id, actor_name, actor_role, approver_id,
-           target_type, target_id, target_name, details JSONB, ip_address, created_at)
--- Indexes on: action, actor_id, created_at DESC, (target_type, target_id)
-```
-
-**details JSONB examples:**
-```js
-// stock_adjust:   { "before": 12, "after": 8, "delta": -4, "reason": "Damaged" }
-// product_edit:   { "field": "price", "before": 45.00, "after": 50.00 }
-// refund:         { "refund_ref": "RFD-...", "amount": 188.00, "reason": "Wrong item" }
-```
-
-**Reusable logger:**
 ```js
 // auditService.js
 export async function logAudit(pool, { action, actor, approver, target, details, ip }) {
@@ -532,39 +490,19 @@ export async function logAudit(pool, { action, actor, approver, target, details,
     [action, actor.id, actor.name, actor.role, approver?.id,
      target?.type, target?.id, target?.name, JSON.stringify(details), ip])
 }
+// details examples:
+// stock_adjust:  { "before": 12, "after": 8, "delta": -4, "reason": "Damaged" }
+// product_edit:  { "field": "price", "before": 45.00, "after": 50.00 }
+// refund:        { "refund_ref": "RFD-...", "amount": 188.00, "reason": "Wrong item" }
 ```
 
-**Desktop UI:** SettingsView.vue → Audit Log tab. Filterable by date range, action type, user. Action badges color-coded: sale=teal, refund/void=amber, price_override=red, stock=purple. Row expand → full JSONB details. Grows ~20MB/year, no pruning needed.
+**Desktop UI:** SettingsView → Audit Log tab. Filterable by date range, action, user. ~20MB/year, no pruning needed.
 
 ---
 
-## 18. Owner Dashboard Bot (Telegram)
+## 19. Owner Dashboard Bot (Telegram)
 
-Owner queries POS from Telegram. Uses **long polling** — no static IP, no webhook, no port forwarding.
-
-**Polling loop:**
-```js
-// botService.js
-async function startPolling() {
-  while (polling) {
-    try {
-      const res = await fetch(
-        `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=30`,
-        { signal: AbortSignal.timeout(35_000) }
-      )
-      const { result } = await res.json()
-      for (const update of result) {
-        offset = update.update_id + 1
-        if (update.message?.text) await handleMessage(update.message)
-      }
-    } catch { await sleep(5000) }  // retry on network error
-  }
-}
-```
-
-`timeout=30` = Telegram holds connection up to 30s waiting for messages → near-instant delivery, near-zero CPU when idle.
-
-**Commands:**
+Long polling (`getUpdates?timeout=30`) — near-instant delivery, near-zero idle CPU.
 
 | Command | Response |
 |---------|----------|
@@ -579,53 +517,26 @@ async function startPolling() {
 | /status | Server/DB/sync health + last sale time + mobile URL |
 | /help | Command list |
 
-**Security:** Only Telegram user IDs in `settings.telegram_owner_ids` (JSON array) can interact — all others silently ignored.
-
-**Integration:** Starts in Fastify ready hook, stops in onClose. Reuses `sendTelegram()` from notificationService.js and same DB pool as reports.
+**Security:** Only Telegram user IDs in `settings.telegram_owner_ids` (JSON array) can interact.
+**Integration:** Starts in Fastify `ready` hook, stops in `onClose`. Reuses `sendTelegram()` from `notificationService.js`.
 
 ---
 
-## 19. Barcode Generation & Label Printing
+## 20. Barcode Generation & Label Printing
 
-Two entry points — desktop browser and phone. Both use `printService.js` with `node-thermal-printer`.
+Two entry points — desktop and phone. Both use `printService.js` with `node-thermal-printer`.
 
-### Desktop Path (direct network print)
+**Desktop path:** InventoryView → PrintLabelDialog.vue (live SVG preview) → `POST /api/barcode/print { source: 'desktop' }` → printer.
+
+**Phone path (WebSocket bridge):**
 ```
-InventoryView → [⊞ Generate] or [🖨 Print Label]
-  → PrintLabelDialog.vue (live JsBarcode SVG preview)
-  → POST /api/barcode/print { source: 'desktop', ... }
-  → printService.js → node-thermal-printer → USB/network label printer
+POST /api/barcode/print → broadcastToDesktop({ type: 'print_label' })
+  → WebSocket → status.js handler → POST /api/barcode/print { source: 'desktop', relayed: true }
 ```
+If desktop not connected: `503 Desktop app not connected`.
 
-### Phone Path (WebSocket bridge)
-```
-MobileInventory → [🖨] → print bottom sheet (SVG preview, copies, size)
-  → POST /api/barcode/print
-  → Fastify broadcastToDesktop({ type: 'print_label', payload })
-  → WebSocket → pos-desktop status.js onmessage handler
-  → POST /api/barcode/print { source: 'desktop', relayed: true }
-  → printService.js → node-thermal-printer → USB/network label printer
-```
-
-If desktop not connected: `503 Desktop app not connected` → phone shows error toast.
-
-### Multiple Barcodes (migration 004)
-Products can have multiple barcodes in `product_barcodes` table. Barcode lookup checks both `products.barcode` and `product_barcodes.barcode`. Print dialog lets user select which barcode to print when a product has multiple.
-
-### Barcode Generation — JsBarcode (client-side, offline)
+**Barcode generation:**
 ```js
-// composables/useBarcode.js — shared in both apps
-import JsBarcode from 'jsbarcode'
-
-export function renderBarcode(svgEl, barcode) {
-  JsBarcode(svgEl, barcode, {
-    format: 'CODE128', width: 2, height: 48,
-    displayValue: true, fontSize: 11,
-    lineColor: '#e2e2f5', background: 'transparent'
-  })
-}
-
-// Auto-generate for products with no barcode
 // Format: 200 + 6-digit product ID + EAN13 check digit
 export function generateBarcode(productId) {
   const base = `200${String(productId).padStart(6, '0')}`
@@ -635,129 +546,29 @@ export function generateBarcode(productId) {
 }
 ```
 
-Generated barcodes saved back: `UPDATE products SET barcode = $1 WHERE id = $2 AND barcode IS NULL`
+**Multiple barcodes** (migration 004): lookup checks both `products.barcode` and `product_barcodes.barcode`.
 
-### broadcastToDesktop (statusService.js)
-```js
-const desktopClients = new Set()
-// Desktop sends { type: 'identify', client: 'desktop' } on WS connect
-ws.on('message', msg => {
-  if (JSON.parse(msg).client === 'desktop') desktopClients.add(ws)
-})
-ws.on('close', () => desktopClients.delete(ws))
-export function broadcastToDesktop(message) {
-  if (!desktopClients.size) return false
-  desktopClients.forEach(c => c.send(JSON.stringify(message)))
-  return true
-}
-```
-
-### Label Layout (58mm)
-```
-┌──────────────────────────┐
-│  Main Market Store       │  ← store name from settings
-│  Rice 5kg                │  ← product name (bold)
-│  ▐██▌▐█▌▐███▌▐█▌▐██▌    │  ← CODE128
-│  8 9 9 1 2 3 4 5 6 7 8  │
-│  45.00                   │  ← price (no currency symbol)
-└──────────────────────────┘
-```
-
-**Packages:** `jsbarcode` (both apps) · `node-thermal-printer` (backend)
-**Label sizes:** 58mm and 80mm thermal roll
-**Desktop UI:** `[⊞ Generate]` + `[🖨 Print Label]` per row + bulk print selected
-**Mobile UI:** `[🖨]` icon per card → bottom sheet with SVG preview, copies, size
-**Audit:** `barcode_print` logged with source (desktop/mobile)
+**Label layout (58mm):** store name · product name · CODE128 · price (no currency symbol).
+**Sizes:** 58mm and 80mm thermal roll. **Audit:** `barcode_print` logged with source.
 
 ---
 
-## 20. Process Management (PM2)
+## 21. Process Management (PM2)
 
-The backend and pos-desktop dev server are managed via **PM2** using `ecosystem.config.cjs` at the repo root.
-
-### ecosystem.config.cjs
 ```js
-module.exports = {
-  apps: [
-    {
-      name: 'pos-backend',
-      script: 'src/server.js',
-      cwd: './backend',
-      watch: false,
-      max_memory_restart: '512M',
-      env: { NODE_ENV: 'production', PORT: 3000 }
-    },
-    {
-      name: 'pos-desktop',
-      script: 'npx vite preview --port 5173',
-      cwd: './pos-desktop',
-      watch: false
-    }
-  ]
-}
+// ecosystem.config.cjs
+module.exports = { apps: [
+  { name: 'pos-backend', script: 'src/server.js', cwd: './backend',
+    watch: false, max_memory_restart: '512M', env: { NODE_ENV: 'production', PORT: 3000 } },
+  { name: 'pos-desktop', script: 'npx vite preview --port 5173', cwd: './pos-desktop', watch: false }
+]}
 ```
 
-### Common PM2 Commands
 ```bash
-pm2 start ecosystem.config.cjs   # start all
-pm2 stop all                      # stop all
-pm2 restart pos-backend           # restart backend
-pm2 logs pos-backend              # tail logs
-pm2 status                        # list processes
-pm2 save                          # persist process list
-pm2 startup                       # generate OS startup script
+pm2 start ecosystem.config.cjs  # start all
+pm2 restart pos-backend          # restart backend
+pm2 logs pos-backend --lines 100 # tail logs
+pm2 save && pm2 startup          # persist + register OS startup (Windows)
 ```
 
-### Windows Startup (Production)
-```bash
-# Install PM2 globally
-pnpm add -g pm2
-
-# Save process list and enable startup
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup
-# Follow the printed command to register the startup script
-```
-
-### Viewing Logs
-```powershell
-# PM2 log files (default: ~/.pm2/logs/)
-pm2 logs pos-backend --lines 100
-pm2 logs pos-desktop --lines 50
-```
-
-### Environment Variables (.env)
-PM2 can load `.env` from the `cwd`. Alternatively use `env` block in ecosystem.config.cjs or `dotenv` in server.js:
-```js
-// server.js — top of file
-import 'dotenv/config'   // reads backend/.env automatically
-```
-
-**backend/.env:**
-```
-DATABASE_URL=postgresql://pos_user:pass@localhost:5432/market_pos
-PORT=3000
-JWT_SECRET=change-this-in-production
-NODE_ENV=production
-```
-
-### Boot Sequence
-```
-Windows starts
-  └── PM2 service starts (registered via pm2 startup)
-        └── pos-backend: Fastify + PostgreSQL ready on :3000
-        └── pos-desktop: Vite preview serving on :5173
-  └── User opens browser → http://localhost:5173
-        └── Connects to ws://localhost:3000/ws/status → 🟢 Online
-```
-
-| Detail | Value |
-|--------|-------|
-| Tool | PM2 (ecosystem.config.cjs) |
-| Backend | `pos-backend`, port 3000 |
-| Desktop | `pos-desktop`, port 5173 |
-| Start type | OS startup via `pm2 startup` |
-| Crash restart | Automatic (PM2 default) |
-| Logs | `~/.pm2/logs/` |
-| Env vars | `backend/.env` via dotenv |
+**Boot sequence:** PM2 starts on OS boot → Fastify :3000 + Vite preview :5173 → browser opens `http://localhost:5173` → connects `ws://localhost:3000/ws/status`.

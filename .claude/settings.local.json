@@ -29,7 +29,9 @@
       "Bash(grep -E \"\\\\.\\(vue|js|ts\\)$\")",
       "Bash(find /Users/shohruxsaidov/Documents/projects/pos -type f -name *.vue)",
       "Bash(find /Users/shohruxsaidov/Documents/projects/pos/pos-mobile-flutter -type f -name *.dart)",
-      "Bash(cat /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes/*.js)"
+      "Bash(cat /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes/*.js)",
+      "Bash(grep -r \"formatPrice\\\\|space.*separator\\\\|thousands\" pos-desktop/src --include=*.js --include=*.vue -l)",
+      "Bash(grep -n \"low_stock_threshold\\\\|low_stock\" backend/src/db/migrations/*.sql)"
     ]
   }
 }
