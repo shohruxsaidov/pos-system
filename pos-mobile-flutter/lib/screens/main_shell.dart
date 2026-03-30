@@ -230,7 +230,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         'label': 'Продажи',
         'icon': Icons.shopping_cart_outlined,
         'activeIcon': Icons.shopping_cart,
-        'offlineDisabled': true,
+        'offlineDisabled': false,
       });
     }
 
@@ -239,7 +239,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       'label': 'Поступление',
       'icon': Icons.inbox_outlined,
       'activeIcon': Icons.inbox,
-      'offlineDisabled': true,
+      'offlineDisabled': false,
     });
 
     tabs.add({
@@ -247,7 +247,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       'label': 'Склад',
       'icon': Icons.inventory_2_outlined,
       'activeIcon': Icons.inventory_2,
-      'offlineDisabled': true,
+      'offlineDisabled': false,
     });
 
     return tabs;

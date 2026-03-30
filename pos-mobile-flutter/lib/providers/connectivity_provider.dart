@@ -4,8 +4,12 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import '../services/api_service.dart';
 
 class ConnectivityNotifier extends Notifier<bool> {
+  bool _disposed = false;
+
   @override
   bool build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     _probe();
     final timer = Timer.periodic(const Duration(seconds: 5), (_) => _probe());
     ref.onDispose(timer.cancel);
@@ -14,6 +18,7 @@ class ConnectivityNotifier extends Notifier<bool> {
 
   Future<void> _probe() async {
     final online = await apiService.checkHealth();
+    if (_disposed) return;
     if (online != state) {
       if (online) {
         Sentry.logger.info('Server connection restored');

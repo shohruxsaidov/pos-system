@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../utils/format.dart';
 import '../services/api_service.dart';
+import '../services/offline_queue_service.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -19,6 +20,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   List<Map<String, dynamic>> _cashiers = [];
   bool _loading = false;
   String? _error;
+  bool _fromCache = false;
+  int? _cachedAt;
 
   final _dateFmt = DateFormat('yyyy-MM-dd');
 
@@ -32,6 +35,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _fromCache = false;
     });
     final dateStr = _dateFmt.format(_date);
     try {
@@ -51,11 +55,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             results[2].data as List? ?? []);
         _loading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = 'Ошибка загрузки отчётов';
-        _loading = false;
+      await saveReportsCache(dateStr, {
+        'daily': results[0].data,
+        'topProducts': results[1].data,
+        'cashiers': results[2].data,
       });
+    } catch (e) {
+      final cached = await loadReportsCache(dateStr);
+      if (cached != null) {
+        setState(() {
+          _daily = cached['daily'] as Map<String, dynamic>?;
+          _topProducts = List<Map<String, dynamic>>.from(
+              cached['topProducts'] as List? ?? []);
+          _cashiers = List<Map<String, dynamic>>.from(
+              cached['cashiers'] as List? ?? []);
+          _loading = false;
+          _fromCache = true;
+          _cachedAt = cached['cachedAt'] as int?;
+        });
+      } else {
+        setState(() {
+          _error = 'Ошибка загрузки отчётов';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -139,6 +162,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ],
               ),
             ),
+
+            if (_fromCache && _cachedAt != null)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                color: AppColors.warningBg,
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_off,
+                        size: 13, color: AppColors.warning),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Офлайн — данные от ${TimeOfDay.fromDateTime(DateTime.fromMillisecondsSinceEpoch(_cachedAt!)).format(context)}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.warning),
+                    ),
+                  ],
+                ),
+              ),
 
             Expanded(
               child: _loading

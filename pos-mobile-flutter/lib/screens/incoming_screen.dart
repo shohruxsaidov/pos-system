@@ -8,6 +8,7 @@ import '../config/app_theme.dart';
 import '../models/incoming_item.dart';
 import '../models/product.dart';
 import '../providers/auth_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/bottom_numpad.dart';
 import '../widgets/highlight_text.dart';
@@ -213,11 +214,32 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(connectivityProvider);
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
         child: Column(
           children: [
+            // Offline banner
+            if (!isOnline)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                color: AppColors.warningBg,
+                child: const Row(
+                  children: [
+                    Icon(Icons.cloud_off, size: 13, color: AppColors.warning),
+                    SizedBox(width: 8),
+                    Text(
+                      'Офлайн — отправка недоступна',
+                      style:
+                          TextStyle(fontSize: 12, color: AppColors.warning),
+                    ),
+                  ],
+                ),
+              ),
+
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
@@ -329,19 +351,20 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
-                    onTap:
-                        _submitting || _items.isEmpty ? null : _submit,
+                    onTap: _submitting || _items.isEmpty || !isOnline
+                        ? null
+                        : _submit,
                     child: Container(
                       height: 64,
                       decoration: BoxDecoration(
-                        gradient: (_submitting || _items.isEmpty)
+                        gradient: (_submitting || _items.isEmpty || !isOnline)
                             ? null
                             : AppColors.gradientHero,
-                        color: (_submitting || _items.isEmpty)
+                        color: (_submitting || _items.isEmpty || !isOnline)
                             ? AppColors.bgSurface
                             : null,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: (_submitting || _items.isEmpty)
+                        boxShadow: (_submitting || _items.isEmpty || !isOnline)
                             ? null
                             : [
                                 BoxShadow(
@@ -359,9 +382,11 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2))
                           : Text(
-                              'Подтвердить приёмку (${_items.length} поз.)',
+                              !isOnline
+                                  ? 'Офлайн — отправка недоступна'
+                                  : 'Подтвердить приёмку (${_items.length} поз.)',
                               style: TextStyle(
-                                color: _items.isEmpty
+                                color: (_items.isEmpty || !isOnline)
                                     ? AppColors.textMuted
                                     : Colors.white,
                                 fontSize: 16,

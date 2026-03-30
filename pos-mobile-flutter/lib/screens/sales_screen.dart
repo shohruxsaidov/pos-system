@@ -4,6 +4,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import '../config/app_theme.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/warehouse_provider.dart';
 import '../utils/format.dart';
 import '../services/api_service.dart';
@@ -156,6 +157,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(warehouseProvider);
+    final isOnline = ref.watch(connectivityProvider);
     final filtered = _filtered(state.products);
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -240,7 +242,19 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                 left: 16,
                 right: 16,
                 child: GestureDetector(
-                  onTap: () => setState(() => _cartOpen = true),
+                  onTap: () {
+                    if (!isOnline) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Офлайн — используйте черновики'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+                    setState(() => _cartOpen = true);
+                  },
                   child: Container(
                     height: 60,
                     decoration: BoxDecoration(

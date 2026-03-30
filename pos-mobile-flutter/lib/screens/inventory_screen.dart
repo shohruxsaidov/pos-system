@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
 import '../utils/format.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/warehouse_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/product_card.dart';
@@ -154,6 +155,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(warehouseProvider);
+    final isOnline = ref.watch(connectivityProvider);
     final filtered = _filtered(state.products);
 
     final lowCount =
@@ -254,6 +256,26 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 ],
               ),
             ),
+
+            // Offline banner
+            if (!isOnline)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                color: AppColors.warningBg,
+                child: const Row(
+                  children: [
+                    Icon(Icons.cloud_off, size: 13, color: AppColors.warning),
+                    SizedBox(width: 8),
+                    Text(
+                      'Офлайн — данные из кэша, редактирование недоступно',
+                      style:
+                          TextStyle(fontSize: 12, color: AppColors.warning),
+                    ),
+                  ],
+                ),
+              ),
 
             // Stats bar
             Padding(
@@ -374,16 +396,19 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                 child: ProductCard(
                                   product: filtered[i],
                                   query: _query,
-                                  onAdjust: () =>
-                                      _openAdjust(filtered[i]),
-                                  onPrint: () =>
-                                      _openPrint(filtered[i]),
-                                  onRename: () =>
-                                      _openRename(filtered[i]),
-                                  onChangePrice: () =>
-                                      _openChangePrice(filtered[i]),
-                                  onAddBarcode: () =>
-                                      _openAddBarcode(filtered[i]),
+                                  onAdjust: isOnline
+                                      ? () => _openAdjust(filtered[i])
+                                      : null,
+                                  onPrint: () => _openPrint(filtered[i]),
+                                  onRename: isOnline
+                                      ? () => _openRename(filtered[i])
+                                      : null,
+                                  onChangePrice: isOnline
+                                      ? () => _openChangePrice(filtered[i])
+                                      : null,
+                                  onAddBarcode: isOnline
+                                      ? () => _openAddBarcode(filtered[i])
+                                      : null,
                                 ),
                               );
                             },

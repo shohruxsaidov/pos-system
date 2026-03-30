@@ -38,6 +38,35 @@ Future<Product?> resolveProductByBarcode(String barcode) async {
   return Product.fromJson(match);
 }
 
+// ─── Reports cache ────────────────────────────────────────────────────────────
+
+const _reportsCachePrefix = 'pos_reports_cache_';
+const _reportsCacheTsPrefix = 'pos_reports_cache_ts_';
+const _reportsCacheTtlMinutes = 60;
+
+Future<void> saveReportsCache(
+    String date, Map<String, dynamic> payload) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('$_reportsCachePrefix$date', jsonEncode(payload));
+  await prefs.setInt('$_reportsCacheTsPrefix$date',
+      DateTime.now().millisecondsSinceEpoch);
+}
+
+/// Returns cached payload with extra key `cachedAt` (ms epoch), or null if
+/// no cache / stale (> 60 min).
+Future<Map<String, dynamic>?> loadReportsCache(String date) async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString('$_reportsCachePrefix$date');
+  final ts = prefs.getInt('$_reportsCacheTsPrefix$date') ?? 0;
+  if (raw == null) return null;
+  final age = DateTime.now().millisecondsSinceEpoch - ts;
+  if (age > _reportsCacheTtlMinutes * 60 * 1000) return null;
+  return {
+    ...jsonDecode(raw) as Map<String, dynamic>,
+    'cachedAt': ts,
+  };
+}
+
 // ─── Offline drafts ───────────────────────────────────────────────────────────
 
 Future<List<OfflineDraft>> loadDrafts() async {
