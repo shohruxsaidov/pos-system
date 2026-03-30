@@ -533,7 +533,10 @@ function highlight(text) {
   return String(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>')
 }
 
-function formatPrice(n) { return parseFloat(n || 0).toFixed(2) }
+function formatPrice(n) {
+  const [int, dec] = parseFloat(n || 0).toFixed(2).split('.')
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '.' + dec
+}
 
 function stockLabel(qty, threshold = 5) {
   if (qty < 0) return `Дефицит (${qty})`

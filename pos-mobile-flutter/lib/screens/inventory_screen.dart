@@ -1,9 +1,9 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
+import '../utils/format.dart';
 import '../providers/warehouse_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/product_card.dart';

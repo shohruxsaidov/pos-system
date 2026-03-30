@@ -216,10 +216,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildSummaryCards() {
-    final txnCount = _daily!['transaction_count'] ?? 0;
-    final netSales = (_daily!['net_sales'] as num?)?.toDouble() ?? 0;
-    final totalDiscount = (_daily!['total_discount'] as num?)?.toDouble() ?? 0;
-    final refunds = (_daily!['total_refunds'] as num?)?.toDouble() ?? 0;
+    final summary = _daily!['summary'] as Map<String, dynamic>? ?? {};
+    final txnCount = summary['transaction_count'] ?? 0;
+    final netSales = (summary['net_sales'] as num?)?.toDouble() ?? 0;
+    final totalDiscount = (summary['total_discounts'] as num?)?.toDouble() ?? 0;
+    final refundsMap = _daily!['refunds'] as Map<String, dynamic>? ?? {};
+    final refunds = (refundsMap['total'] as num?)?.toDouble() ?? 0;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -475,7 +477,7 @@ class _CashierRow extends StatelessWidget {
           ),
           Text(
             fmt.format(
-                (cashier['net_sales'] as num?)?.toDouble() ?? 0),
+                (cashier['total_sales'] as num?)?.toDouble() ?? 0),
             style: const TextStyle(
                 color: AppColors.textAccent,
                 fontWeight: FontWeight.bold,

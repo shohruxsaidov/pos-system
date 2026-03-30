@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
+import '../utils/format.dart';
 import '../utils/stock_status.dart';
 import 'highlight_text.dart';
 
@@ -32,7 +32,6 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -115,7 +114,7 @@ class ProductCard extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    fmt.format(product.price),
+                    formatPrice(product.price),
                     style: const TextStyle(
                       color: AppColors.textAccent,
                       fontWeight: FontWeight.bold,

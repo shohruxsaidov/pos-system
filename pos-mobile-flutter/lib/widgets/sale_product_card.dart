@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
+import '../utils/format.dart';
 import '../utils/stock_status.dart';
 import 'highlight_text.dart';
 
@@ -29,7 +29,6 @@ class SaleProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
     final status = StockStatus.from(product.stockQty);
 
     return Stack(
@@ -75,7 +74,7 @@ class SaleProductCard extends StatelessWidget {
                         AppColors.gradientHero.createShader(bounds),
                     blendMode: BlendMode.srcIn,
                     child: Text(
-                      fmt.format(product.price),
+                      formatPrice(product.price),
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,

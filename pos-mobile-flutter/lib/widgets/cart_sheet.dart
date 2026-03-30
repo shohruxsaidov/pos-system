@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/cart_item.dart';
+import '../utils/format.dart';
 import 'bottom_numpad.dart';
 
 /// CartSheet — equivalent to CartSheet.vue
@@ -26,8 +26,6 @@ class CartSheet extends StatefulWidget {
 }
 
 class _CartSheetState extends State<CartSheet> {
-  final _fmt = NumberFormat('#,##0.00');
-
   double get _total =>
       widget.items.fold(0, (sum, item) => sum + item.subtotal);
 
@@ -117,7 +115,7 @@ class _CartSheetState extends State<CartSheet> {
                         style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 16)),
                     Text(
-                      _fmt.format(_total),
+                      formatPrice(_total),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -176,7 +174,6 @@ class _CartItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -196,7 +193,7 @@ class _CartItemRow extends StatelessWidget {
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(
-                  '${fmt.format(item.unitPrice)} × ${item.qty}',
+                  '${formatPrice(item.unitPrice)} × ${item.qty}',
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12),
                 ),
@@ -225,7 +222,7 @@ class _CartItemRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(fmt.format(item.subtotal),
+          Text(formatPrice(item.subtotal),
               style: const TextStyle(
                   color: AppColors.textAccent,
                   fontWeight: FontWeight.bold,

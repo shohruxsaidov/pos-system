@@ -308,7 +308,10 @@ const pieOptions = {
   plugins: { legend: { position: 'right', labels: { color: '#9898bb' } } }
 }
 
-function formatAmount(n) { return parseFloat(n || 0).toFixed(2) }
+function formatAmount(n) {
+  const [int, dec] = parseFloat(n || 0).toFixed(2).split('.')
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '.' + dec
+}
 function formatTime(dt) {
   return dt ? new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
 }

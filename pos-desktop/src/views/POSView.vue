@@ -287,7 +287,8 @@ function highlight(text) {
 }
 
 function formatPrice(n) {
-  return parseFloat(n || 0).toFixed(2)
+  const [int, dec] = parseFloat(n || 0).toFixed(2).split('.')
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '.' + dec
 }
 
 function stockLabel(qty) {

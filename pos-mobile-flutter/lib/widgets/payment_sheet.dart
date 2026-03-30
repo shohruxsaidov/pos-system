@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import 'bottom_numpad.dart';
+import '../utils/format.dart';
 
 /// PaymentSheet — equivalent to PaymentSheet.vue
 class PaymentSheet extends StatefulWidget {
@@ -38,8 +38,6 @@ class _PaymentSheetState extends State<PaymentSheet> {
 
   double get _netTotal => (widget.total - _discount).clamp(0, double.infinity);
   double get _change => (_tendered - _netTotal).clamp(0, double.infinity);
-
-  final _fmt = NumberFormat('#,##0.00');
 
   @override
   void initState() {
@@ -190,7 +188,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                           children: [
                             Text(
                               _discount > 0
-                                  ? _fmt.format(_discount)
+                                  ? formatPrice(_discount)
                                   : '0.00',
                               style: TextStyle(
                                 color: _discount > 0
@@ -244,7 +242,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                               MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              _fmt.format(_tendered),
+                              formatPrice(_tendered),
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
@@ -276,21 +274,21 @@ class _PaymentSheetState extends State<PaymentSheet> {
               children: [
                 _SummaryRow(
                     label: 'Подытог',
-                    value: _fmt.format(widget.total)),
+                    value: formatPrice(widget.total)),
                 if (_discount > 0)
                   _SummaryRow(
                       label: 'Скидка',
-                      value: '-${_fmt.format(_discount)}',
+                      value: '-${formatPrice(_discount)}',
                       color: AppColors.warning),
                 const Divider(color: AppColors.borderSubtle, height: 16),
                 _SummaryRow(
                     label: 'Итого',
-                    value: _fmt.format(_netTotal),
+                    value: formatPrice(_netTotal),
                     large: true),
                 if (_method == 'cash' && _change > 0)
                   _SummaryRow(
                       label: 'Сдача',
-                      value: _fmt.format(_change),
+                      value: formatPrice(_change),
                       color: AppColors.success),
               ],
             ),
@@ -305,7 +303,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                 ? const CircularProgressIndicator(
                     color: Colors.white, strokeWidth: 2)
                 : Text(
-                    'Оплатить  ${_fmt.format(_netTotal)}',
+                    'Оплатить  ${formatPrice(_netTotal)}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
