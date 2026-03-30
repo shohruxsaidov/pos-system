@@ -1,7 +1,7 @@
 <template>
   <div class="numpad">
     <div class="numpad-display" v-if="showDisplay">
-      <span class="numpad-value font-mono">{{ displayValue || '0' }}</span>
+      <span class="numpad-value font-mono">{{ formatDisplay(displayValue) }}</span>
     </div>
     <div class="numpad-grid">
       <button
@@ -51,6 +51,14 @@ const keys = computed(() => [
   { label: '⌫', value: 'del', class: 'key-delete', icon: '' },
   { label: 'C', value: 'clear', class: 'key-clear' }
 ])
+
+function formatDisplay(val) {
+  if (!val || val === '0') return '0'
+  const hasDot = val.includes('.')
+  const [intPart, decPart] = val.split('.')
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0')
+  return hasDot ? formattedInt + '.' + (decPart ?? '') : formattedInt
+}
 
 function handleKey(val) {
   let current = displayValue.value
