@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../config/app_theme.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../providers/warehouse_provider.dart';
+import '../utils/format.dart';
 import '../services/api_service.dart';
 import '../widgets/cart_sheet.dart';
 import '../widgets/payment_sheet.dart';
@@ -157,8 +157,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(warehouseProvider);
     final filtered = _filtered(state.products);
-    final fmt = NumberFormat('#,##0.00');
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
@@ -288,7 +286,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 20),
                           child: Text(
-                            fmt.format(_cartTotal),
+                            formatPrice(_cartTotal),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

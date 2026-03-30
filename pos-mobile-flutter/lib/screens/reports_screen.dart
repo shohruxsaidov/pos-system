@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
+import '../utils/format.dart';
 import '../services/api_service.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   bool _loading = false;
   String? _error;
 
-  final _fmt = NumberFormat('#,##0.00');
   final _dateFmt = DateFormat('yyyy-MM-dd');
 
   @override
@@ -238,17 +238,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             color: AppColors.accent1),
         _StatCard(
             label: 'Чистые продажи',
-            value: _fmt.format(netSales),
+            value: formatPrice(netSales),
             icon: Icons.trending_up,
             color: AppColors.success),
         _StatCard(
             label: 'Скидки',
-            value: _fmt.format(totalDiscount),
+            value: formatPrice(totalDiscount),
             icon: Icons.discount,
             color: AppColors.warning),
         _StatCard(
             label: 'Возвраты',
-            value: _fmt.format(refunds),
+            value: formatPrice(refunds),
             icon: Icons.undo,
             color: AppColors.danger),
       ],
@@ -288,7 +288,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(width: 12),
               Text(
-                _fmt.format(amount),
+                formatPrice(amount),
                 style: const TextStyle(
                     color: AppColors.textAccent,
                     fontWeight: FontWeight.bold,
@@ -353,7 +353,6 @@ class _ProductRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -405,7 +404,7 @@ class _ProductRow extends StatelessWidget {
           SizedBox(
             width: 72,
             child: Text(
-              fmt.format(
+              formatPrice(
                   (product['total_revenue'] as num?)?.toDouble() ?? 0),
               style: const TextStyle(
                   color: AppColors.textAccent,
@@ -428,7 +427,6 @@ class _CashierRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -476,7 +474,7 @@ class _CashierRow extends StatelessWidget {
             ),
           ),
           Text(
-            fmt.format(
+            formatPrice(
                 (cashier['total_sales'] as num?)?.toDouble() ?? 0),
             style: const TextStyle(
                 color: AppColors.textAccent,

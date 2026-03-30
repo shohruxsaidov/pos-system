@@ -1321,7 +1321,6 @@ class _ChangePriceSheetState extends State<_ChangePriceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.00');
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.bgElevated,
@@ -1361,7 +1360,7 @@ class _ChangePriceSheetState extends State<_ChangePriceSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Текущая цена: ${fmt.format(widget.product.price)}',
+            'Текущая цена: ${formatPrice(widget.product.price)}',
             style: const TextStyle(
                 color: AppColors.textSecondary, fontSize: 13),
           ),
