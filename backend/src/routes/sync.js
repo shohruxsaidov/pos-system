@@ -1,30 +1,20 @@
 import { pool } from '../db/connection.js'
+import { pushToCloud } from '../services/syncService.js'
 
 export default async function syncRoutes(fastify) {
-  // POST /api/sync/push — push local changes to cloud
+  // POST /api/sync/push — push local transactions to cloud
   fastify.post('/api/sync/push', { onRequest: [fastify.authenticate] }, async (req, reply) => {
-    const { rows } = await pool.query(
-      'SELECT * FROM sync_log WHERE synced_at IS NULL ORDER BY created_at LIMIT 100'
-    )
-
-    if (!rows.length) return { pushed: 0, message: 'Nothing to sync' }
-
-    // In production, this would push to cloud DB
-    // For now, mark as synced
-    const ids = rows.map(r => r.id)
-    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
-    await pool.query(
-      `UPDATE sync_log SET synced_at=NOW() WHERE id IN (${placeholders})`,
-      ids
-    )
-
-    return { pushed: rows.length, message: 'Sync successful' }
+    try {
+      const result = await pushToCloud()
+      return result
+    } catch (err) {
+      reply.code(502).send({ error: err.message })
+    }
   })
 
-  // GET /api/sync/pull — pull changes from cloud
+  // GET /api/sync/pull — not implemented (push-only architecture)
   fastify.get('/api/sync/pull', { onRequest: [fastify.authenticate] }, async () => {
-    // In production, this would pull from cloud DB
-    return { pulled: 0, message: 'Cloud sync not configured' }
+    return { pulled: 0, message: 'Push-only sync — no pull needed' }
   })
 
   // GET /api/sync/status

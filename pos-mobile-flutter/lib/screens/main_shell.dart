@@ -8,6 +8,7 @@ import '../providers/offline_draft_provider.dart';
 import 'sales_screen.dart';
 import 'incoming_screen.dart';
 import 'inventory_screen.dart';
+import 'cloud_reports_screen.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -250,6 +251,16 @@ class _MainShellState extends ConsumerState<MainShell> {
       'offlineDisabled': false,
     });
 
+    if (role == 'manager' || role == 'admin') {
+      tabs.add({
+        'id': 'cloud',
+        'label': 'Облако',
+        'icon': Icons.cloud_outlined,
+        'activeIcon': Icons.cloud,
+        'offlineDisabled': false,
+      });
+    }
+
     return tabs;
   }
 
@@ -262,6 +273,10 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     screens.add(const IncomingScreen());
     screens.add(const InventoryScreen());
+
+    if (role == 'manager' || role == 'admin') {
+      screens.add(const CloudReportsScreen());
+    }
 
     return screens;
   }

@@ -31,7 +31,12 @@
       "Bash(find /Users/shohruxsaidov/Documents/projects/pos/pos-mobile-flutter -type f -name *.dart)",
       "Bash(cat /Users/shohruxsaidov/Documents/projects/pos/backend/src/routes/*.js)",
       "Bash(grep -r \"formatPrice\\\\|space.*separator\\\\|thousands\" pos-desktop/src --include=*.js --include=*.vue -l)",
-      "Bash(grep -n \"low_stock_threshold\\\\|low_stock\" backend/src/db/migrations/*.sql)"
+      "Bash(grep -n \"low_stock_threshold\\\\|low_stock\" backend/src/db/migrations/*.sql)",
+      "Bash(grep -r \"cloud\\\\|hq\\\\|remote.*db\\\\|sync.*config\\\\|SYNC\" /Users/shohruxsaidov/Documents/projects/pos/backend/src --include=*.js)",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos -name .env* -type f)",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(git -C /Users/shohruxsaidov/Documents/projects/pos diff backend/src/routes/sync.js)",
+      "Bash(git -C /Users/shohruxsaidov/Documents/projects/pos diff backend/src/services/cronService.js)"
     ]
   }
 }

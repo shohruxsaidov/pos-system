@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import { pool } from '../db/connection.js'
 import { sendEODSummary } from './notificationService.js'
 import { runBackupSafe } from './backupService.js'
+import { pushToCloud } from './syncService.js'
 
 let eodTask = null
 let backupTask = null
@@ -41,6 +42,20 @@ export async function startCronJobs() {
   })
 
   console.log(`[cron] EOD summary scheduled at ${eodTime}`)
+
+  // Push unsynced transactions to cloud every 5 minutes
+  if (process.env.CLOUD_API_URL) {
+    // Initial push after 30s (let DB settle on startup)
+    setTimeout(async () => {
+      try { await pushToCloud() } catch (e) { console.error('[sync] Initial push failed:', e.message) }
+    }, 30_000)
+
+    setInterval(async () => {
+      try { await pushToCloud() } catch (e) { console.error('[sync] Scheduled push failed:', e.message) }
+    }, 5 * 60 * 1000)
+
+    console.log('[cron] Cloud sync scheduled every 5 minutes')
+  }
 }
 
 export function stopCronJobs() {

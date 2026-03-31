@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'config/api_config.dart';
+import 'config/cloud_config.dart';
 import 'config/app_theme.dart';
 import 'config/router.dart';
 
@@ -15,8 +16,9 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Load saved API config
+  // Load saved API configs
   await ApiConfig.load();
+  await CloudConfig.load();
 
   await SentryFlutter.init(
     (options) {
