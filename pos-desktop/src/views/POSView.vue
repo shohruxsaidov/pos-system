@@ -687,10 +687,10 @@ function stockClass(qty) {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 10px;
-  padding: 0 2px;
+  font-size: 13px;
+  padding: 2px 5px;
   line-height: 1;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: all 0.1s;
 }
 
@@ -705,8 +705,9 @@ function stockClass(qty) {
   border-radius: 8px 8px 0 0;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 12px;
-  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.12s;

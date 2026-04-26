@@ -7,7 +7,8 @@
         <p class="view-subtitle">{{ today }}</p>
       </div>
       <div class="header-actions">
-        <Button label="История" icon="pi pi-history" class="p-button-secondary" @click="$router.push('/incoming/history')" />
+        <Button label="История" icon="pi pi-history" class="p-button-secondary"
+          @click="$router.push('/incoming/history')" />
         <Button label="Подтвердить приём" icon="pi pi-check" :disabled="items.length === 0 || saving" :loading="saving"
           @click="confirmReceipt" />
       </div>
@@ -34,7 +35,7 @@
     <!-- Add item bar -->
     <div class="card add-bar">
       <!-- Search input -->
-      <div class="add-section search-section">
+      <div v-if="!selectedProduct && !manualMode" class="add-section search-section">
         <label class="field-label">Штрихкод или название</label>
         <div class="search-row">
           <input ref="searchInput" v-model="searchQuery" class="search-input" placeholder="Сканируйте или введите..."
@@ -429,6 +430,7 @@ async function confirmReceipt() {
 
 /* Add bar */
 .add-bar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -608,7 +610,9 @@ async function confirmReceipt() {
   background: var(--bg-elevated);
   border: 1px solid var(--border-focus);
   border-radius: 12px;
-  max-width: 280px;
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
 }
 
 .chip-info {

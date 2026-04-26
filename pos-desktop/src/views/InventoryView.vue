@@ -238,7 +238,7 @@
     </Dialog>
 
     <!-- Print Label Dialog -->
-    <PrintLabelDialog v-model="showPrintLabel" :product="printProduct" @print="handlePrint" />
+    <PrintLabelDialog v-model="showPrintLabel" :product="printProduct" />
 
     <Toast />
   </div>
@@ -517,20 +517,6 @@ async function deleteProduct(product) {
   }
 }
 
-async function handlePrint({ product, barcode, copies, size }) {
-  try {
-    await api.post('/api/barcode/print', {
-      product_id: product.id,
-      barcode: barcode || product.barcode,
-      product_name: product.name,
-      price: product.price,
-      copies, size
-    })
-    toast.add({ severity: 'success', summary: 'Команда печати отправлена', life: 2000 })
-  } catch (e) {
-    toast.add({ severity: 'error', summary: 'Ошибка печати', detail: e.message, life: 3000 })
-  }
-}
 
 function highlight(text) {
   if (!search.value || !text) return text
