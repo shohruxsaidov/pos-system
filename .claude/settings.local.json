@@ -42,7 +42,8 @@
       "Bash(node --input-type=module --eval \"import './src/routes/reports.js'\")",
       "Bash(flutter build *)",
       "Bash(pm2 restart *)",
-      "Bash(pm2 list *)"
+      "Bash(pm2 list *)",
+      "Bash(xargs cat *)"
     ]
   }
 }

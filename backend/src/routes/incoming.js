@@ -45,11 +45,11 @@ export default async function incomingRoutes(fastify) {
         return reply.code(403).send({ error: "Insufficient permissions" });
       }
 
-      const { supplier, notes, items } = req.body;
+      const { supplier, notes, items, warehouse_id } = req.body;
       if (!items?.length)
         return reply.code(400).send({ error: "items required" });
 
-      const warehouseId = req.user.warehouse_id || 1;
+      const warehouseId = warehouse_id || req.user.warehouse_id || 1;
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -141,19 +141,36 @@ export default async function incomingRoutes(fastify) {
     async (req) => {
       const { page = 1, limit = 50 } = req.query;
       const offset = (page - 1) * limit;
+
+      // Managers and admins see all warehouses; warehouse role sees own only
+      const isManager = ["manager", "admin"].includes(req.user.role);
       const warehouseId = req.user.warehouse_id || 1;
 
-      const { rows } = await pool.query(
-        `SELECT r.*, u.name as received_by_name
-         FROM incoming_receipts r
-         LEFT JOIN users u ON u.id=r.received_by
-         WHERE r.warehouse_id=$1
-         ORDER BY r.created_at DESC
-         LIMIT $2 OFFSET $3`,
-        [warehouseId, limit, offset],
-      );
+      const [{ rows }, { rows: countRows }] = await Promise.all([
+        pool.query(
+          isManager
+            ? `SELECT r.*, u.name as received_by_name
+               FROM incoming_receipts r
+               LEFT JOIN users u ON u.id=r.received_by
+               ORDER BY r.created_at DESC
+               LIMIT $1 OFFSET $2`
+            : `SELECT r.*, u.name as received_by_name
+               FROM incoming_receipts r
+               LEFT JOIN users u ON u.id=r.received_by
+               WHERE r.warehouse_id=$1
+               ORDER BY r.created_at DESC
+               LIMIT $2 OFFSET $3`,
+          isManager ? [limit, offset] : [warehouseId, limit, offset],
+        ),
+        pool.query(
+          isManager
+            ? `SELECT COUNT(*) FROM incoming_receipts`
+            : `SELECT COUNT(*) FROM incoming_receipts WHERE warehouse_id=$1`,
+          isManager ? [] : [warehouseId],
+        ),
+      ]);
 
-      return rows;
+      return { data: rows, total: parseInt(countRows[0].count), page: parseInt(page), limit: parseInt(limit) };
     },
   );
 

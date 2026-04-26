@@ -55,6 +55,18 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/incoming',
+    name: 'incoming',
+    component: () => import('../views/IncomingView.vue'),
+    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+  },
+  {
+    path: '/incoming/history',
+    name: 'incoming-history',
+    component: () => import('../views/IncomingHistoryView.vue'),
+    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+  },
+  {
     path: '/warehouse',
     name: 'warehouse',
     component: () => import('../views/WarehouseView.vue'),
