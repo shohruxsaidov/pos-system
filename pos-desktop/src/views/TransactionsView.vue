@@ -70,19 +70,93 @@
             <span class="font-mono" style="font-size:12px">{{ formatDateTime(data.created_at) }}</span>
           </template>
         </Column>
-        <Column header="" style="width:90px">
+        <Column header="" style="width:160px">
           <template #body="{ data }">
-            <Button
-              v-if="data.status === 'completed' || data.status === 'partially_refunded'"
-              label="Возврат"
-              class="p-button-secondary"
-              style="height:32px;font-size:12px"
-              @click="openRefund(data)"
-            />
+            <div style="display:flex;gap:6px">
+              <Button
+                label="Детали"
+                icon="pi pi-eye"
+                class="p-button-secondary"
+                style="height:32px;font-size:12px"
+                @click="openDetails(data)"
+              />
+              <Button
+                v-if="data.status === 'completed' || data.status === 'partially_refunded'"
+                label="Возврат"
+                class="p-button-secondary"
+                style="height:32px;font-size:12px"
+                @click="openRefund(data)"
+              />
+            </div>
           </template>
         </Column>
       </DataTable>
     </div>
+
+    <!-- Transaction Details Modal -->
+    <Dialog v-model:visible="showDetails" modal header="Детали транзакции" :style="{ width: '560px' }">
+      <div v-if="detailsLoading" class="details-loading">
+        <i class="pi pi-spin pi-spinner" style="font-size:24px;color:var(--accent-1)" />
+      </div>
+      <div v-else-if="detailsTxn" class="details-body">
+        <!-- Header info -->
+        <div class="details-meta">
+          <div class="details-row">
+            <span class="details-label">Номер</span>
+            <span class="font-mono details-ref">{{ detailsTxn.ref_no }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Дата</span>
+            <span class="font-mono">{{ formatDateTime(detailsTxn.created_at) }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Кассир</span>
+            <span>{{ detailsTxn.cashier_name || '—' }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Клиент</span>
+            <span>{{ detailsTxn.customer_name || '—' }}</span>
+          </div>
+          <div class="details-row">
+            <span class="details-label">Статус</span>
+            <Tag :value="statusLabel(detailsTxn.status)" :severity="statusSeverity(detailsTxn.status)" />
+          </div>
+          <div class="details-row">
+            <span class="details-label">Оплата</span>
+            <span>{{ detailsTxn.payment_method }}</span>
+          </div>
+        </div>
+
+        <!-- Items -->
+        <div class="details-section-title">Товары</div>
+        <div class="details-items">
+          <div v-for="item in detailsTxn.items" :key="item.id" class="detail-item">
+            <div class="detail-item-name">{{ item.name || item.product_name }}</div>
+            <div class="detail-item-right">
+              <span class="detail-item-qty font-mono">× {{ item.qty }}</span>
+              <span class="detail-item-price font-mono">{{ formatAmount(item.unit_price) }}</span>
+              <span class="detail-item-sub font-mono">= {{ formatAmount(item.subtotal) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Totals -->
+        <div class="details-totals">
+          <div class="details-row" v-if="detailsTxn.discount > 0">
+            <span class="details-label">Скидка</span>
+            <span class="font-mono">{{ formatAmount(detailsTxn.discount) }}</span>
+          </div>
+          <div class="details-row" v-if="detailsTxn.tax > 0">
+            <span class="details-label">Налог</span>
+            <span class="font-mono">{{ formatAmount(detailsTxn.tax) }}</span>
+          </div>
+          <div class="details-row details-total-row">
+            <span class="details-label">Итого</span>
+            <span class="font-mono details-total-val">{{ formatAmount(detailsTxn.total) }}</span>
+          </div>
+        </div>
+      </div>
+    </Dialog>
 
     <RefundDialog v-model="showRefund" :transaction-id="refundTxnId" @refunded="load(currentPage)" />
     <Toast />
@@ -104,6 +178,7 @@ import Toast from 'primevue/toast'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
 
 const api = useApi()
 const toast = useToast()
@@ -132,6 +207,10 @@ const statusOptions = [
 
 const showRefund = ref(false)
 const refundTxnId = ref(null)
+
+const showDetails = ref(false)
+const detailsTxn = ref(null)
+const detailsLoading = ref(false)
 
 onMounted(() => load(1))
 
@@ -172,6 +251,20 @@ function onPage(e) {
 function openRefund(txn) {
   refundTxnId.value = txn.id
   showRefund.value = true
+}
+
+async function openDetails(txn) {
+  detailsTxn.value = null
+  detailsLoading.value = true
+  showDetails.value = true
+  try {
+    detailsTxn.value = await api.get(`/api/transactions/${txn.id}`)
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
+    showDetails.value = false
+  } finally {
+    detailsLoading.value = false
+  }
 }
 
 function fmtDate(d) {
@@ -243,5 +336,111 @@ function exportCSV() {
   border-radius: 3px;
   padding: 0 2px;
   font-weight: 700;
+}
+
+/* Details modal */
+.details-loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.details-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.details-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.details-ref {
+  font-size: 12px;
+  color: var(--text-accent);
+}
+
+.details-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.details-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.detail-item-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.detail-item-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.detail-item-qty  { color: var(--text-muted); font-size: 12px; }
+.detail-item-price { color: var(--text-secondary); font-size: 12px; }
+.detail-item-sub  { color: var(--text-primary); font-weight: 600; }
+
+.details-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+.details-total-row {
+  margin-top: 4px;
+}
+
+.details-total-val {
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 </style>
