@@ -13,11 +13,13 @@ class ReportsScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-enum _ReportPeriod { day, week, month }
+enum _ReportPeriod { day, week, month, range }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   DateTime _date = DateTime.now();
   _ReportPeriod _period = _ReportPeriod.day;
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
   Map<String, dynamic>? _daily;
   List<Map<String, dynamic>> _topProducts = [];
   List<Map<String, dynamic>> _cashiers = [];
@@ -38,6 +40,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final firstDay = DateTime(_date.year, _date.month, 1);
       final lastDay = DateTime(_date.year, _date.month + 1, 0);
       return (from: _dateFmt.format(firstDay), to: _dateFmt.format(lastDay));
+    } else if (_period == _ReportPeriod.range) {
+      final s = _rangeStart ?? _date;
+      final e = _rangeEnd ?? _date;
+      return (from: _dateFmt.format(s), to: _dateFmt.format(e));
     }
     final d = _dateFmt.format(_date);
     return (from: d, to: d);
@@ -129,6 +135,33 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: (_rangeStart != null && _rangeEnd != null)
+          ? DateTimeRange(start: _rangeStart!, end: _rangeEnd!)
+          : null,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.accent1,
+            surface: AppColors.bgElevated,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _rangeStart = picked.start;
+        _rangeEnd = picked.end;
+      });
+      _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -155,7 +188,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           fontWeight: FontWeight.bold)),
                   const Spacer(),
                   GestureDetector(
-                    onTap: _pickDate,
+                    onTap: _period == _ReportPeriod.range ? _pickDateRange : _pickDate,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
@@ -217,6 +250,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     onTap: () {
                       setState(() => _period = _ReportPeriod.month);
                       _load();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _PeriodTab(
+                    label: 'Диапазон',
+                    selected: _period == _ReportPeriod.range,
+                    onTap: () {
+                      setState(() => _period = _ReportPeriod.range);
+                      _pickDateRange();
                     },
                   ),
                 ],

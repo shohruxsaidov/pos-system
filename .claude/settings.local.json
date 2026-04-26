@@ -43,7 +43,9 @@
       "Bash(flutter build *)",
       "Bash(pm2 restart *)",
       "Bash(pm2 list *)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(grep -E \"\\\\.\\(vue|jsx|js|tsx\\)$\")",
+      "Bash(grep -iE \"\\\\.\\(dart|java|swift|kt\\)$\")"
     ]
   }
 }
