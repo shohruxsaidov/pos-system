@@ -6,14 +6,22 @@
         <p class="view-subtitle">{{ selectedDate }}</p>
       </div>
       <div class="header-actions">
-        <Select v-if="session.user?.role !== 'cashier'" v-model="selectedWarehouseId"
-          :options="[{ id: null, name: 'Все склады' }, ...warehouses]" option-label="name" option-value="id"
-          placeholder="Склад" style="width:160px" @change="loadAll" />
-        <DatePicker v-model="dateFilter" date-format="yy-mm-dd" @date-select="loadAll" />
-        <Button label="Экспорт CSV" icon="pi pi-download" class="p-button-secondary" @click="exportCSV" />
-        <Button label="X-Отчёт" icon="pi pi-chart-bar" class="p-button-secondary" @click="showXReport = true" />
-        <Button v-if="session.user?.role !== 'cashier'" label="Z-Отчёт" icon="pi pi-lock" severity="danger"
-          @click="showZReport = true" />
+        <div class="actions-row">
+          <Select v-if="session.user?.role !== 'cashier'" v-model="selectedWarehouseId"
+            :options="[{ id: null, name: 'Все склады' }, ...warehouses]" option-label="name" option-value="id"
+            placeholder="Склад" style="width:160px" @change="loadAll" />
+          <SelectButton v-model="reportPeriod" :options="periodOptions" option-label="label" option-value="value"
+            @change="onPeriodChange" />
+          <DatePicker v-if="reportPeriod !== 'range'" v-model="dateFilter" date-format="yy-mm-dd" @date-select="loadAll" />
+          <DatePicker v-else v-model="dateRangeFilter" selection-mode="range" date-format="yy-mm-dd"
+            placeholder="Выберите период" :number-of-months="2" @date-select="onRangeSelect" style="width:260px" />
+        </div>
+        <div class="actions-row">
+          <Button label="Экспорт CSV" icon="pi pi-download" class="p-button-secondary" @click="exportCSV" />
+          <Button label="X-Отчёт" icon="pi pi-chart-bar" class="p-button-secondary" @click="showXReport = true" />
+          <Button v-if="session.user?.role !== 'cashier'" label="Z-Отчёт" icon="pi pi-lock" severity="danger"
+            @click="showZReport = true" />
+        </div>
       </div>
     </div>
 
@@ -34,14 +42,14 @@
     </div>
 
     <div class="reports-grid">
-      <!-- Hourly Chart -->
-      <div class="card report-card">
+      <!-- Hourly Chart — only for daily period -->
+      <div v-if="reportPeriod === 'day'" class="card report-card">
         <h3 class="card-title">Продажи по часам</h3>
         <Chart type="bar" :data="hourlyChartData" :options="chartOptions" style="height:200px" />
       </div>
 
       <!-- Payment Methods -->
-      <div class="card report-card">
+      <div class="card report-card" :style="reportPeriod !== 'day' ? 'grid-column: 1 / -1' : ''">
         <h3 class="card-title">Способы оплаты</h3>
         <Chart v-if="daily?.by_method?.length" type="doughnut" :data="methodChartData" :options="pieOptions"
           style="height:200px" />
@@ -188,6 +196,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
 import Chart from 'primevue/chart'
 import Toast from 'primevue/toast'
 
@@ -196,6 +205,14 @@ const toast = useToast()
 const session = useSessionStore()
 
 const dateFilter = ref(new Date())
+const dateRangeFilter = ref(null)
+const reportPeriod = ref('day')
+const periodOptions = [
+  { label: 'День', value: 'day' },
+  { label: 'Неделя', value: 'week' },
+  { label: 'Месяц', value: 'month' },
+  { label: 'Диапазон', value: 'range' },
+]
 const daily = ref(null)
 const topProducts = ref([])
 const loading = ref(false)
@@ -215,8 +232,33 @@ function fmtLocalDate(d) {
   return `${y}-${m}-${day}`
 }
 
+const dateRange = computed(() => {
+  if (reportPeriod.value === 'range') {
+    const [from, to] = dateRangeFilter.value || []
+    if (from && to) return { from: fmtLocalDate(from), to: fmtLocalDate(to) }
+    const today = fmtLocalDate(new Date())
+    return { from: today, to: today }
+  }
+  const d = dateFilter.value ? new Date(dateFilter.value) : new Date()
+  if (reportPeriod.value === 'week') {
+    const dayOfWeek = (d.getDay() + 6) % 7
+    const monday = new Date(d)
+    monday.setDate(d.getDate() - dayOfWeek)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return { from: fmtLocalDate(monday), to: fmtLocalDate(sunday) }
+  } else if (reportPeriod.value === 'month') {
+    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1)
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+    return { from: fmtLocalDate(firstDay), to: fmtLocalDate(lastDay) }
+  }
+  const day = fmtLocalDate(d)
+  return { from: day, to: day }
+})
+
 const selectedDate = computed(() => {
-  return dateFilter.value ? fmtLocalDate(dateFilter.value) : fmtLocalDate(new Date())
+  const { from, to } = dateRange.value
+  return from === to ? from : `${from} — ${to}`
 })
 
 const totalGrossProfit = computed(() =>
@@ -235,17 +277,26 @@ onMounted(async () => {
   if (session.user?.role !== 'cashier') loadZReports()
 })
 
+function onPeriodChange() {
+  if (reportPeriod.value !== 'range') loadAll()
+}
+
+function onRangeSelect() {
+  const [from, to] = dateRangeFilter.value || []
+  if (from && to) loadAll()
+}
+
 async function loadAll() {
   loading.value = true
   try {
-    const date = selectedDate.value
+    const { from, to } = dateRange.value
     const wq = selectedWarehouseId.value ? `&warehouse_id=${selectedWarehouseId.value}` : ''
     const requests = [
-      api.get(`/api/reports/daily?date=${date}${wq}`),
-      api.get(`/api/reports/products?from=${date}&to=${date}${wq}`),
+      api.get(`/api/reports/daily?from=${from}&to=${to}${wq}`),
+      api.get(`/api/reports/products?from=${from}&to=${to}${wq}`),
     ]
     if (session.user?.role !== 'cashier') {
-      requests.push(api.get(`/api/reports/cashiers?date=${date}${wq}`))
+      requests.push(api.get(`/api/reports/cashiers?from=${from}&to=${to}${wq}`))
     }
     const results = await Promise.all(requests)
     daily.value = results[0]
@@ -357,7 +408,15 @@ function exportCSV() {
 
 .header-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.actions-row {
+  display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .summary-cards {

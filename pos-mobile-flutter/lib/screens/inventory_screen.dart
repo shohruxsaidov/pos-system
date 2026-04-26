@@ -9,6 +9,7 @@ import '../providers/warehouse_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/stock_adjust_sheet.dart';
+import 'product_detail_screen.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -409,6 +410,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                   onAddBarcode: isOnline
                                       ? () => _openAddBarcode(filtered[i])
                                       : null,
+                                  onDetail: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ProductDetailScreen(
+                                          productId: filtered[i].id),
+                                    ),
+                                  ),
                                 ),
                               );
                             },

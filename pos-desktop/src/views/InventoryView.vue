@@ -99,6 +99,9 @@
             <button v-if="canManage" class="action-btn" @click="openStockAdjust(product)" title="Коррект. склада">
               <i class="pi pi-chart-line" />
             </button>
+            <button class="action-btn" @click="router.push(`/product/${product.id}`)" title="Аналитика товара">
+              <i class="pi pi-chart-bar" />
+            </button>
             <button class="action-btn" @click="generateBarcode(product)" title="Штрихкод">
               <i class="pi pi-barcode" />
             </button>
@@ -243,6 +246,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
 import { useSessionStore } from '../stores/session.js'
@@ -257,6 +261,7 @@ import Toast from 'primevue/toast'
 const api = useApi()
 const toast = useToast()
 const session = useSessionStore()
+const router = useRouter()
 const canManage = computed(() => session.user?.role !== 'cashier')
 
 const allProducts = ref([])

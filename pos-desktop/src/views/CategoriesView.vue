@@ -10,14 +10,8 @@
     </div>
 
     <!-- DataTable -->
-    <DataTable
-      :value="categories"
-      :loading="loading"
-      scrollable
-      scroll-height="flex"
-      class="categories-table"
-      row-hover
-    >
+    <DataTable :value="categories" :loading="loading" scrollable scroll-height="flex" class="categories-table"
+      row-hover>
       <Column header="Цвет" style="width:64px">
         <template #body="{ data }">
           <div class="color-dot" :style="{ background: data.color || '#7b68ee' }" />
@@ -45,20 +39,18 @@
       <Column header="Действия" style="width:100px">
         <template #body="{ data }">
           <div style="display:flex;gap:4px">
-            <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px" @click="openEdit(data)" v-tooltip="'Редактировать'" />
-            <Button icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px" @click="deleteCategory(data)" v-tooltip="'Удалить'" />
+            <Button icon="pi pi-pencil" class="p-button-secondary" style="height:36px;width:36px"
+              @click="openEdit(data)" v-tooltip="'Редактировать'" />
+            <Button icon="pi pi-trash" class="p-button-danger" style="height:36px;width:36px"
+              @click="deleteCategory(data)" v-tooltip="'Удалить'" />
           </div>
         </template>
       </Column>
     </DataTable>
 
     <!-- Create/Edit Drawer -->
-    <Drawer
-      v-model:visible="showDrawer"
-      :header="editingCategory ? 'Редактировать категорию' : 'Новая категория'"
-      position="right"
-      style="width:420px"
-    >
+    <Drawer v-model:visible="showDrawer" :header="editingCategory ? 'Редактировать категорию' : 'Новая категория'"
+      position="right" style="width:420px">
       <div class="drawer-form">
         <div class="field-group">
           <label class="field-label">Название *</label>
@@ -67,15 +59,8 @@
 
         <div class="field-group">
           <label class="field-label">Родительская категория</label>
-          <Select
-            v-model="form.parent_id"
-            :options="parentOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="Нет (корневая)"
-            class="w-full"
-            show-clear
-          />
+          <Select v-model="form.parent_id" :options="parentOptions" option-label="name" option-value="id"
+            placeholder="Нет (корневая)" class="w-full" show-clear />
         </div>
 
         <div class="field-group">
@@ -85,15 +70,8 @@
             <InputText v-model="form.color" class="w-full" placeholder="#7b68ee" />
           </div>
           <div class="color-presets">
-            <button
-              v-for="c in COLOR_PRESETS"
-              :key="c"
-              type="button"
-              class="color-preset"
-              :class="{ active: form.color === c }"
-              :style="{ background: c }"
-              @click="form.color = c"
-            />
+            <button v-for="c in COLOR_PRESETS" :key="c" type="button" class="color-preset"
+              :class="{ active: form.color === c }" :style="{ background: c }" @click="form.color = c" />
           </div>
         </div>
 
@@ -101,15 +79,8 @@
           <label class="field-label">Иконка</label>
           <InputText v-model="form.icon" class="w-full" placeholder="pi pi-tag" style="margin-bottom:8px" />
           <div class="icon-chips">
-            <button
-              v-for="ic in CATEGORY_ICONS"
-              :key="ic"
-              type="button"
-              class="icon-chip"
-              :class="{ active: form.icon === ic }"
-              @click="form.icon = ic"
-              v-tooltip="ic"
-            >
+            <button v-for="ic in CATEGORY_ICONS" :key="ic" type="button" class="icon-chip"
+              :class="{ active: form.icon === ic }" @click="form.icon = ic" v-tooltip="ic">
               <i :class="ic" />
             </button>
           </div>
@@ -127,13 +98,8 @@
       <template #footer>
         <div class="drawer-footer">
           <Button label="Отмена" class="p-button-secondary" @click="showDrawer = false" />
-          <Button
-            :label="editingCategory ? 'Сохранить изменения' : 'Создать категорию'"
-            :loading="saving"
-            :disabled="!form.name.trim()"
-            @click="saveCategory"
-            style="flex:1"
-          />
+          <Button :label="editingCategory ? 'Сохранить изменения' : 'Создать категорию'" :loading="saving"
+            :disabled="!form.name.trim()" @click="saveCategory" style="flex:1" />
         </div>
       </template>
     </Drawer>
@@ -256,7 +222,6 @@ async function deleteCategory(cat) {
 
 .view-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
 }
 
@@ -272,7 +237,9 @@ async function deleteCategory(cat) {
   margin-top: 2px;
 }
 
-.categories-table { flex: 1; }
+.categories-table {
+  flex: 1;
+}
 
 .color-dot {
   width: 22px;
@@ -296,7 +263,11 @@ async function deleteCategory(cat) {
   padding: 4px 0;
 }
 
-.field-group { display: flex; flex-direction: column; gap: 8px; }
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .field-label {
   font-size: 12px;
@@ -338,7 +309,9 @@ async function deleteCategory(cat) {
   transition: border-color 0.15s, transform 0.15s;
 }
 
-.color-preset:hover { transform: scale(1.15); }
+.color-preset:hover {
+  transform: scale(1.15);
+}
 
 .color-preset.active {
   border-color: #fff;
@@ -411,5 +384,7 @@ async function deleteCategory(cat) {
   padding: 16px;
 }
 
-.w-full { width: 100%; }
+.w-full {
+  width: 100%;
+}
 </style>

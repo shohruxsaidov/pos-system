@@ -4,6 +4,8 @@ export default async function syncRoutes(fastify) {
   // Auth hook — all routes in this plugin require X-Api-Key
   fastify.addHook('onRequest', async (req, reply) => {
     const key = req.headers['x-api-key']
+    console.log('API Key:', key) // Debug log
+    console.log('Expected API Key:', process.env.API_KEY) // Debug log
     if (!key || key !== process.env.API_KEY) {
       reply.code(401).send({ error: 'Unauthorized' })
     }

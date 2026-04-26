@@ -1,31 +1,32 @@
-import { pool } from '../db/connection.js'
+import { pool } from "../db/connection.js";
 
 export default async function reportsRoutes(fastify) {
   // POST /api/reports/login — exchange password for JWT
-  fastify.post('/api/reports/login', async (req, reply) => {
-    const { password } = req.body ?? {}
+  fastify.post("/api/reports/login", async (req, reply) => {
+    const { password } = req.body ?? {};
     if (!password || password !== process.env.REPORTS_PASSWORD) {
-      return reply.code(401).send({ error: 'Invalid password' })
+      return reply.code(401).send({ error: "Invalid password" });
     }
-    const token = fastify.jwt.sign({ role: 'reports' }, { expiresIn: '7d' })
-    return { token }
-  })
+    const token = fastify.jwt.sign({ role: "reports" }, { expiresIn: "7d" });
+    return { token };
+  });
 
   // Auth hook for all report GET endpoints
-  fastify.addHook('onRequest', async (req, reply) => {
-    if (req.method === 'POST' && req.url === '/api/reports/login') return
+  fastify.addHook("onRequest", async (req, reply) => {
+    if (req.method === "POST" && req.url === "/api/reports/login") return;
     try {
-      await req.jwtVerify()
-    } catch {
-      reply.code(401).send({ error: 'Unauthorized' })
+      await req.jwtVerify();
+    } catch (err) {
+      console.error("JWT verification failed:", err); // Debug log
+      reply.code(401).send({ error: "Unauthorized" });
     }
-  })
+  });
 
   // GET /api/reports/daily?from=YYYY-MM-DD&to=YYYY-MM-DD
-  fastify.get('/api/reports/daily', async (req) => {
-    const { from, to } = req.query
-    const fromDate = from || new Date().toISOString().slice(0, 10)
-    const toDate   = to   || fromDate
+  fastify.get("/api/reports/daily", async (req) => {
+    const { from, to } = req.query;
+    const fromDate = from || new Date().toISOString().slice(0, 10);
+    const toDate = to || fromDate;
 
     const [summary, payments] = await Promise.all([
       pool.query(
@@ -40,7 +41,7 @@ export default async function reportsRoutes(fastify) {
          WHERE created_at::date >= $1
            AND created_at::date <= $2
            AND status = 'completed'`,
-        [fromDate, toDate]
+        [fromDate, toDate],
       ),
       pool.query(
         `SELECT p.method, COUNT(*) AS count, COALESCE(SUM(p.amount), 0) AS total
@@ -50,18 +51,18 @@ export default async function reportsRoutes(fastify) {
            AND t.created_at::date <= $2
            AND t.status = 'completed'
          GROUP BY p.method`,
-        [fromDate, toDate]
+        [fromDate, toDate],
       ),
-    ])
+    ]);
 
-    return { ...summary.rows[0], payment_methods: payments.rows }
-  })
+    return { ...summary.rows[0], payment_methods: payments.rows };
+  });
 
   // GET /api/reports/products?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=20
-  fastify.get('/api/reports/products', async (req) => {
-    const { from, to, limit = '20' } = req.query
-    const fromDate = from || new Date().toISOString().slice(0, 10)
-    const toDate   = to   || fromDate
+  fastify.get("/api/reports/products", async (req) => {
+    const { from, to, limit = "20" } = req.query;
+    const fromDate = from || new Date().toISOString().slice(0, 10);
+    const toDate = to || fromDate;
 
     const { rows } = await pool.query(
       `SELECT
@@ -78,17 +79,17 @@ export default async function reportsRoutes(fastify) {
        GROUP BY ti.product_id, ti.product_name
        ORDER BY total_qty DESC
        LIMIT $3`,
-      [fromDate, toDate, parseInt(limit, 10)]
-    )
+      [fromDate, toDate, parseInt(limit, 10)],
+    );
 
-    return rows
-  })
+    return rows;
+  });
 
   // GET /api/reports/cashiers?from=YYYY-MM-DD&to=YYYY-MM-DD
-  fastify.get('/api/reports/cashiers', async (req) => {
-    const { from, to } = req.query
-    const fromDate = from || new Date().toISOString().slice(0, 10)
-    const toDate   = to   || fromDate
+  fastify.get("/api/reports/cashiers", async (req) => {
+    const { from, to } = req.query;
+    const fromDate = from || new Date().toISOString().slice(0, 10);
+    const toDate = to || fromDate;
 
     const { rows } = await pool.query(
       `SELECT
@@ -103,9 +104,9 @@ export default async function reportsRoutes(fastify) {
          AND status = 'completed'
        GROUP BY cashier_id, cashier_name
        ORDER BY total_sales DESC`,
-      [fromDate, toDate]
-    )
+      [fromDate, toDate],
+    );
 
-    return rows
-  })
+    return rows;
+  });
 }

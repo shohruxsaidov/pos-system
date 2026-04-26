@@ -71,6 +71,12 @@ const routes = [
     name: 'printer-settings',
     component: () => import('../views/PrinterSettingsView.vue'),
     meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+  },
+  {
+    path: '/product/:id',
+    name: 'product-detail',
+    component: () => import('../views/ProductDetailView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

@@ -15,6 +15,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onRename;
   final VoidCallback? onChangePrice;
   final VoidCallback? onAddBarcode;
+  final VoidCallback? onDetail;
   final VoidCallback? onTap;
 
   const ProductCard({
@@ -27,6 +28,7 @@ class ProductCard extends StatelessWidget {
     this.onRename,
     this.onChangePrice,
     this.onAddBarcode,
+    this.onDetail,
     this.onTap,
   });
 
@@ -153,76 +155,92 @@ class ProductCard extends StatelessWidget {
               ],
             ),
 
-            // Action buttons
+            // Action buttons — row 1: labeled; row 2: icon-only
             if (onAdjust != null ||
                 onPrint != null ||
                 onRename != null ||
                 onChangePrice != null ||
-                onAddBarcode != null) ...[
+                onAddBarcode != null ||
+                onDetail != null) ...[
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  if (onAdjust != null)
-                    Expanded(
-                      child: _ActionBtn(
-                        icon: Icons.tune,
-                        label: 'Коррекция',
-                        color: AppColors.warning,
-                        onTap: onAdjust!,
+              // Row 1: labeled actions
+              if (onAdjust != null || onRename != null || onChangePrice != null)
+                Row(
+                  children: [
+                    if (onAdjust != null)
+                      Expanded(
+                        child: _ActionBtn(
+                          icon: Icons.tune,
+                          label: 'Коррекция',
+                          color: AppColors.warning,
+                          onTap: onAdjust!,
+                        ),
                       ),
-                    ),
-                  if (onAdjust != null && onRename != null)
-                    const SizedBox(width: 6),
-                  if (onRename != null)
-                    Expanded(
-                      child: _ActionBtn(
-                        icon: Icons.edit_outlined,
-                        label: 'Переим.',
-                        color: AppColors.accent1,
-                        onTap: onRename!,
+                    if (onAdjust != null && onRename != null)
+                      const SizedBox(width: 6),
+                    if (onRename != null)
+                      Expanded(
+                        child: _ActionBtn(
+                          icon: Icons.edit_outlined,
+                          label: 'Переим.',
+                          color: AppColors.accent1,
+                          onTap: onRename!,
+                        ),
                       ),
-                    ),
-                  if ((onAdjust != null || onRename != null) &&
-                      onChangePrice != null)
-                    const SizedBox(width: 6),
-                  if (onChangePrice != null)
-                    Expanded(
-                      child: _ActionBtn(
-                        icon: Icons.sell_outlined,
-                        label: 'Цена',
-                        color: AppColors.success,
-                        onTap: onChangePrice!,
+                    if ((onAdjust != null || onRename != null) &&
+                        onChangePrice != null)
+                      const SizedBox(width: 6),
+                    if (onChangePrice != null)
+                      Expanded(
+                        child: _ActionBtn(
+                          icon: Icons.sell_outlined,
+                          label: 'Цена',
+                          color: AppColors.success,
+                          onTap: onChangePrice!,
+                        ),
                       ),
-                    ),
-                  if ((onAdjust != null ||
-                          onRename != null ||
-                          onChangePrice != null) &&
-                      onAddBarcode != null)
-                    const SizedBox(width: 6),
-                  if (onAddBarcode != null)
-                    _ActionBtn(
-                      icon: Icons.qr_code,
-                      label: '',
-                      color: AppColors.textSecondary,
-                      onTap: onAddBarcode!,
-                      compact: true,
-                    ),
-                  if ((onAdjust != null ||
-                          onRename != null ||
-                          onChangePrice != null ||
-                          onAddBarcode != null) &&
-                      onPrint != null)
-                    const SizedBox(width: 6),
-                  if (onPrint != null)
-                    _ActionBtn(
-                      icon: Icons.print_outlined,
-                      label: '',
-                      color: AppColors.textSecondary,
-                      onTap: onPrint!,
-                      compact: true,
-                    ),
-                ],
-              ),
+                  ],
+                ),
+              // Row 2: icon-only actions
+              if (onAddBarcode != null || onPrint != null || onDetail != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    if (onAddBarcode != null)
+                      Expanded(
+                        child: _ActionBtn(
+                          icon: Icons.qr_code,
+                          label: 'Баркод',
+                          color: AppColors.textSecondary,
+                          onTap: onAddBarcode!,
+                        ),
+                      ),
+                    if (onAddBarcode != null && onPrint != null)
+                      const SizedBox(width: 6),
+                    if (onPrint != null)
+                      Expanded(
+                        child: _ActionBtn(
+                          icon: Icons.print_outlined,
+                          label: 'Печать',
+                          color: AppColors.textSecondary,
+                          onTap: onPrint!,
+                        ),
+                      ),
+                    if ((onAddBarcode != null || onPrint != null) &&
+                        onDetail != null)
+                      const SizedBox(width: 6),
+                    if (onDetail != null)
+                      Expanded(
+                        child: _ActionBtn(
+                          icon: Icons.bar_chart,
+                          label: 'Аналитика',
+                          color: AppColors.accent1,
+                          onTap: onDetail!,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ],
         ),

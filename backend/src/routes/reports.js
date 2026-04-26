@@ -146,9 +146,13 @@ export default async function reportRoutes(fastify) {
     "/api/reports/daily",
     { onRequest: [fastify.authenticate] },
     async (req) => {
-      const { date = localToday(), warehouse_id } = req.query;
+      const { date, from, to, warehouse_id } = req.query;
+      const fromDate = from || date || localToday();
+      const toDate = to || date || localToday();
       const wid = warehouse_id ? parseInt(warehouse_id) : null;
-      const [dayStart, dayEnd] = localDateRange(date);
+      const [rangeStart] = localDateRange(fromDate);
+      const [, rangeEnd] = localDateRange(toDate);
+      const isRange = fromDate !== toDate;
 
       const whFilter = wid ? `AND warehouse_id = ${wid}` : "";
 
@@ -166,21 +170,30 @@ export default async function reportRoutes(fastify) {
       FROM transactions
       WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
     `,
-        [dayStart, dayEnd],
+        [rangeStart, rangeEnd],
       );
 
-      const { rows: byHour } = await pool.query(
-        `
-      SELECT
-        EXTRACT(HOUR FROM created_at) as hour,
-        COUNT(*) as count,
-        COALESCE(SUM(total), 0) as sales
-      FROM transactions
-      WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
-      GROUP BY hour ORDER BY hour
-    `,
-        [dayStart, dayEnd],
-      );
+      let byHour = [];
+      if (!isRange) {
+        const { rows } = await pool.query(
+          `
+        SELECT
+          EXTRACT(HOUR FROM created_at) as hour,
+          COUNT(*) as count,
+          COALESCE(SUM(total), 0) as sales
+        FROM transactions
+        WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
+        GROUP BY hour ORDER BY hour
+      `,
+          [rangeStart, rangeEnd],
+        );
+        byHour = rows.map((h) => ({
+          ...h,
+          hour: parseInt(h.hour),
+          count: parseInt(h.count),
+          sales: parseFloat(h.sales),
+        }));
+      }
 
       const { rows: byMethod } = await pool.query(
         `
@@ -189,7 +202,7 @@ export default async function reportRoutes(fastify) {
       WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
       GROUP BY payment_method
     `,
-        [dayStart, dayEnd],
+        [rangeStart, rangeEnd],
       );
 
       const { rows: refunds } = await pool.query(
@@ -197,13 +210,13 @@ export default async function reportRoutes(fastify) {
       SELECT COUNT(*) as count, COALESCE(SUM(total_refund_amount), 0) as total
       FROM refunds WHERE created_at >= $1 AND created_at < $2
     `,
-        [dayStart, dayEnd],
+        [rangeStart, rangeEnd],
       );
 
       const s = summary[0];
 
       return {
-        date,
+        date: fromDate,
         summary: {
           ...s,
           transaction_count: parseInt(s.transaction_count),
@@ -213,12 +226,7 @@ export default async function reportRoutes(fastify) {
           net_sales: parseFloat(s.net_sales),
           avg_transaction: parseFloat(s.avg_transaction),
         },
-        by_hour: byHour.map((h) => ({
-          ...h,
-          hour: parseInt(h.hour),
-          count: parseInt(h.count),
-          sales: parseFloat(h.sales),
-        })),
+        by_hour: byHour,
         by_method: byMethod.map((m) => ({
           ...m,
           count: parseInt(m.count),
@@ -282,9 +290,12 @@ export default async function reportRoutes(fastify) {
     "/api/reports/cashiers",
     { onRequest: [fastify.authenticate] },
     async (req) => {
-      const { date = localToday(), warehouse_id } = req.query;
+      const { date, from, to, warehouse_id } = req.query;
+      const fromDate = from || date || localToday();
+      const toDate = to || date || localToday();
       const wid = warehouse_id ? parseInt(warehouse_id) : null;
-      const [dayStart, dayEnd] = localDateRange(date);
+      const [dayStart] = localDateRange(fromDate);
+      const [, dayEnd] = localDateRange(toDate);
 
       const whFilter = wid ? `AND t.warehouse_id = ${wid}` : "";
 
@@ -484,6 +495,128 @@ export default async function reportRoutes(fastify) {
       } finally {
         client.release();
       }
+    },
+  );
+
+  // GET /api/reports/product/:id — per-product dynamics
+  fastify.get(
+    "/api/reports/product/:id",
+    { onRequest: [fastify.authenticate] },
+    async (req, reply) => {
+      const productId = parseInt(req.params.id);
+      const { from, to, days = 30 } = req.query;
+
+      const fromDate = from || (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - parseInt(days) + 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      })();
+      const toDate = to || localToday();
+      const [rangeStart] = localDateRange(fromDate);
+      const [, rangeEnd] = localDateRange(toDate);
+
+      const { rows: productRows } = await pool.query(
+        `SELECT p.*, c.name as category_name,
+          COALESCE(ws.stock_qty, 0) as stock_qty
+         FROM products p
+         LEFT JOIN categories c ON c.id = p.category_id
+         LEFT JOIN warehouse_stock ws ON ws.product_id = p.id AND ws.warehouse_id = 1
+         WHERE p.id = $1`,
+        [productId],
+      );
+      if (!productRows.length) return reply.code(404).send({ error: "Product not found" });
+
+      const { rows: salesByDay } = await pool.query(
+        `SELECT
+          strftime('%Y-%m-%d', t.created_at) as date,
+          SUM(ti.qty) as qty,
+          SUM(ti.subtotal) as revenue,
+          COUNT(DISTINCT ti.transaction_id) as txn_count
+         FROM transaction_items ti
+         JOIN transactions t ON t.id = ti.transaction_id
+         WHERE ti.product_id = $1
+           AND t.created_at >= $2 AND t.created_at < $3
+           AND t.status != 'voided'
+         GROUP BY strftime('%Y-%m-%d', t.created_at)
+         ORDER BY date`,
+        [productId, rangeStart, rangeEnd],
+      );
+
+      const { rows: adjustments } = await pool.query(
+        `SELECT sa.delta, sa.reason, sa.created_at,
+          u.name as adjusted_by_name
+         FROM stock_adjustments sa
+         LEFT JOIN users u ON u.id = sa.adjusted_by
+         WHERE sa.product_id = $1
+           AND sa.created_at >= $2 AND sa.created_at < $3
+         ORDER BY sa.created_at DESC`,
+        [productId, rangeStart, rangeEnd],
+      );
+
+      const { rows: incoming } = await pool.query(
+        `SELECT ii.qty_received, ii.cost_per_unit, ii.expiry_date, ir.created_at,
+          ir.supplier, ir.ref_no,
+          u.name as received_by_name
+         FROM incoming_items ii
+         JOIN incoming_receipts ir ON ir.id = ii.receipt_id
+         LEFT JOIN users u ON u.id = ir.received_by
+         WHERE ii.product_id = $1
+           AND ir.created_at >= $2 AND ir.created_at < $3
+         ORDER BY ir.created_at DESC`,
+        [productId, rangeStart, rangeEnd],
+      );
+
+      const { rows: summary } = await pool.query(
+        `SELECT
+          COALESCE(SUM(ti.qty), 0) as total_sold,
+          COALESCE(SUM(ti.subtotal), 0) as total_revenue,
+          COUNT(DISTINCT ti.transaction_id) as total_txns
+         FROM transaction_items ti
+         JOIN transactions t ON t.id = ti.transaction_id
+         WHERE ti.product_id = $1 AND t.status != 'voided'`,
+        [productId],
+      );
+
+      return {
+        product: {
+          ...productRows[0],
+          price: parseFloat(productRows[0].price),
+          cost: parseFloat(productRows[0].cost),
+          stock_qty: parseInt(productRows[0].stock_qty),
+        },
+        sales_by_day: salesByDay.map((r) => ({
+          date: r.date,
+          qty: parseFloat(r.qty),
+          revenue: parseFloat(r.revenue),
+          txn_count: parseInt(r.txn_count),
+        })),
+        adjustments: adjustments.map((r) => ({
+          delta: parseInt(r.delta),
+          reason: r.reason,
+          adjusted_by_name: r.adjusted_by_name,
+          created_at: r.created_at,
+        })),
+        incoming: incoming.map((r) => ({
+          qty_received: parseInt(r.qty_received),
+          cost_per_unit: parseFloat(r.cost_per_unit),
+          expiry_date: r.expiry_date,
+          supplier: r.supplier,
+          ref_no: r.ref_no,
+          received_by_name: r.received_by_name,
+          created_at: r.created_at,
+        })),
+        summary: {
+          total_sold: parseFloat(summary[0].total_sold),
+          total_revenue: parseFloat(summary[0].total_revenue),
+          total_txns: parseInt(summary[0].total_txns),
+          total_incoming: incoming.reduce((s, r) => s + parseInt(r.qty_received), 0),
+          total_adjustments: adjustments.length,
+        },
+        range: { from: fromDate, to: toDate },
+      };
     },
   );
 

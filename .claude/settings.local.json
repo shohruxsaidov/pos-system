@@ -36,7 +36,13 @@
       "Bash(find /Users/shohruxsaidov/Documents/projects/pos -name .env* -type f)",
       "Bash(grep -E \"\\\\.js$\")",
       "Bash(git -C /Users/shohruxsaidov/Documents/projects/pos diff backend/src/routes/sync.js)",
-      "Bash(git -C /Users/shohruxsaidov/Documents/projects/pos diff backend/src/services/cronService.js)"
+      "Bash(git -C /Users/shohruxsaidov/Documents/projects/pos diff backend/src/services/cronService.js)",
+      "Bash(find /Users/shohruxsaidov/Documents/projects/pos/pos-desktop/src -name router*)",
+      "Bash(pm2 status *)",
+      "Bash(node --input-type=module --eval \"import './src/routes/reports.js'\")",
+      "Bash(flutter build *)",
+      "Bash(pm2 restart *)",
+      "Bash(pm2 list *)"
     ]
   }
 }

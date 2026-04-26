@@ -13,8 +13,11 @@ class ReportsScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
 }
 
+enum _ReportPeriod { day, week, month }
+
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   DateTime _date = DateTime.now();
+  _ReportPeriod _period = _ReportPeriod.day;
   Map<String, dynamic>? _daily;
   List<Map<String, dynamic>> _topProducts = [];
   List<Map<String, dynamic>> _cashiers = [];
@@ -24,6 +27,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   int? _cachedAt;
 
   final _dateFmt = DateFormat('yyyy-MM-dd');
+
+  ({String from, String to}) get _dateRange {
+    if (_period == _ReportPeriod.week) {
+      final dayOfWeek = (_date.weekday - 1) % 7; // 0=Mon
+      final monday = _date.subtract(Duration(days: dayOfWeek));
+      final sunday = monday.add(const Duration(days: 6));
+      return (from: _dateFmt.format(monday), to: _dateFmt.format(sunday));
+    } else if (_period == _ReportPeriod.month) {
+      final firstDay = DateTime(_date.year, _date.month, 1);
+      final lastDay = DateTime(_date.year, _date.month + 1, 0);
+      return (from: _dateFmt.format(firstDay), to: _dateFmt.format(lastDay));
+    }
+    final d = _dateFmt.format(_date);
+    return (from: d, to: d);
+  }
+
+  String get _dateLabel {
+    final r = _dateRange;
+    if (r.from == r.to) return r.from;
+    return '${r.from} — ${r.to}';
+  }
 
   @override
   void initState() {
@@ -37,14 +61,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _error = null;
       _fromCache = false;
     });
-    final dateStr = _dateFmt.format(_date);
+    final range = _dateRange;
     try {
       final results = await Future.wait([
-        apiService.get('/api/reports/daily', queryParams: {'date': dateStr}),
+        apiService.get('/api/reports/daily',
+            queryParams: {'from': range.from, 'to': range.to}),
         apiService.get('/api/reports/products',
-            queryParams: {'from': dateStr, 'to': dateStr, 'limit': '10'}),
-        apiService
-            .get('/api/reports/cashiers', queryParams: {'date': dateStr}),
+            queryParams: {'from': range.from, 'to': range.to, 'limit': '10'}),
+        apiService.get('/api/reports/cashiers',
+            queryParams: {'from': range.from, 'to': range.to}),
       ]);
 
       setState(() {
@@ -55,13 +80,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             results[2].data as List? ?? []);
         _loading = false;
       });
-      await saveReportsCache(dateStr, {
+      await saveReportsCache(range.from, {
         'daily': results[0].data,
         'topProducts': results[1].data,
         'cashiers': results[2].data,
       });
     } catch (e) {
-      final cached = await loadReportsCache(dateStr);
+      final cached = await loadReportsCache(range.from);
       if (cached != null) {
         setState(() {
           _daily = cached['daily'] as Map<String, dynamic>?;
@@ -111,9 +136,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Date picker header
+            // Header row
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
               child: Row(
                 children: [
                   IconButton(
@@ -145,7 +170,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               color: AppColors.accent1, size: 16),
                           const SizedBox(width: 6),
                           Text(
-                            DateFormat('MMM dd, yyyy').format(_date),
+                            _dateLabel,
                             style: const TextStyle(
                                 color: AppColors.textPrimary, fontSize: 13),
                           ),
@@ -158,6 +183,41 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     icon: const Icon(Icons.refresh,
                         color: AppColors.textSecondary),
                     onPressed: _load,
+                  ),
+                ],
+              ),
+            ),
+
+            // Period selector
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+              child: Row(
+                children: [
+                  _PeriodTab(
+                    label: 'День',
+                    selected: _period == _ReportPeriod.day,
+                    onTap: () {
+                      setState(() => _period = _ReportPeriod.day);
+                      _load();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _PeriodTab(
+                    label: 'Неделя',
+                    selected: _period == _ReportPeriod.week,
+                    onTap: () {
+                      setState(() => _period = _ReportPeriod.week);
+                      _load();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _PeriodTab(
+                    label: 'Месяц',
+                    selected: _period == _ReportPeriod.month,
+                    onTap: () {
+                      setState(() => _period = _ReportPeriod.month);
+                      _load();
+                    },
                   ),
                 ],
               ),
@@ -458,6 +518,43 @@ class _ProductRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PeriodTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PeriodTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent1 : AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColors.accent1 : AppColors.borderDefault,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }

@@ -45,6 +45,15 @@ function convertQuery(sql, params = []) {
       return '?'
     })
     // PostgreSQL-only constructs → SQLite equivalents
+    // INTERVAL and DATE_TRUNC must come before NOW() replacement
+    .replace(/\bNOW\(\)\s*-\s*INTERVAL\s+'(\d+)\s+(\w+)'/gi, (_, n, unit) => `datetime('now', '-${n} ${unit}')`)
+    .replace(/\bNOW\(\)\s*\+\s*INTERVAL\s+'(\d+)\s+(\w+)'/gi, (_, n, unit) => `datetime('now', '+${n} ${unit}')`)
+    .replace(/DATE_TRUNC\('month',\s*NOW\(\)\)/gi, "strftime('%Y-%m', 'now')")
+    .replace(/DATE_TRUNC\('month',\s*(\w+)\)/gi, "strftime('%Y-%m', $1)")
+    .replace(/DATE_TRUNC\('year',\s*NOW\(\)\)/gi, "strftime('%Y', 'now')")
+    .replace(/DATE_TRUNC\('year',\s*(\w+)\)/gi, "strftime('%Y', $1)")
+    .replace(/DATE_TRUNC\('day',\s*NOW\(\)\)/gi, "date('now')")
+    .replace(/DATE_TRUNC\('day',\s*(\w+)\)/gi, "date($1)")
     .replace(/\bNOW\(\)/gi, "datetime('now')")
     .replace(/\bILIKE\b/gi, 'LIKE')
     .replace(/::(\w+)/g, '')
