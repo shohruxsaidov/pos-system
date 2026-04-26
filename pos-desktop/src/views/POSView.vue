@@ -36,6 +36,30 @@
 
     <!-- Right: Cart -->
     <div class="pos-cart">
+      <!-- Session tabs -->
+      <div class="session-tabs">
+        <div
+          v-for="s in cart.sessions"
+          :key="s.id"
+          :class="['session-tab', { 'session-tab--active': s.id === cart.activeId }]"
+          @click="cart.switchSession(s.id)"
+        >
+          <span class="session-label">{{ s.label }}</span>
+          <span v-if="s.items.length" class="session-badge">{{ Math.floor(s.items.reduce((sum, i) => sum + i.qty, 0)) }}</span>
+          <button
+            class="session-close"
+            @click.stop="cart.closeSession(s.id)"
+            :title="s.items.length ? 'Закрыть (товары будут удалены)' : 'Закрыть'"
+          >✕</button>
+        </div>
+        <button
+          v-if="cart.sessions.length < 8"
+          class="session-new"
+          @click="cart.newSession()"
+          title="Новый клиент"
+        >+ Новый</button>
+      </div>
+
       <div class="cart-header">
         <h2 class="cart-title">Корзина</h2>
         <Tag v-if="cart.itemCount > 0" :value="`${cart.itemCount} поз.`" class="cart-count" />
@@ -584,5 +608,114 @@ function stockClass(qty) {
   border-radius: 3px;
   padding: 0 2px;
   font-weight: 700;
+}
+
+/* Session tabs */
+.session-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px 0;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.session-tabs::-webkit-scrollbar { display: none; }
+
+.session-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px 8px 0 0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: all 0.12s;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.session-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.session-tab--active {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+  font-weight: 600;
+  position: relative;
+}
+
+.session-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.session-label {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-badge {
+  background: var(--accent-glow);
+  color: var(--text-accent);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.session-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0 2px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: all 0.1s;
+}
+
+.session-close:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.session-new {
+  background: none;
+  border: 1px dashed var(--border-default);
+  border-radius: 8px 8px 0 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.12s;
+  margin-bottom: 0;
+}
+
+.session-new:hover {
+  border-color: var(--accent-1);
+  color: var(--text-accent);
+  background: var(--accent-glow);
 }
 </style>
