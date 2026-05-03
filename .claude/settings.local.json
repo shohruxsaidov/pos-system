@@ -45,7 +45,9 @@
       "Bash(pm2 list *)",
       "Bash(xargs cat *)",
       "Bash(grep -E \"\\\\.\\(vue|jsx|js|tsx\\)$\")",
-      "Bash(grep -iE \"\\\\.\\(dart|java|swift|kt\\)$\")"
+      "Bash(grep -iE \"\\\\.\\(dart|java|swift|kt\\)$\")",
+      "Bash(python3 *)",
+      "Bash(pip3 install *)"
     ]
   }
 }
