@@ -52,12 +52,12 @@ export default async function refundRoutes(fastify) {
     "/api/refunds",
     { onRequest: [fastify.authenticate] },
     async (req, reply) => {
-      const { original_txn_id, items, reason, manager_pin, payment_method } =
+      const { original_txn_id, items, reason, payment_method } =
         req.body;
 
-      if (!original_txn_id || !items?.length || !reason || !manager_pin) {
+      if (!original_txn_id || !items?.length || !reason ) {
         return reply.code(400).send({
-          error: "original_txn_id, items, reason, manager_pin required",
+          error: "original_txn_id, items, reason required",
         });
       }
 

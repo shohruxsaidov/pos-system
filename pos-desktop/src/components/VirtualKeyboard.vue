@@ -1,10 +1,6 @@
 <template>
   <Teleport to="body">
-    <div
-      v-if="visible"
-      class="vk-panel"
-      :style="{ left: pos.x + 'px', top: pos.y + 'px' }"
-    >
+    <div v-if="visible" class="vk-panel" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
       <div class="vk-handle" @mousedown.prevent="startDrag">
         <span class="vk-handle-icon">⌨</span>
         <span class="vk-handle-title">Клавиатура</span>
@@ -15,43 +11,24 @@
         <!-- QWERTY section -->
         <div class="vk-qwerty">
           <div class="vk-row">
-            <button
-              v-for="k in numberRow" :key="k"
-              class="vk-key"
-              @mousedown.prevent="pressKey(k)"
-            >{{ k }}</button>
+            <button v-for="k in numberRow" :key="k" class="vk-key" @mousedown.prevent="pressKey(k)">{{ k }}</button>
             <button class="vk-key vk-bksp vk-wide" @mousedown.prevent="pressBackspace">⌫</button>
           </div>
           <div class="vk-row">
-            <button
-              v-for="k in row1" :key="k"
-              class="vk-key"
-              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)"
-            >{{ shiftOn ? k.toUpperCase() : k }}</button>
+            <button v-for="k in row1" :key="k" class="vk-key"
+              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
           </div>
           <div class="vk-row vk-row-indent">
-            <button
-              v-for="k in row2" :key="k"
-              class="vk-key"
-              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)"
-            >{{ shiftOn ? k.toUpperCase() : k }}</button>
+            <button v-for="k in row2" :key="k" class="vk-key"
+              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
           </div>
           <div class="vk-row">
-            <button
-              class="vk-key vk-shift vk-wide"
-              :class="{ 'vk-active': shiftOn }"
-              @mousedown.prevent="toggleShift"
-            >⇧</button>
-            <button
-              v-for="k in row3" :key="k"
-              class="vk-key"
-              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)"
-            >{{ shiftOn ? k.toUpperCase() : k }}</button>
-            <button
-              class="vk-key vk-shift vk-wide"
-              :class="{ 'vk-active': shiftOn }"
-              @mousedown.prevent="toggleShift"
-            >⇧</button>
+            <button class="vk-key vk-shift vk-wide" :class="{ 'vk-active': shiftOn }"
+              @mousedown.prevent="toggleShift">⇧</button>
+            <button v-for="k in row3" :key="k" class="vk-key"
+              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
+            <button class="vk-key vk-shift vk-wide" :class="{ 'vk-active': shiftOn }"
+              @mousedown.prevent="toggleShift">⇧</button>
           </div>
           <div class="vk-row">
             <button class="vk-key vk-space" @mousedown.prevent="pressKey(' ')">ПРОБЕЛ</button>
@@ -62,11 +39,8 @@
 
         <!-- Numpad section -->
         <div class="vk-numpad">
-          <button
-            v-for="k in '789456123'.split('')" :key="'np-' + k"
-            class="vk-key vk-np-key"
-            @mousedown.prevent="pressKey(k)"
-          >{{ k }}</button>
+          <button v-for="k in '789456123'.split('')" :key="'np-' + k" class="vk-key vk-np-key"
+            @mousedown.prevent="pressKey(k)">{{ k }}</button>
           <button class="vk-key vk-np-key" @mousedown.prevent="pressKey('.')">.</button>
           <button class="vk-key vk-np-key" @mousedown.prevent="pressKey('0')">0</button>
           <button class="vk-key vk-np-key vk-bksp" @mousedown.prevent="pressBackspace">⌫</button>
@@ -101,7 +75,7 @@ function loadPos() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) return JSON.parse(saved)
-  } catch {}
+  } catch { }
   return {
     x: Math.max(0, Math.floor((window.innerWidth - 820) / 2)),
     y: Math.max(0, window.innerHeight - 380)
@@ -230,7 +204,7 @@ onUnmounted(() => {
 
 .vk-key {
   height: 52px;
-  min-width: 44px;
+  min-width: 52px;
   flex: 1;
   padding: 0 6px;
   background: var(--bg-surface);

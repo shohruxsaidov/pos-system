@@ -1,6 +1,6 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="Payment" :style="{ width: '520px' }" :closable="!processing">
-    <div class="payment-content">
+  <Dialog v-model:visible="visible" modal header="Payment" :style="{ width: '720px' }" :closable="!processing">
+    <div class="payment-content" ref="contentRef">
       <!-- Order Summary -->
       <div class="payment-summary">
         <div class="summary-row">
@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useCartStore } from '../stores/cart.js'
 import NumPad from './NumPad.vue'
 import Dialog from 'primevue/dialog'
@@ -119,6 +119,8 @@ import ToggleSwitch from 'primevue/toggleswitch'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'paid'])
+
+const contentRef = ref(null)
 
 const visible = computed({
   get: () => props.modelValue,
@@ -186,8 +188,11 @@ function toggleField(field) {
 
 function addSplit() {
   splits.value.push({ method: 'cash', amount: '' })
-  // Activate the new second-to-last split so user can type into it
   activeField.value = `split-${splits.value.length - 2}`
+  nextTick(() => {
+    const el = contentRef.value
+    if (el) el.scrollTop = el.scrollHeight
+  })
 }
 
 function removeSplit(idx) {
@@ -238,6 +243,8 @@ async function confirm() {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .payment-summary {
@@ -345,6 +352,8 @@ async function confirm() {
 
 .split-method {
   flex: 1;
+  display: flex;
+  gap: 6px;
 }
 
 .split-amount-box {

@@ -1,10 +1,5 @@
 <template>
-  <Dialog
-    v-model:visible="visible"
-    modal
-    header="Оформить возврат"
-    :style="{ width: '680px' }"
-  >
+  <Dialog v-model:visible="visible" modal header="Оформить возврат" :style="{ width: '680px' }">
     <div class="refund-content" v-if="transactionData">
       <div class="refund-info">
         <span class="text-secondary">Транзакция:</span>
@@ -16,13 +11,8 @@
       <!-- Selectable Items -->
       <div class="items-section">
         <label class="section-label">Выберите товары для возврата</label>
-        <DataTable
-          :value="transactionData.items"
-          v-model:selection="selectedItems"
-          dataKey="product_id"
-          :scrollable="true"
-          scroll-height="240px"
-        >
+        <DataTable :value="transactionData.items" v-model:selection="selectedItems" dataKey="product_id"
+          :scrollable="true" scroll-height="240px">
           <Column selectionMode="multiple" style="width:50px" />
           <Column field="product_name" header="Товар" />
           <Column field="unit_price" header="Цена">
@@ -33,14 +23,8 @@
           <Column field="qty_refundable" header="Макс. кол-во" />
           <Column header="Кол-во возврата">
             <template #body="{ data }">
-              <InputNumber
-                v-model="refundQtys[data.product_id]"
-                :min="0"
-                :max="data.qty_refundable"
-                :disabled="!isSelected(data.product_id)"
-                style="width:90px"
-                inputmode="none"
-              />
+              <InputNumber v-model="refundQtys[data.product_id]" :min="0" :max="data.qty_refundable"
+                :disabled="!isSelected(data.product_id)" style="width:90px" inputmode="none" />
             </template>
           </Column>
           <Column header="Сумма">
@@ -63,20 +47,10 @@
       <!-- Reason -->
       <div class="field-group">
         <label class="field-label">Причина</label>
-        <Select
-          v-model="reason"
-          :options="reasons"
-          placeholder="Выберите причину"
-          class="w-full"
-        />
+        <Select v-model="reason" :options="reasons" placeholder="Выберите причину" class="w-full" />
       </div>
 
-      <!-- Manager PIN -->
-      <div class="field-group">
-        <label class="field-label">Авторизация PIN менеджера</label>
-        <InputOtp v-model="managerPin" :length="4" mask />
-        <p class="hint-text">Введите PIN менеджера или администратора</p>
-      </div>
+
     </div>
 
     <div v-else class="loading-state">
@@ -86,15 +60,8 @@
 
     <template #footer>
       <Button label="Отмена" class="p-button-secondary touch-lg" @click="visible = false" />
-      <Button
-        label="Оформить возврат"
-        icon="pi pi-replay"
-        class="touch-lg"
-        :disabled="!canRefund"
-        :loading="processing"
-        @click="processRefund"
-        style="flex:1"
-      />
+      <Button label="Оформить возврат" icon="pi pi-replay" class="touch-lg" :disabled="!canRefund" :loading="processing"
+        @click="processRefund" style="flex:1" />
     </template>
   </Dialog>
 </template>
@@ -173,7 +140,6 @@ const refundTotal = computed(() => {
 const canRefund = computed(() =>
   selectedItems.value.length > 0 &&
   reason.value &&
-  managerPin.value?.length === 4 &&
   refundTotal.value > 0
 )
 

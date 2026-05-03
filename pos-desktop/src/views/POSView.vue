@@ -11,6 +11,13 @@
           <InputText ref="searchRef" v-model="searchQuery" placeholder="Сканировать штрихкод или найти товар..."
             class="w-full" @keydown.enter="handleBarcodeEnter" @input="debouncedSearch" inputmode="none" />
         </IconField>
+        <Button
+          class="p-button-secondary kb-toggle-btn"
+          :class="{ 'kb-toggle-active': keyboardVisible }"
+          @click="toggleKeyboard"
+          style="height:56px;width:56px;font-size:22px;line-height:1"
+          v-tooltip="'Клавиатура'"
+        >⌨</Button>
         <Button icon="pi pi-refresh" class="p-button-secondary" @click="loadProducts" style="height:56px;width:56px" />
       </div>
 
@@ -169,6 +176,7 @@ import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart.js'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
+import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 import PaymentModal from '../components/PaymentModal.vue'
 import NumPad from '../components/NumPad.vue'
 import DataTable from 'primevue/datatable'
@@ -184,6 +192,19 @@ const router = useRouter()
 const cart = useCartStore()
 const api = useApi()
 const toast = useToast()
+const { visible: keyboardVisible, show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
+
+function toggleKeyboard() {
+  if (keyboardVisible.value) {
+    hideKeyboard()
+  } else {
+    const el = searchRef.value?.$el
+    if (el) {
+      showKeyboard(el)
+      el.focus()
+    }
+  }
+}
 
 const products = ref([])
 const categories = ref([])
@@ -347,6 +368,16 @@ function stockClass(qty) {
 .pos-search {
   display: flex;
   gap: 8px;
+}
+
+:deep(.kb-toggle-btn) {
+  transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+}
+
+:deep(.kb-toggle-active) {
+  background: var(--accent-glow) !important;
+  border-color: var(--accent-1) !important;
+  color: var(--text-accent) !important;
 }
 
 .category-tabs {
