@@ -28,7 +28,7 @@ const routes = [
     path: "/inventory",
     name: "inventory",
     component: () => import("../views/InventoryView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
     path: "/categories",
