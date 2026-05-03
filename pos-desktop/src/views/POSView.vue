@@ -289,10 +289,7 @@ async function handlePayment(paymentData) {
       customer_id: cart.customerId,
       discount: cart.discount,
       tax: 0,
-      payment_method: paymentData.method,
-      tendered: paymentData.tendered,
-      change_given: paymentData.change_given,
-      payment_reference: paymentData.reference,
+      payments: paymentData.payments,
       print_receipt: paymentData.printReceipt
     })
 

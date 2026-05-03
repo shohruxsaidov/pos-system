@@ -14,7 +14,9 @@ function generateRefNo() {
 export default async function transactionRoutes(fastify) {
   // POST /api/transactions — create sale
   fastify.post('/api/transactions', { onRequest: [fastify.authenticate] }, async (req, reply) => {
-    const { items, customer_id, discount = 0, tax = 0, payment_method = 'cash', tendered, change_given = 0, payment_reference, print_receipt = false, client_ref = null } = req.body
+    const { items, customer_id, discount = 0, tax = 0, payments: paymentsInput,
+            payment_method = 'cash', tendered, change_given = 0, payment_reference,
+            print_receipt = false, client_ref = null } = req.body
 
     if (!items || !items.length) {
       return reply.code(400).send({ error: 'items required' })
@@ -49,13 +51,33 @@ export default async function transactionRoutes(fastify) {
       }
 
       const total = subtotal - discount + tax
+
+      // Build normalised payments array
+      const isNewFormat = Array.isArray(paymentsInput) && paymentsInput.length > 0
+      let paymentsData
+      if (isNewFormat) {
+        paymentsData = paymentsInput.map(p => ({
+          method: p.method || 'cash',
+          amount: parseFloat(p.amount) || 0,
+          change_given: parseFloat(p.change_given) || 0,
+          reference: p.reference || null
+        }))
+        const paidTotal = paymentsData.reduce((s, p) => s + p.amount, 0)
+        if (Math.abs(paidTotal - total) > 0.01) {
+          throw new Error(`Payment total (${paidTotal}) does not match order total (${total})`)
+        }
+      } else {
+        paymentsData = [{ method: payment_method, amount: tendered || total, change_given, reference: payment_reference || null }]
+      }
+
+      const txnPaymentMethod = paymentsData.length === 1 ? paymentsData[0].method : 'mixed'
       const refNo = generateRefNo()
 
       // Insert transaction with warehouse_id
       const { rows: txnRows } = await client.query(`
         INSERT INTO transactions (ref_no, customer_id, cashier_id, subtotal, discount, tax, total, payment_method, warehouse_id, client_ref)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
-      `, [refNo, customer_id || null, req.user.id, subtotal, discount, tax, total, payment_method, warehouseId, client_ref || null])
+      `, [refNo, customer_id || null, req.user.id, subtotal, discount, tax, total, txnPaymentMethod, warehouseId, client_ref || null])
       const txn = txnRows[0]
 
       // Insert items & deduct from warehouse_stock
@@ -73,11 +95,13 @@ export default async function transactionRoutes(fastify) {
         `, [warehouseId, item.product_id, -item.qty, item.qty])
       }
 
-      // Insert payment
-      await client.query(`
-        INSERT INTO payments (transaction_id, method, amount, change_given, reference)
-        VALUES ($1,$2,$3,$4,$5)
-      `, [txn.id, payment_method, tendered || total, change_given, payment_reference || null])
+      // Insert one payment row per method
+      for (const p of paymentsData) {
+        await client.query(`
+          INSERT INTO payments (transaction_id, method, amount, change_given, reference)
+          VALUES ($1,$2,$3,$4,$5)
+        `, [txn.id, p.method, p.amount, p.change_given, p.reference])
+      }
 
       // Update customer loyalty points
       if (customer_id) {
@@ -101,7 +125,7 @@ export default async function transactionRoutes(fastify) {
         action: 'sale',
         actor: req.user,
         target: { type: 'transaction', id: txn.id, name: refNo },
-        details: { total, items: processedItems.length, payment_method, warehouse_id: warehouseId },
+        details: { total, items: processedItems.length, payment_method: txnPaymentMethod, payments: paymentsData.map(p => ({ method: p.method, amount: p.amount })), warehouse_id: warehouseId },
         ip: req.ip
       })
 
