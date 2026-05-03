@@ -2,10 +2,12 @@ import { ref, shallowRef } from 'vue'
 
 const visible = ref(false)
 const targetEl = shallowRef(null)
+const numpadOnly = ref(false)
 
 export function useVirtualKeyboard() {
-  function show(el) {
+  function show(el, options = {}) {
     targetEl.value = el
+    numpadOnly.value = options.numpadOnly ?? false
     visible.value = true
   }
 
@@ -39,5 +41,5 @@ export function useVirtualKeyboard() {
     el.dispatchEvent(new Event('input', { bubbles: true }))
   }
 
-  return { visible, targetEl, show, hide, pressKey, pressBackspace }
+  return { visible, targetEl, numpadOnly, show, hide, pressKey, pressBackspace }
 }

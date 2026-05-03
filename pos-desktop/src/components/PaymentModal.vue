@@ -60,11 +60,21 @@
           <div
             class="split-amount-box"
             :class="{
-              active: activeField === `split-${idx}`,
+              active: vkSplitIdx === idx,
               readonly: idx === splits.length - 1
             }"
-            @click="idx < splits.length - 1 ? toggleField(`split-${idx}`) : null"
+            @click="idx < splits.length - 1 ? openSplitVK(idx) : null"
           >
+            <!-- hidden input targeted by virtual keyboard -->
+            <input
+              v-if="idx < splits.length - 1"
+              :ref="el => { if (el) splitInputEls[idx] = el; else delete splitInputEls[idx] }"
+              type="text"
+              inputmode="none"
+              :value="split.amount"
+              @input="e => splits[idx].amount = e.target.value"
+              style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
+            />
             <span class="font-mono">
               {{ idx === splits.length - 1 ? formatAmount(lastSplitAmount) : (split.amount || '0') }}
             </span>
@@ -75,12 +85,6 @@
             <i class="pi pi-times" />
           </button>
         </div>
-
-        <NumPad
-          v-if="activeField && activeField.startsWith('split-')"
-          v-model="activeSplitAmount"
-          :show-display="false"
-        />
 
         <button class="split-trigger" @click="addSplit">
           <i class="pi pi-plus-circle" />
@@ -111,6 +115,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useCartStore } from '../stores/cart.js'
+import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 import NumPad from './NumPad.vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
@@ -121,6 +126,9 @@ const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'paid'])
 
 const contentRef = ref(null)
+const vkSplitIdx = ref(null)
+const splitInputEls = {}
+const { show: showVK, hide: hideVK } = useVirtualKeyboard()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -132,7 +140,7 @@ const splits = ref([{ method: 'cash' }])
 const printReceipt = ref(true)
 const processing = ref(false)
 const discountInput = ref('')
-const activeField = ref(null) // 'discount' | 'split-0' | 'split-1' | ...
+const activeField = ref(null) // 'discount' only
 
 const methods = [
   { label: 'Наличные', value: 'cash' },
@@ -142,7 +150,6 @@ const methods = [
 
 const isSplit = computed(() => splits.value.length > 1)
 
-// Last split amount is auto-computed as remainder — user can't type it directly
 const lastSplitAmount = computed(() => {
   if (!isSplit.value) return cart.total
   const editableTotal = splits.value.slice(0, -1).reduce((s, p) => s + (parseFloat(p.amount) || 0), 0)
@@ -151,19 +158,7 @@ const lastSplitAmount = computed(() => {
 
 const canConfirm = computed(() => {
   if (!isSplit.value) return true
-  return lastSplitAmount.value >= -0.01 // no overpayment in editable splits
-})
-
-const activeSplitIdx = computed(() => {
-  if (!activeField.value?.startsWith('split-')) return null
-  return parseInt(activeField.value.replace('split-', ''))
-})
-
-const activeSplitAmount = computed({
-  get: () => activeSplitIdx.value !== null ? (splits.value[activeSplitIdx.value]?.amount || '') : '',
-  set: (v) => {
-    if (activeSplitIdx.value !== null) splits.value[activeSplitIdx.value].amount = v
-  }
+  return lastSplitAmount.value >= -0.01
 })
 
 watch(visible, (v) => {
@@ -173,7 +168,11 @@ watch(visible, (v) => {
     processing.value = false
     discountInput.value = ''
     activeField.value = null
+    vkSplitIdx.value = null
     cart.setDiscount(0)
+  } else {
+    hideVK()
+    vkSplitIdx.value = null
   }
 })
 
@@ -184,22 +183,39 @@ function applyDiscount(val) {
 
 function toggleField(field) {
   activeField.value = activeField.value === field ? null : field
+  if (activeField.value === 'discount') {
+    hideVK()
+    vkSplitIdx.value = null
+  }
+}
+
+function openSplitVK(idx) {
+  activeField.value = null // close discount numpad
+  nextTick(() => {
+    const el = splitInputEls[idx]
+    if (!el) return
+    vkSplitIdx.value = idx
+    showVK(el, { numpadOnly: true })
+  })
 }
 
 function addSplit() {
   splits.value.push({ method: 'cash', amount: '' })
-  activeField.value = `split-${splits.value.length - 2}`
+  const newIdx = splits.value.length - 2
   nextTick(() => {
+    openSplitVK(newIdx)
     const el = contentRef.value
     if (el) el.scrollTop = el.scrollHeight
   })
 }
 
 function removeSplit(idx) {
+  if (vkSplitIdx.value === idx) {
+    hideVK()
+    vkSplitIdx.value = null
+  }
   splits.value.splice(idx, 1)
   if (splits.value.length === 1) {
-    activeField.value = null
-  } else if (activeField.value === `split-${idx}`) {
     activeField.value = null
   }
 }
@@ -357,6 +373,7 @@ async function confirm() {
 }
 
 .split-amount-box {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;

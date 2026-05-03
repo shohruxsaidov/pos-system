@@ -9,7 +9,7 @@
 
       <div class="vk-body">
         <!-- QWERTY section -->
-        <div class="vk-qwerty">
+        <div v-if="!numpadOnly" class="vk-qwerty">
           <div class="vk-row">
             <button v-for="k in numberRow" :key="k" class="vk-key" @mousedown.prevent="pressKey(k)">{{ k }}</button>
             <button class="vk-key vk-bksp vk-wide" @mousedown.prevent="pressBackspace">⌫</button>
@@ -35,7 +35,7 @@
           </div>
         </div>
 
-        <div class="vk-sep" />
+        <div v-if="!numpadOnly" class="vk-sep" />
 
         <!-- Numpad section -->
         <div class="vk-numpad">
@@ -54,7 +54,7 @@
 import { ref, onUnmounted } from 'vue'
 import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 
-const { visible, hide, pressKey, pressBackspace } = useVirtualKeyboard()
+const { visible, numpadOnly, hide, pressKey, pressBackspace } = useVirtualKeyboard()
 
 const STORAGE_KEY = 'vk_pos'
 const numberRow = '1234567890'.split('')
