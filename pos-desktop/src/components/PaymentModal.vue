@@ -38,7 +38,18 @@
       <!-- Single payment mode -->
       <div v-if="!isSplit" class="field-group">
         <label class="field-label">Способ оплаты</label>
-        <SelectButton v-model="splits[0].method" :options="methods" option-label="label" option-value="value" class="method-selector" />
+        <SelectButton v-model="splits[0].method" :options="methods" option-label="label" option-value="value"
+          class="method-selector" @change="splits[0].cardType = null" />
+        <div v-if="splits[0].method === 'card'" class="card-type-row">
+          <button
+            v-for="ct in cardTypes" :key="ct.value"
+            class="card-type-btn"
+            :class="{ active: splits[0].cardType === ct.value }"
+            @click="splits[0].cardType = ct.value"
+          >
+            {{ ct.label }}
+          </button>
+        </div>
         <button class="split-trigger" @click="addSplit">
           <i class="pi pi-plus-circle" />
           Разделить оплату
@@ -50,40 +61,53 @@
         <label class="field-label">Разделённая оплата</label>
 
         <div v-for="(split, idx) in splits" :key="idx" class="split-row">
-          <SelectButton
-            v-model="split.method"
-            :options="methods"
-            option-label="label"
-            option-value="value"
-            class="split-method"
-          />
-          <div
-            class="split-amount-box"
-            :class="{
-              active: vkSplitIdx === idx,
-              readonly: idx === splits.length - 1
-            }"
-            @click="idx < splits.length - 1 ? openSplitVK(idx) : null"
-          >
-            <!-- hidden input targeted by virtual keyboard -->
-            <input
-              v-if="idx < splits.length - 1"
-              :ref="el => { if (el) splitInputEls[idx] = el; else delete splitInputEls[idx] }"
-              type="text"
-              inputmode="none"
-              :value="split.amount"
-              @input="e => splits[idx].amount = e.target.value"
-              style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
+          <div class="split-row-main">
+            <SelectButton
+              v-model="split.method"
+              :options="methods"
+              option-label="label"
+              option-value="value"
+              class="split-method"
+              @change="split.cardType = null"
             />
-            <span class="font-mono">
-              {{ idx === splits.length - 1 ? formatAmount(lastSplitAmount) : (split.amount || '0') }}
-            </span>
-            <i v-if="idx < splits.length - 1" class="pi pi-pencil edit-icon" />
-            <i v-else class="pi pi-lock lock-icon" />
+            <div
+              class="split-amount-box"
+              :class="{
+                active: vkSplitIdx === idx,
+                readonly: idx === splits.length - 1
+              }"
+              @click="idx < splits.length - 1 ? openSplitVK(idx) : null"
+            >
+              <!-- hidden input targeted by virtual keyboard -->
+              <input
+                v-if="idx < splits.length - 1"
+                :ref="el => { if (el) splitInputEls[idx] = el; else delete splitInputEls[idx] }"
+                type="text"
+                inputmode="none"
+                :value="split.amount"
+                @input="e => splits[idx].amount = e.target.value"
+                style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
+              />
+              <span class="font-mono">
+                {{ idx === splits.length - 1 ? formatAmount(lastSplitAmount) : (split.amount || '0') }}
+              </span>
+              <i v-if="idx < splits.length - 1" class="pi pi-pencil edit-icon" />
+              <i v-else class="pi pi-lock lock-icon" />
+            </div>
+            <button class="remove-btn" @click="removeSplit(idx)" title="Удалить">
+              <i class="pi pi-times" />
+            </button>
           </div>
-          <button class="remove-btn" @click="removeSplit(idx)" title="Удалить">
-            <i class="pi pi-times" />
-          </button>
+          <div v-if="split.method === 'card'" class="card-type-row">
+            <button
+              v-for="ct in cardTypes" :key="ct.value"
+              class="card-type-btn"
+              :class="{ active: split.cardType === ct.value }"
+              @click="split.cardType = ct.value"
+            >
+              {{ ct.label }}
+            </button>
+          </div>
         </div>
 
         <button class="split-trigger" @click="addSplit">
@@ -136,7 +160,7 @@ const visible = computed({
 })
 
 const cart = useCartStore()
-const splits = ref([{ method: 'cash' }])
+const splits = ref([{ method: 'cash', cardType: null }])
 const printReceipt = ref(true)
 const processing = ref(false)
 const discountInput = ref('')
@@ -148,6 +172,11 @@ const methods = [
   { label: 'Перевод', value: 'transfer' },
 ]
 
+const cardTypes = [
+  { label: 'Uzcard', value: 'uzcard' },
+  { label: 'Humo', value: 'humo' },
+]
+
 const isSplit = computed(() => splits.value.length > 1)
 
 const lastSplitAmount = computed(() => {
@@ -157,13 +186,15 @@ const lastSplitAmount = computed(() => {
 })
 
 const canConfirm = computed(() => {
+  const cardMissing = splits.value.some(s => s.method === 'card' && !s.cardType)
+  if (cardMissing) return false
   if (!isSplit.value) return true
   return lastSplitAmount.value >= -0.01
 })
 
 watch(visible, (v) => {
   if (v) {
-    splits.value = [{ method: 'cash' }]
+    splits.value = [{ method: 'cash', cardType: null }]
     printReceipt.value = true
     processing.value = false
     discountInput.value = ''
@@ -190,7 +221,7 @@ function toggleField(field) {
 }
 
 function openSplitVK(idx) {
-  activeField.value = null // close discount numpad
+  activeField.value = null
   nextTick(() => {
     const el = splitInputEls[idx]
     if (!el) return
@@ -200,7 +231,7 @@ function openSplitVK(idx) {
 }
 
 function addSplit() {
-  splits.value.push({ method: 'cash', amount: '' })
+  splits.value.push({ method: 'cash', amount: '', cardType: null })
   const newIdx = splits.value.length - 2
   nextTick(() => {
     openSplitVK(newIdx)
@@ -232,20 +263,20 @@ async function confirm() {
   if (!canConfirm.value || processing.value) return
   processing.value = true
 
+  const buildPayment = (s, amount) => ({
+    method: s.method,
+    amount,
+    ...(s.method === 'card' && s.cardType ? { card_type: s.cardType } : {}),
+  })
+
   let payments
   if (isSplit.value) {
     payments = [
-      ...splits.value.slice(0, -1).map(s => ({
-        method: s.method,
-        amount: parseFloat(s.amount) || 0,
-      })),
-      {
-        method: splits.value[splits.value.length - 1].method,
-        amount: parseFloat(lastSplitAmount.value.toFixed(2)),
-      }
+      ...splits.value.slice(0, -1).map(s => buildPayment(s, parseFloat(s.amount) || 0)),
+      buildPayment(splits.value[splits.value.length - 1], parseFloat(lastSplitAmount.value.toFixed(2))),
     ]
   } else {
-    payments = [{ method: splits.value[0].method, amount: cart.total }]
+    payments = [buildPayment(splits.value[0], cart.total)]
   }
 
   emit('paid', { payments, printReceipt: printReceipt.value })
@@ -333,6 +364,37 @@ async function confirm() {
   padding: 12px 14px 12px 0;
 }
 
+/* Card type selector */
+.card-type-row {
+  display: flex;
+  gap: 10px;
+}
+
+.card-type-btn {
+  flex: 1;
+  height: 48px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.card-type-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-1);
+  color: var(--text-primary);
+}
+
+.card-type-btn.active {
+  background: var(--accent-glow);
+  border-color: var(--accent-1);
+  color: var(--text-accent);
+}
+
 /* Split payment */
 .split-trigger {
   display: flex;
@@ -358,12 +420,18 @@ async function confirm() {
 
 .split-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 10px 12px;
+}
+
+.split-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .split-method {

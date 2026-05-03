@@ -121,9 +121,20 @@
             <span class="details-label">Статус</span>
             <Tag :value="statusLabel(detailsTxn.status)" :severity="statusSeverity(detailsTxn.status)" />
           </div>
-          <div class="details-row">
-            <span class="details-label">Оплата</span>
-            <span>{{ detailsTxn.payment_method }}</span>
+        </div>
+
+        <!-- Payments -->
+        <div class="details-section-title">Платежи</div>
+        <div class="details-payments">
+          <div v-for="(p, i) in detailsTxn.payments" :key="i" class="payment-row">
+            <div class="payment-method-badge" :class="p.method">
+              {{ methodLabel(p.method) }}
+            </div>
+            <div class="payment-info">
+              <span class="font-mono payment-amount">{{ formatAmount(p.amount) }}</span>
+              <span v-if="p.change_given > 0" class="payment-change font-mono">сдача {{ formatAmount(p.change_given) }}</span>
+              <span v-if="p.reference" class="payment-ref">{{ p.reference }}</span>
+            </div>
           </div>
         </div>
 
@@ -281,6 +292,11 @@ function formatDateTime(dt) {
   if (!dt) return '—'
   const d = new Date(dt)
   return `${d.toLocaleDateString('ru')} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+}
+
+function methodLabel(m) {
+  const map = { cash: 'Наличные', card: 'Карта', transfer: 'Перевод', mixed: 'Смешанная' }
+  return map[m] || m
 }
 
 function statusLabel(s) {
@@ -442,5 +458,75 @@ function exportCSV() {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Payments section */
+.details-payments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.payment-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+}
+
+.payment-method-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.payment-method-badge.cash {
+  background: rgba(0, 212, 170, 0.10);
+  color: var(--success);
+  border-color: rgba(0, 212, 170, 0.20);
+}
+
+.payment-method-badge.card {
+  background: rgba(123, 104, 238, 0.12);
+  color: var(--text-accent);
+  border-color: rgba(123, 104, 238, 0.25);
+}
+
+.payment-method-badge.transfer {
+  background: rgba(255, 176, 46, 0.10);
+  color: var(--warning);
+  border-color: rgba(255, 176, 46, 0.20);
+}
+
+.payment-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.payment-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.payment-change {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.payment-ref {
+  font-size: 12px;
+  color: var(--text-accent);
+  font-family: var(--font-mono);
+  margin-left: auto;
 }
 </style>
