@@ -1149,6 +1149,7 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _barcodeCtrl;
   final _priceCtrl = TextEditingController();
+  final _costCtrl = TextEditingController();
   String _unit = 'шт';
   bool _loading = false;
   String? _error;
@@ -1167,6 +1168,7 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
     _nameCtrl.dispose();
     _barcodeCtrl.dispose();
     _priceCtrl.dispose();
+    _costCtrl.dispose();
     super.dispose();
   }
 
@@ -1179,7 +1181,7 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
         'barcode': barcode.isNotEmpty ? barcode : null,
         'name': _nameCtrl.text.trim(),
         'price': double.tryParse(_priceCtrl.text) ?? 0,
-        'cost': 0,
+        'cost': double.tryParse(_costCtrl.text) ?? 0,
         'unit': _unit,
         'is_active': true,
       });
@@ -1222,6 +1224,13 @@ class _ProductNotFoundDialogState extends State<_ProductNotFoundDialog> {
             keyboardType: TextInputType.number,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'Цена'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _costCtrl,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(labelText: 'Себестоимость'),
           ),
           const SizedBox(height: 12),
           const Text('ЕДИНИЦА',
