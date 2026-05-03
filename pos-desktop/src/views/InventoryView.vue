@@ -292,6 +292,7 @@ const products = ref([])
 const total = ref(0)
 const oversoldCount = ref(0)
 const lowCount = ref(0)
+const totalValue = ref(0)
 const categories = ref([])
 const loading = ref(false)
 const saving = ref(false)
@@ -369,14 +370,11 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const totalValue = computed(() =>
-  products.value.reduce((sum, p) => sum + (parseFloat(p.price) * Math.max(0, p.stock_qty)), 0)
-)
-
 watch([categoryFilter, activeFilter], () => {
   currentPage.value = 1
   loadProducts()
   loadCounts()
+  loadStats()
 })
 
 watch(currentPage, loadProducts)
@@ -396,7 +394,7 @@ function formatCompact(n) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadProducts(), loadCounts(), loadCategories()])
+  await Promise.all([loadProducts(), loadCounts(), loadStats(), loadCategories()])
 })
 
 async function loadProducts() {
@@ -430,6 +428,17 @@ async function loadCounts() {
   } catch {}
 }
 
+async function loadStats() {
+  try {
+    const params = new URLSearchParams()
+    if (search.value) params.set('search', search.value)
+    if (categoryFilter.value) params.set('category_id', categoryFilter.value)
+    if (activeFilter.value !== 'all') params.set('stock_status', activeFilter.value)
+    const res = await api.get(`/api/inventory/stats?${params}`)
+    totalValue.value = res.total_value || 0
+  } catch {}
+}
+
 async function loadCategories() {
   categories.value = await api.get('/api/categories')
 }
@@ -440,6 +449,7 @@ function debouncedSearch() {
     currentPage.value = 1
     loadProducts()
     loadCounts()
+    loadStats()
   }, 300)
 }
 
@@ -495,7 +505,7 @@ async function saveProduct() {
       toast.add({ severity: 'success', summary: 'Создано', detail: form.value.name, life: 2000 })
     }
     showDrawer.value = false
-    await Promise.all([loadProducts(), loadCounts()])
+    await Promise.all([loadProducts(), loadCounts(), loadStats()])
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
@@ -517,7 +527,7 @@ async function applyStockAdjust() {
     })
     toast.add({ severity: 'success', summary: 'Склад скорректирован', detail: `${delta > 0 ? '+' : ''}${delta}`, life: 2000 })
     showStockAdjust.value = false
-    await Promise.all([loadProducts(), loadCounts()])
+    await Promise.all([loadProducts(), loadCounts(), loadStats()])
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {

@@ -1,6 +1,45 @@
 import { pool } from '../db/connection.js'
 
 export default async function inventoryRoutes(fastify) {
+  // GET /api/inventory/stats — aggregated inventory totals (no product rows)
+  fastify.get('/api/inventory/stats', { onRequest: [fastify.authenticate] }, async (req) => {
+    const { search, category_id, stock_status } = req.query
+    const warehouseId = req.user.warehouse_id || 1
+
+    const params = [warehouseId]
+    let pIdx = 2
+    let where = 'WHERE p.is_active=true'
+
+    if (search) {
+      where += ` AND (p.name ILIKE $${pIdx} OR EXISTS (SELECT 1 FROM product_barcodes pb WHERE pb.product_id = p.id AND pb.barcode LIKE $${pIdx}))`
+      params.push(`%${search}%`)
+      pIdx++
+    }
+    if (category_id) {
+      where += ` AND p.category_id=$${pIdx++}`
+      params.push(category_id)
+    }
+    if (stock_status === 'low') where += ` AND COALESCE(ws.stock_qty,0) > 0 AND COALESCE(ws.stock_qty,0) <= COALESCE(p.low_stock_threshold,5)`
+    else if (stock_status === 'oversold') where += ` AND COALESCE(ws.stock_qty,0) < 0`
+    else if (stock_status === 'out') where += ` AND COALESCE(ws.stock_qty,0) = 0`
+
+    const { rows } = await pool.query(`
+      SELECT
+        COUNT(*) AS total_products,
+        COALESCE(SUM(CASE WHEN COALESCE(ws.stock_qty,0) > 0 THEN p.price * ws.stock_qty ELSE 0 END), 0) AS total_value,
+        COALESCE(SUM(CASE WHEN COALESCE(ws.stock_qty,0) > 0 THEN p.cost * ws.stock_qty ELSE 0 END), 0) AS total_cost
+      FROM products p
+      LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
+      ${where}
+    `, params)
+
+    return {
+      total_products: parseInt(rows[0].total_products),
+      total_value: parseFloat(rows[0].total_value),
+      total_cost: parseFloat(rows[0].total_cost)
+    }
+  })
+
   // GET /api/inventory/mobile — optimized for mobile product list
   fastify.get('/api/inventory/mobile', { onRequest: [fastify.authenticate] }, async (req) => {
     const { search, status } = req.query
