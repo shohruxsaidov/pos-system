@@ -44,6 +44,9 @@
     <!-- Status Bar (always visible when logged in) -->
     <StatusBar v-if="session.isLoggedIn" />
 
+    <!-- Virtual Keyboard -->
+    <VirtualKeyboard />
+
     <!-- Toast -->
     <Toast position="top-right" />
     <ConfirmDialog />
@@ -51,10 +54,12 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from './stores/session.js'
+import { useVirtualKeyboard } from './composables/useVirtualKeyboard.js'
 import StatusBar from './components/StatusBar.vue'
+import VirtualKeyboard from './components/VirtualKeyboard.vue'
 import Button from 'primevue/button'
 import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -62,6 +67,9 @@ import ConfirmDialog from 'primevue/confirmdialog'
 const session = useSessionStore()
 const router = useRouter()
 const route = useRoute()
+const { hide: hideKeyboard } = useVirtualKeyboard()
+
+watch(() => route.path, hideKeyboard)
 
 const transitionName = ref('page')
 router.beforeEach((to, from) => {

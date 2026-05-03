@@ -72,6 +72,24 @@
           </div>
         </div>
         <div class="summary-card">
+          <div class="summary-icon" style="background:rgba(157,78,221,0.12)">
+            <i class="pi pi-replay" style="color:var(--accent-2)" />
+          </div>
+          <div class="summary-body">
+            <div class="summary-value font-mono">{{ summary.total_refunded_qty }}</div>
+            <div class="summary-label">Возврат (кол-во)</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon" style="background:rgba(255,92,92,0.10)">
+            <i class="pi pi-arrow-circle-left" style="color:var(--danger)" />
+          </div>
+          <div class="summary-body">
+            <div class="summary-value font-mono">{{ formatPrice(summary.total_refund_amount) }}</div>
+            <div class="summary-label">Сумма возвратов</div>
+          </div>
+        </div>
+        <div class="summary-card">
           <div class="summary-icon" style="background:var(--success-bg)">
             <i class="pi pi-tag" style="color:var(--success)" />
           </div>
@@ -159,6 +177,34 @@
             </div>
           </div>
         </div>
+
+        <!-- Refunds -->
+        <div class="card history-card">
+          <div class="card-header">
+            <h3>Возвраты</h3>
+            <span class="badge-count refund-count" :class="{ 'refund-count-active': refunds.length > 0 }">{{ refunds.length }}</span>
+          </div>
+          <div v-if="refunds.length === 0" class="empty-table">
+            <i class="pi pi-check-circle" style="color:var(--success)" />
+            <span>Возвратов нет</span>
+          </div>
+          <div v-else class="history-list">
+            <div v-for="(ref, i) in refunds" :key="i" class="history-item">
+              <div class="adj-delta delta-neg">-{{ ref.qty_returned }}</div>
+              <div class="history-body">
+                <div class="history-reason">
+                  {{ ref.reason || '—' }}
+                  <span class="font-mono text-muted" style="font-size:11px"> · {{ ref.ref_no }}</span>
+                </div>
+                <div class="history-meta">
+                  Сумма: {{ formatPrice(ref.subtotal) }}
+                  · {{ ref.processed_by_name || '—' }}
+                  · {{ formatDate(ref.created_at) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Sales Transactions Table -->
@@ -214,7 +260,8 @@ const product = ref(null)
 const salesByDay = ref([])
 const adjustments = ref([])
 const incoming = ref([])
-const summary = ref({ total_sold: 0, total_revenue: 0, total_txns: 0, total_incoming: 0, total_adjustments: 0 })
+const refunds = ref([])
+const summary = ref({ total_sold: 0, total_revenue: 0, total_txns: 0, total_incoming: 0, total_adjustments: 0, total_refunded_qty: 0, total_refund_amount: 0 })
 
 const DAYS_OPTIONS = [
   { label: '7 дней', value: 7 },
@@ -311,6 +358,7 @@ async function load() {
     salesByDay.value = data.sales_by_day
     adjustments.value = data.adjustments
     incoming.value = data.incoming
+    refunds.value = data.refunds || []
     summary.value = data.summary
   } catch (e) {
     console.error(e)
@@ -487,12 +535,22 @@ onMounted(load)
 /* History */
 .history-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
+  .history-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 700px) {
   .history-row { grid-template-columns: 1fr; }
+}
+
+.refund-count-active {
+  background: rgba(255,92,92,0.15);
+  border-color: rgba(255,92,92,0.35);
+  color: var(--danger);
 }
 
 .history-card { }

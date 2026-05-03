@@ -14,6 +14,8 @@
             class="search-input"
             placeholder="Поиск или штрихкод..."
             @input="debouncedSearch"
+            @focus="showKeyboard($event.target)"
+            @blur="hideKeyboard"
           />
           <button v-if="search" class="clear-btn" @click="search = ''; currentPage = 1; loadProducts(); loadCounts()">✕</button>
         </div>
@@ -273,6 +275,7 @@ import { useRouter } from 'vue-router'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
 import { useSessionStore } from '../stores/session.js'
+import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 import PrintLabelDialog from '../components/PrintLabelDialog.vue'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -286,6 +289,7 @@ const toast = useToast()
 const session = useSessionStore()
 const router = useRouter()
 const canManage = computed(() => session.user?.role !== 'cashier')
+const { show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
 
 const PAGE_SIZE = 80
 const products = ref([])

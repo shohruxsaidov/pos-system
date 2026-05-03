@@ -569,11 +569,26 @@ export default async function reportRoutes(fastify) {
         [productId, rangeStart, rangeEnd],
       );
 
+      const { rows: refundItems } = await pool.query(
+        `SELECT ri.qty_returned, ri.unit_price, ri.subtotal,
+          r.ref_no, r.reason, r.created_at,
+          u.name as processed_by_name
+         FROM refund_items ri
+         JOIN refunds r ON r.id = ri.refund_id
+         LEFT JOIN users u ON u.id = r.processed_by
+         WHERE ri.product_id = $1
+           AND r.created_at >= $2 AND r.created_at < $3
+         ORDER BY r.created_at DESC`,
+        [productId, rangeStart, rangeEnd],
+      );
+
       const { rows: summary } = await pool.query(
         `SELECT
           COALESCE(SUM(ti.qty), 0) as total_sold,
           COALESCE(SUM(ti.subtotal), 0) as total_revenue,
-          COUNT(DISTINCT ti.transaction_id) as total_txns
+          COUNT(DISTINCT ti.transaction_id) as total_txns,
+          (SELECT COALESCE(SUM(ri2.qty_returned), 0) FROM refund_items ri2 WHERE ri2.product_id = $1) as total_refunded_qty,
+          (SELECT COALESCE(SUM(ri2.subtotal), 0) FROM refund_items ri2 WHERE ri2.product_id = $1) as total_refund_amount
          FROM transaction_items ti
          JOIN transactions t ON t.id = ti.transaction_id
          WHERE ti.product_id = $1 AND t.status != 'voided'`,
@@ -608,12 +623,23 @@ export default async function reportRoutes(fastify) {
           received_by_name: r.received_by_name,
           created_at: r.created_at,
         })),
+        refunds: refundItems.map((r) => ({
+          qty_returned: parseInt(r.qty_returned),
+          unit_price: parseFloat(r.unit_price),
+          subtotal: parseFloat(r.subtotal),
+          ref_no: r.ref_no,
+          reason: r.reason,
+          processed_by_name: r.processed_by_name,
+          created_at: r.created_at,
+        })),
         summary: {
           total_sold: parseFloat(summary[0].total_sold),
           total_revenue: parseFloat(summary[0].total_revenue),
           total_txns: parseInt(summary[0].total_txns),
           total_incoming: incoming.reduce((s, r) => s + parseInt(r.qty_received), 0),
           total_adjustments: adjustments.length,
+          total_refunded_qty: parseFloat(summary[0].total_refunded_qty),
+          total_refund_amount: parseFloat(summary[0].total_refund_amount),
         },
         range: { from: fromDate, to: toDate },
       };
