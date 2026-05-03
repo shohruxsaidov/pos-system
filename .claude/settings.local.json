@@ -47,7 +47,8 @@
       "Bash(grep -E \"\\\\.\\(vue|jsx|js|tsx\\)$\")",
       "Bash(grep -iE \"\\\\.\\(dart|java|swift|kt\\)$\")",
       "Bash(python3 *)",
-      "Bash(pip3 install *)"
+      "Bash(pip3 install *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

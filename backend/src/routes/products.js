@@ -83,7 +83,7 @@ export default async function productRoutes(fastify) {
     `, [...params, limit, offset])
 
     const { rows: countRows } = await pool.query(`
-      SELECT COUNT(*)
+      SELECT COUNT(*) as count
       FROM products p
       LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
       ${whereClause}

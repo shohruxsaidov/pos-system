@@ -15,7 +15,7 @@
             placeholder="Поиск или штрихкод..."
             @input="debouncedSearch"
           />
-          <button v-if="search" class="clear-btn" @click="search = ''; loadProducts()">✕</button>
+          <button v-if="search" class="clear-btn" @click="search = ''; currentPage = 1; loadProducts(); loadCounts()">✕</button>
         </div>
         <Select v-model="categoryFilter" :options="[{ id: null, name: 'Все категории' }, ...categories]"
           option-label="name" option-value="id" style="width:180px" @change="loadProducts" />
@@ -40,7 +40,7 @@
     <!-- Stats Bar -->
     <div class="stats-bar">
       <div class="stat-item">
-        <span class="stat-value">{{ filteredProducts.length }}</span>
+        <span class="stat-value">{{ totalProducts }}</span>
         <span class="stat-label">Товаров</span>
       </div>
       <div class="stat-divider" />
@@ -66,14 +66,14 @@
         <i class="pi pi-spin pi-spinner" style="font-size:2.5rem;color:var(--accent-1)" />
       </div>
 
-      <div v-else-if="filteredProducts.length === 0" class="empty-state">
+      <div v-else-if="products.length === 0" class="empty-state">
         <i class="pi pi-box" style="font-size:48px;color:var(--text-muted)" />
         <p>Товары не найдены</p>
       </div>
 
       <div v-else class="cards-grid">
         <div
-          v-for="product in filteredProducts"
+          v-for="product in products"
           :key="product.id"
           class="product-card"
         >
@@ -113,6 +113,29 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination-bar">
+        <button class="page-btn" :disabled="currentPage === 1" @click="currentPage = 1">
+          <i class="pi pi-angle-double-left" />
+        </button>
+        <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
+          <i class="pi pi-angle-left" />
+        </button>
+        <template v-for="p in visiblePages" :key="p">
+          <span v-if="p === '...'" class="page-ellipsis">…</span>
+          <button v-else class="page-btn" :class="{ active: p === currentPage }" @click="currentPage = p">
+            {{ p }}
+          </button>
+        </template>
+        <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">
+          <i class="pi pi-angle-right" />
+        </button>
+        <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages">
+          <i class="pi pi-angle-double-right" />
+        </button>
+        <span class="page-info">{{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, total) }} из {{ total }}</span>
       </div>
     </div>
 
@@ -264,13 +287,18 @@ const session = useSessionStore()
 const router = useRouter()
 const canManage = computed(() => session.user?.role !== 'cashier')
 
-const allProducts = ref([])
+const PAGE_SIZE = 80
+const products = ref([])
+const total = ref(0)
+const oversoldCount = ref(0)
+const lowCount = ref(0)
 const categories = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const search = ref('')
 const categoryFilter = ref(null)
 const activeFilter = ref('all')
+const currentPage = ref(1)
 const showDrawer = ref(false)
 const showStockAdjust = ref(false)
 const showPrintLabel = ref(false)
@@ -321,33 +349,37 @@ const adjustPreviewClass = computed(() => {
   return 'preview-neutral'
 })
 
-const totalProducts = computed(() => allProducts.value.length)
+const totalProducts = computed(() => total.value)
 
-const filteredProducts = computed(() => {
-  let items = allProducts.value
+const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
 
-  if (search.value) {
-    const q = search.value.toLowerCase()
-    items = items.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      (Array.isArray(p.barcodes) && p.barcodes.some(b => b.barcode.includes(q))) ||
-      (p.barcode && p.barcode.includes(q)) ||
-      (p.category_name && p.category_name.toLowerCase().includes(q))
-    )
+const visiblePages = computed(() => {
+  const t = totalPages.value
+  const cur = currentPage.value
+  const pages = []
+  if (t <= 7) {
+    for (let i = 1; i <= t; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (cur > 3) pages.push('...')
+    for (let i = Math.max(2, cur - 1); i <= Math.min(t - 1, cur + 1); i++) pages.push(i)
+    if (cur < t - 2) pages.push('...')
+    pages.push(t)
   }
-
-  if (activeFilter.value === 'low') items = items.filter(p => p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5))
-  else if (activeFilter.value === 'oversold') items = items.filter(p => p.stock_qty < 0)
-
-  return items
+  return pages
 })
 
 const totalValue = computed(() =>
-  filteredProducts.value.reduce((sum, p) => sum + (parseFloat(p.price) * Math.max(0, p.stock_qty)), 0)
+  products.value.reduce((sum, p) => sum + (parseFloat(p.price) * Math.max(0, p.stock_qty)), 0)
 )
 
-const oversoldCount = computed(() => allProducts.value.filter(p => p.stock_qty < 0).length)
-const lowCount = computed(() => allProducts.value.filter(p => p.stock_qty > 0 && p.stock_qty <= (p.low_stock_threshold || 5)).length)
+watch([categoryFilter, activeFilter], () => {
+  currentPage.value = 1
+  loadProducts()
+  loadCounts()
+})
+
+watch(currentPage, loadProducts)
 
 function getTabCount(filter) {
   if (filter === 'all') return 0
@@ -364,21 +396,38 @@ function formatCompact(n) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadProducts(), loadCategories()])
+  await Promise.all([loadProducts(), loadCounts(), loadCategories()])
 })
 
 async function loadProducts() {
   loading.value = true
   try {
-    const params = new URLSearchParams({ limit: 1000 })
+    const params = new URLSearchParams({ page: currentPage.value, limit: PAGE_SIZE })
+    if (search.value) params.set('search', search.value)
     if (categoryFilter.value) params.set('category_id', categoryFilter.value)
-    const data = await api.get(`/api/products?${params}`)
-    allProducts.value = data.data || data
+    if (activeFilter.value !== 'all') params.set('stock_status', activeFilter.value)
+    const res = await api.get(`/api/products?${params}`)
+    products.value = res.data || []
+    total.value = res.total || 0
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     loading.value = false
   }
+}
+
+async function loadCounts() {
+  try {
+    const base = new URLSearchParams({ page: 1, limit: 1 })
+    if (search.value) base.set('search', search.value)
+    if (categoryFilter.value) base.set('category_id', categoryFilter.value)
+    const [ov, lw] = await Promise.all([
+      api.get(`/api/products?${base}&stock_status=oversold`),
+      api.get(`/api/products?${base}&stock_status=low`)
+    ])
+    oversoldCount.value = ov.total || 0
+    lowCount.value = lw.total || 0
+  } catch {}
 }
 
 async function loadCategories() {
@@ -387,7 +436,11 @@ async function loadCategories() {
 
 function debouncedSearch() {
   clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {}, 0) // search is client-side via computed
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    loadProducts()
+    loadCounts()
+  }, 300)
 }
 
 function openCreate() {
@@ -442,7 +495,7 @@ async function saveProduct() {
       toast.add({ severity: 'success', summary: 'Создано', detail: form.value.name, life: 2000 })
     }
     showDrawer.value = false
-    await loadProducts()
+    await Promise.all([loadProducts(), loadCounts()])
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
@@ -464,7 +517,7 @@ async function applyStockAdjust() {
     })
     toast.add({ severity: 'success', summary: 'Склад скорректирован', detail: `${delta > 0 ? '+' : ''}${delta}`, life: 2000 })
     showStockAdjust.value = false
-    await loadProducts()
+    await Promise.all([loadProducts(), loadCounts()])
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
@@ -511,7 +564,7 @@ async function deleteProduct(product) {
   try {
     await api.delete(`/api/products/${product.id}`)
     toast.add({ severity: 'success', summary: 'Удалено', life: 2000 })
-    await loadProducts()
+    await Promise.all([loadProducts(), loadCounts()])
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   }
@@ -1066,5 +1119,63 @@ function stockBadgeClass(qty, threshold = 5) {
   border-radius: 3px;
   padding: 0 2px;
   font-weight: 700;
+}
+
+/* Pagination */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 0 8px;
+  flex-shrink: 0;
+}
+
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.page-btn:hover:not(:disabled):not(.active) {
+  border-color: rgba(123, 104, 238, 0.5);
+  color: var(--text-accent);
+  background: var(--accent-glow);
+}
+
+.page-btn.active {
+  background: var(--gradient-hero);
+  border-color: transparent;
+  color: #fff;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.page-ellipsis {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0 4px;
+  user-select: none;
+}
+
+.page-info {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 </style>
