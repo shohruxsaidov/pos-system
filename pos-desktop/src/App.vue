@@ -77,11 +77,11 @@ const navItems = computed(() => {
     { to: '/home', icon: 'pi pi-home', label: 'Главная' },
     { to: '/pos', icon: 'pi pi-shopping-cart', label: 'POS' },
     { to: '/inventory', icon: 'pi pi-box', label: 'Склад' },
+    { to: '/transactions', icon: 'pi pi-list', label: 'Транзакции' },
   ]
   if (['manager', 'admin'].includes(session.user?.role)) {
     items.push({ to: '/categories', icon: 'pi pi-folder', label: 'Категории' })
     items.push({ to: '/reports', icon: 'pi pi-chart-bar', label: 'Отчёты' })
-    items.push({ to: '/transactions', icon: 'pi pi-list', label: 'Транзакции' })
     items.push({ to: '/incoming', icon: 'pi pi-truck', label: 'Приём' })
     items.push({ to: '/warehouse', icon: 'pi pi-warehouse', label: 'Склады' })
     items.push({ to: '/printer-settings', icon: 'pi pi-print', label: 'Принтеры' })

@@ -61,21 +61,6 @@ export default async function refundRoutes(fastify) {
         });
       }
 
-      // Verify manager PIN
-      const { rows: managers } = await pool.query(
-        "SELECT * FROM users WHERE role IN ('manager','admin') AND is_active=true",
-      );
-      let approver = null;
-      for (const m of managers) {
-        const valid = await argon.verify(m.pin_hash, String(manager_pin));
-        if (valid) {
-          approver = m;
-          break;
-        }
-      }
-      if (!approver)
-        return reply.code(403).send({ error: "Invalid manager PIN" });
-
       // Validate transaction
       const { rows: txnRows } = await pool.query(
         "SELECT * FROM transactions WHERE id=$1 AND status IN ('completed','partially_refunded')",
@@ -110,7 +95,7 @@ export default async function refundRoutes(fastify) {
             refundRef,
             original_txn_id,
             req.user.id,
-            approver.id,
+            req.user.id,
             reason,
             payment_method || txn.payment_method,
           ],
@@ -158,7 +143,12 @@ export default async function refundRoutes(fastify) {
              VALUES ($1, $2, $3, NOW())
              ON CONFLICT (warehouse_id, product_id)
              DO UPDATE SET stock_qty = warehouse_stock.stock_qty + $4, updated_at = NOW()`,
-            [txn.warehouse_id || 1, item.product_id, item.qty_returned, item.qty_returned],
+            [
+              txn.warehouse_id || 1,
+              item.product_id,
+              item.qty_returned,
+              item.qty_returned,
+            ],
           );
         }
 
@@ -189,7 +179,7 @@ export default async function refundRoutes(fastify) {
         await logAudit({
           action: "refund",
           actor: req.user,
-          approver: { id: approver.id },
+          approver: { id: req.user.id },
           target: {
             type: "transaction",
             id: original_txn_id,

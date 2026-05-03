@@ -1,112 +1,112 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
-import { useSessionStore } from '../stores/session.js'
+import { createRouter, createWebHashHistory } from "vue-router";
+import { useSessionStore } from "../stores/session.js";
 
 const routes = [
   {
-    path: '/',
-    redirect: '/home'
+    path: "/",
+    redirect: "/home",
   },
   {
-    path: '/home',
-    name: 'home',
-    component: () => import('../views/HomeView.vue'),
-    meta: { requiresAuth: true }
+    path: "/home",
+    name: "home",
+    component: () => import("../views/HomeView.vue"),
+    meta: { requiresAuth: true },
   },
   {
-    path: '/login',
-    name: 'login',
-    component: () => import('../views/LoginView.vue'),
-    meta: { requiresAuth: false }
+    path: "/login",
+    name: "login",
+    component: () => import("../views/LoginView.vue"),
+    meta: { requiresAuth: false },
   },
   {
-    path: '/pos',
-    name: 'pos',
-    component: () => import('../views/POSView.vue'),
-    meta: { requiresAuth: true }
+    path: "/pos",
+    name: "pos",
+    component: () => import("../views/POSView.vue"),
+    meta: { requiresAuth: true },
   },
   {
-    path: '/inventory',
-    name: 'inventory',
-    component: () => import('../views/InventoryView.vue'),
-    meta: { requiresAuth: true }
+    path: "/inventory",
+    name: "inventory",
+    component: () => import("../views/InventoryView.vue"),
+    meta: { requiresAuth: true },
   },
   {
-    path: '/categories',
-    name: 'categories',
-    component: () => import('../views/CategoriesView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/categories",
+    name: "categories",
+    component: () => import("../views/CategoriesView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/reports',
-    name: 'reports',
-    component: () => import('../views/ReportsView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/reports",
+    name: "reports",
+    component: () => import("../views/ReportsView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/transactions',
-    name: 'transactions',
-    component: () => import('../views/TransactionsView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/transactions",
+    name: "transactions",
+    component: () => import("../views/TransactionsView.vue"),
+    meta: { requiresAuth: true },
   },
   {
-    path: '/customers',
-    name: 'customers',
-    component: () => import('../views/CustomersView.vue'),
-    meta: { requiresAuth: true }
+    path: "/customers",
+    name: "customers",
+    component: () => import("../views/CustomersView.vue"),
+    meta: { requiresAuth: true },
   },
   {
-    path: '/incoming',
-    name: 'incoming',
-    component: () => import('../views/IncomingView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/incoming",
+    name: "incoming",
+    component: () => import("../views/IncomingView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/incoming/history',
-    name: 'incoming-history',
-    component: () => import('../views/IncomingHistoryView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/incoming/history",
+    name: "incoming-history",
+    component: () => import("../views/IncomingHistoryView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/warehouse',
-    name: 'warehouse',
-    component: () => import('../views/WarehouseView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/warehouse",
+    name: "warehouse",
+    component: () => import("../views/WarehouseView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/settings',
-    name: 'settings',
-    component: () => import('../views/SettingsView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/settings",
+    name: "settings",
+    component: () => import("../views/SettingsView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/printer-settings',
-    name: 'printer-settings',
-    component: () => import('../views/PrinterSettingsView.vue'),
-    meta: { requiresAuth: true, roles: ['manager', 'admin'] }
+    path: "/printer-settings",
+    name: "printer-settings",
+    component: () => import("../views/PrinterSettingsView.vue"),
+    meta: { requiresAuth: true, roles: ["manager", "admin"] },
   },
   {
-    path: '/product/:id',
-    name: 'product-detail',
-    component: () => import('../views/ProductDetailView.vue'),
-    meta: { requiresAuth: true }
-  }
-]
+    path: "/product/:id",
+    name: "product-detail",
+    component: () => import("../views/ProductDetailView.vue"),
+    meta: { requiresAuth: true },
+  },
+];
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes
-})
+  routes,
+});
 
 router.beforeEach((to) => {
-  const session = useSessionStore()
+  const session = useSessionStore();
 
   if (to.meta.requiresAuth !== false && !session.isLoggedIn) {
-    return { name: 'login' }
+    return { name: "login" };
   }
 
   if (to.meta.roles && !to.meta.roles.includes(session.user?.role)) {
-    return { name: 'pos' }
+    return { name: "pos" };
   }
-})
+});
 
-export default router
+export default router;
