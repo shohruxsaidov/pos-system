@@ -344,7 +344,7 @@ export default async function productRoutes(fastify) {
       );
 
       await pool.query(
-        "INSERT INTO stock_adjustments (product_id, adjusted_by, delta, reason, warehouse_id) VALUES ($1,$2,$3,$4,$5)",
+        "INSERT INTO stock_adjustments (product_id, adjusted_by, delta, reason, warehouse_id, created_at) VALUES ($1,$2,$3,$4,$5, NOW())",
         [id, req.user?.id, delta, reason, warehouseId],
       );
 

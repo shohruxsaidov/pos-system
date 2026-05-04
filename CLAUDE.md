@@ -485,10 +485,10 @@ Manager/admin only. All sensitive actions recorded.
 
 ```js
 // auditService.js
-export async function logAudit(pool, { action, actor, approver, target, details, ip }) {
-  await pool.query(`INSERT INTO audit_log (...) VALUES ($1...$10)`,
+export async function logAudit(pool, { action, actor, approver, target, details, ip,created_at }) {
+  await pool.query(`INSERT INTO audit_log (...) VALUES ($1...$11)`,
     [action, actor.id, actor.name, actor.role, approver?.id,
-     target?.type, target?.id, target?.name, JSON.stringify(details), ip])
+     target?.type, target?.id, target?.name, JSON.stringify(details), ip, NOW()])
 }
 // details examples:
 // stock_adjust:  { "before": 12, "after": 8, "delta": -4, "reason": "Damaged" }

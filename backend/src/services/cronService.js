@@ -33,7 +33,7 @@ export async function startCronJobs() {
     const result = await runBackupSafe()
     try {
       await pool.query(
-        `INSERT INTO audit_log (action, actor_name, details) VALUES ('backup', 'system', $1::jsonb)`,
+        `INSERT INTO audit_log (action, actor_name, details, created_at) VALUES ('backup', 'system', $1::jsonb, NOW())`,
         [JSON.stringify(result)]
       )
     } catch (e) {

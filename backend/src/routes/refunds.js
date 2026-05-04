@@ -88,8 +88,8 @@ export default async function refundRoutes(fastify) {
         // Insert refund header
         const { rows: refundRows } = await client.query(
           `
-        INSERT INTO refunds (ref_no, original_txn_id, processed_by, approved_by, refund_type, reason, total_refund_amount, payment_method)
-        VALUES ($1,$2,$3,$4,'partial',$5,0,$6) RETURNING *
+        INSERT INTO refunds (ref_no, original_txn_id, processed_by, approved_by, refund_type, reason, total_refund_amount, payment_method, created_at)
+        VALUES ($1,$2,$3,$4,'partial',$5,0,$6, NOW()) RETURNING *
       `,
           [
             refundRef,

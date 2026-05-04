@@ -29,11 +29,24 @@ export default async function incomingRoutes(fastify) {
     if (!user) return reply.code(401).send({ error: "Invalid PIN" });
 
     const token = fastify.jwt.sign(
-      { id: user.id, name: user.name, role: user.role, warehouse_id: user.warehouse_id },
+      {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        warehouse_id: user.warehouse_id,
+      },
       { expiresIn: "12h" },
     );
 
-    return { token, user: { id: user.id, name: user.name, role: user.role, warehouse_id: user.warehouse_id } };
+    return {
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        warehouse_id: user.warehouse_id,
+      },
+    };
   });
 
   // POST /api/incoming — confirm receipt
@@ -58,8 +71,8 @@ export default async function incomingRoutes(fastify) {
         let totalCost = 0;
 
         const { rows: receiptRows } = await client.query(
-          `INSERT INTO incoming_receipts (ref_no, received_by, supplier, notes, total_cost, warehouse_id)
-           VALUES ($1,$2,$3,$4,0,$5) RETURNING *`,
+          `INSERT INTO incoming_receipts (ref_no, received_by, supplier, notes, total_cost, warehouse_id, created_at)
+           VALUES ($1,$2,$3,$4,0,$5, NOW()) RETURNING *`,
           [refNo, req.user.id, supplier || null, notes || null, warehouseId],
         );
         const receipt = receiptRows[0];
@@ -79,7 +92,7 @@ export default async function incomingRoutes(fastify) {
               item.cost_per_unit || 0,
               item.expiry_date || null,
               subtotal,
-              item.unit || 'шт',
+              item.unit || "шт",
             ],
           );
 
@@ -95,7 +108,12 @@ export default async function incomingRoutes(fastify) {
                VALUES ($1, $2, $3, NOW())
                ON CONFLICT (warehouse_id, product_id)
                DO UPDATE SET stock_qty = warehouse_stock.stock_qty + $4, updated_at = NOW()`,
-              [warehouseId, item.product_id, item.qty_received, item.qty_received],
+              [
+                warehouseId,
+                item.product_id,
+                item.qty_received,
+                item.qty_received,
+              ],
             );
           }
         }
@@ -170,7 +188,12 @@ export default async function incomingRoutes(fastify) {
         ),
       ]);
 
-      return { data: rows, total: parseInt(countRows[0].count), page: parseInt(page), limit: parseInt(limit) };
+      return {
+        data: rows,
+        total: parseInt(countRows[0].count),
+        page: parseInt(page),
+        limit: parseInt(limit),
+      };
     },
   );
 

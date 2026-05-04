@@ -17,8 +17,8 @@ export async function logAudit({ action, actor, approver, target, details, ip, c
     await db.query(
       `INSERT INTO audit_log
         (action, actor_id, actor_name, actor_role, approver_id,
-         target_type, target_id, target_name, details, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+         target_type, target_id, target_name, details, ip_address, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
       [
         action,
         actor?.id || null,
