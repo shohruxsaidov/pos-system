@@ -55,10 +55,14 @@ async function getPeriodData(pool, warehouseId) {
   // Payment methods
   const { rows: paymentMethods } = await pool.query(
     `
-    SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total), 0) as amount
-    FROM transactions
-    WHERE created_at > $1 AND created_at <= $2 AND status != 'voided' ${whFilter}
-    GROUP BY payment_method
+    SELECT
+      p.method as method,
+      COUNT(DISTINCT t.id) as count,
+      COALESCE(SUM(p.amount), 0) as amount
+    FROM transactions t
+    LEFT JOIN payments p ON p.transaction_id = t.id
+    WHERE t.created_at > $1 AND t.created_at <= $2 AND t.status != 'voided' ${whFilter}
+    GROUP BY p.method
     ORDER BY amount DESC
   `,
     [openedAt, closedAt],
@@ -197,10 +201,15 @@ export default async function reportRoutes(fastify) {
 
       const { rows: byMethod } = await pool.query(
         `
-      SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total), 0) as total
-      FROM transactions
-      WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
-      GROUP BY payment_method
+      SELECT
+        p.method as payment_method,
+        COUNT(DISTINCT t.id) as count,
+        COALESCE(SUM(p.amount), 0) as total
+      FROM transactions t
+      INNER JOIN payments p ON p.transaction_id = t.id
+      WHERE t.created_at >= $1 AND t.created_at < $2 AND t.status != 'voided' ${whFilter}
+      GROUP BY p.method
+      ORDER BY total DESC
     `,
         [rangeStart, rangeEnd],
       );
@@ -506,14 +515,16 @@ export default async function reportRoutes(fastify) {
       const productId = parseInt(req.params.id);
       const { from, to, days = 30 } = req.query;
 
-      const fromDate = from || (() => {
-        const d = new Date();
-        d.setDate(d.getDate() - parseInt(days) + 1);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${y}-${m}-${day}`;
-      })();
+      const fromDate =
+        from ||
+        (() => {
+          const d = new Date();
+          d.setDate(d.getDate() - parseInt(days) + 1);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        })();
       const toDate = to || localToday();
       const [rangeStart] = localDateRange(fromDate);
       const [, rangeEnd] = localDateRange(toDate);
@@ -527,7 +538,8 @@ export default async function reportRoutes(fastify) {
          WHERE p.id = $1`,
         [productId],
       );
-      if (!productRows.length) return reply.code(404).send({ error: "Product not found" });
+      if (!productRows.length)
+        return reply.code(404).send({ error: "Product not found" });
 
       const { rows: salesByDay } = await pool.query(
         `SELECT
@@ -636,7 +648,10 @@ export default async function reportRoutes(fastify) {
           total_sold: parseFloat(summary[0].total_sold),
           total_revenue: parseFloat(summary[0].total_revenue),
           total_txns: parseInt(summary[0].total_txns),
-          total_incoming: incoming.reduce((s, r) => s + parseInt(r.qty_received), 0),
+          total_incoming: incoming.reduce(
+            (s, r) => s + parseInt(r.qty_received),
+            0,
+          ),
           total_adjustments: adjustments.length,
           total_refunded_qty: parseFloat(summary[0].total_refunded_qty),
           total_refund_amount: parseFloat(summary[0].total_refund_amount),

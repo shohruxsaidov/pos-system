@@ -80,6 +80,7 @@ export default async function transactionRoutes(fastify) {
             amount: parseFloat(p.amount) || 0,
             change_given: parseFloat(p.change_given) || 0,
             reference: p.reference || null,
+            card_type: p.card_type || "card",
           }));
           const paidTotal = paymentsData.reduce((s, p) => s + p.amount, 0);
           if (Math.abs(paidTotal - total) > 0.01) {
@@ -156,10 +157,16 @@ export default async function transactionRoutes(fastify) {
         for (const p of paymentsData) {
           await client.query(
             `
-          INSERT INTO payments (transaction_id, method, amount, change_given, reference)
-          VALUES ($1,$2,$3,$4,$5)
+          INSERT INTO payments (transaction_id, method, amount, change_given, reference, created_at)
+          VALUES ($1,$2,$3,$4,$5, NOW())
         `,
-            [txn.id, p.method, p.amount, p.change_given, p.reference],
+            [
+              txn.id,
+              p.method === "card" ? p.card_type : p.method,
+              p.amount,
+              p.change_given,
+              p.reference,
+            ],
           );
         }
 

@@ -12,7 +12,8 @@
             placeholder="Склад" style="width:160px" @change="loadAll" />
           <SelectButton v-model="reportPeriod" :options="periodOptions" option-label="label" option-value="value"
             @change="onPeriodChange" />
-          <DatePicker v-if="reportPeriod !== 'range'" v-model="dateFilter" date-format="yy-mm-dd" @date-select="loadAll" />
+          <DatePicker v-if="reportPeriod !== 'range'" v-model="dateFilter" date-format="yy-mm-dd"
+            @date-select="loadAll" />
           <DatePicker v-else v-model="dateRangeFilter" selection-mode="range" date-format="yy-mm-dd"
             placeholder="Выберите период" :number-of-months="2" @date-select="onRangeSelect" style="width:260px" />
         </div>
@@ -37,7 +38,8 @@
       </div>
       <div class="stat-card" v-if="daily.summary?.total_discount > 0">
         <div class="stat-label">Скидки</div>
-        <div class="stat-value font-mono" style="color:var(--danger)">− {{ formatAmount(daily.summary?.total_discount) }}</div>
+        <div class="stat-value font-mono" style="color:var(--danger)">− {{ formatAmount(daily.summary?.total_discount)
+        }}</div>
       </div>
     </div>
 
@@ -51,8 +53,16 @@
       <!-- Payment Methods -->
       <div class="card report-card" :style="reportPeriod !== 'day' ? 'grid-column: 1 / -1' : ''">
         <h3 class="card-title">Способы оплаты</h3>
-        <Chart v-if="daily?.by_method?.length" type="doughnut" :data="methodChartData" :options="pieOptions"
-          style="height:200px" />
+        <template v-if="daily?.by_method?.length">
+          <Chart type="doughnut" :data="methodChartData" :options="pieOptions" style="height:200px" />
+          <div class="method-breakdown">
+            <div v-for="m in daily.by_method" :key="m.payment_method" class="method-row">
+              <span class="method-dot" :style="{ background: methodColor(m.payment_method) }"></span>
+              <span class="method-name">{{ methodLabel(m.payment_method) }}</span>
+              <span class="method-amount font-mono">{{ formatAmount(m.total) }}</span>
+            </div>
+          </div>
+        </template>
         <div v-else class="empty-chart">Нет данных</div>
       </div>
     </div>
@@ -149,7 +159,9 @@
               <div v-if="data.payment_methods?.length" class="expansion-section">
                 <div class="expansion-title">Способы оплаты</div>
                 <DataTable :value="data.payment_methods" size="small" style="font-size:13px">
-                  <Column field="method" header="Способ" />
+                  <Column field="method" header="Способ">
+                    <template #body="{ data: row }">{{ methodLabel(row.method) }}</template>
+                  </Column>
                   <Column field="count" header="Кол-во" style="width:80px" />
                   <Column field="amount" header="Сумма" style="width:120px">
                     <template #body="{ data: row }">
@@ -331,14 +343,22 @@ const hourlyChartData = computed(() => {
   }
 })
 
+const methodLabel = (m) => {
+  const map = { cash: 'Наличные', card: 'Карта', uzcard: 'Uzcard', humo: 'Humo', mixed: 'Смешанный' }
+  return map[m] || m
+}
+const methodColor = (m) => {
+  const map = { cash: '#00d4aa', card: '#7b68ee', uzcard: '#5b8cf5', humo: '#ff8c42', mixed: '#ffb02e' }
+  return map[m] || '#9898bb'
+}
+
 const methodChartData = computed(() => {
   const methods = daily.value?.by_method || []
-  const colors = ['#7b68ee', '#00d4aa', '#ffb02e']
   return {
-    labels: methods.map(m => m.payment_method),
+    labels: methods.map(m => methodLabel(m.payment_method)),
     datasets: [{
       data: methods.map(m => parseFloat(m.total)),
-      backgroundColor: colors
+      backgroundColor: methods.map(m => methodColor(m.payment_method))
     }]
   }
 })
@@ -474,6 +494,40 @@ function exportCSV() {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+.method-breakdown {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.method-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-base);
+}
+
+.method-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.method-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.method-amount {
+  font-size: 14px;
+  color: var(--text-primary);
 }
 
 .z-report-expansion {
