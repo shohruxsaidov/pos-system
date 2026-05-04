@@ -174,7 +174,7 @@ export default async function transactionRoutes(fastify) {
 
         // Add to sync log
         await client.query(
-          "INSERT INTO sync_log (table_name, record_id, action, payload) VALUES ('transactions',$1,'insert',$2::jsonb)",
+          "INSERT INTO sync_log (table_name, record_id, action, payload, created_at) VALUES ('transactions',$1,'insert',$2::jsonb, NOW())",
           [txn.id, JSON.stringify({ ref_no: refNo, total })],
         );
 
