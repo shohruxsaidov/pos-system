@@ -14,6 +14,13 @@
       </div>
     </div>
 
+    <!-- Draft banner -->
+    <div v-if="hasDraft" class="draft-banner">
+      <i class="pi pi-history draft-icon" />
+      <span>Восстановлен черновик — <strong>{{ items.length }}</strong> поз.</span>
+      <button class="discard-btn" @click="discardDraft">Сбросить</button>
+    </div>
+
     <!-- Meta row: supplier, warehouse, notes -->
     <div class="card meta-card">
       <div class="meta-row">
@@ -49,9 +56,12 @@
       <!-- Search results dropdown -->
       <div v-if="searchResults.length > 0 && !selectedProduct" class="search-dropdown">
         <div v-for="p in searchResults" :key="p.id" class="result-item" @click="selectProduct(p)">
-          <div class="result-name">{{ p.name }}</div>
+          <div class="result-header">
+            <div class="result-name" v-html="highlight(p.name)" />
+            <div class="result-price font-mono">{{ formatPrice(p.price) }}</div>
+          </div>
           <div class="result-meta">
-            <span class="font-mono result-barcode">{{ p.barcode || '—' }}</span>
+            <span class="font-mono result-barcode" v-html="highlight(p.barcode || '—')" />
             <span :class="['result-stock', stockClass(p.stock_qty)]">{{ p.stock_qty }} шт</span>
           </div>
         </div>
@@ -165,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
@@ -178,6 +188,9 @@ import Toast from 'primevue/toast'
 
 const api = useApi()
 const toast = useToast()
+
+const DRAFT_KEY = 'incoming_draft'
+const hasDraft = ref(false)
 
 const supplier = ref('')
 const notes = ref('')
@@ -210,18 +223,73 @@ function formatPrice(n) {
   return int.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '.' + dec
 }
 
+function highlight(text) {
+  if (!searchQuery.value || !text) return text
+  const escaped = searchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>')
+}
+
 function stockClass(qty) {
   if (qty <= 0) return 'stock-danger'
   if (qty <= 5) return 'stock-warn'
   return 'stock-ok'
 }
 
+function saveDraft() {
+  const hasContent = items.value.length > 0 || supplier.value || notes.value
+  if (!hasContent) {
+    localStorage.removeItem(DRAFT_KEY)
+    return
+  }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({
+    supplier: supplier.value,
+    notes: notes.value,
+    warehouseId: warehouseId.value,
+    items: items.value
+  }))
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY)
+  hasDraft.value = false
+}
+
+function discardDraft() {
+  items.value = []
+  supplier.value = ''
+  notes.value = ''
+  clearDraft()
+}
+
+watch([supplier, notes, warehouseId, items], saveDraft, { deep: true })
+
 onMounted(async () => {
+  let pendingWarehouseId = null
+
+  const raw = localStorage.getItem(DRAFT_KEY)
+  if (raw) {
+    try {
+      const draft = JSON.parse(raw)
+      if (draft.items?.length) {
+        supplier.value = draft.supplier || ''
+        notes.value = draft.notes || ''
+        items.value = draft.items
+        pendingWarehouseId = draft.warehouseId
+        hasDraft.value = true
+      }
+    } catch (e) { }
+  }
+
   try {
     const whs = await api.get('/api/warehouses')
     warehouses.value = whs.filter(w => w.is_active)
-    if (warehouses.value.length > 0) warehouseId.value = warehouses.value[0].id
+    if (pendingWarehouseId && warehouses.value.some(w => w.id === pendingWarehouseId)) {
+      warehouseId.value = pendingWarehouseId
+    } else if (warehouses.value.length > 0) {
+      warehouseId.value = warehouses.value[0].id
+    }
   } catch (e) { }
+
   focusSearch()
 })
 
@@ -345,6 +413,7 @@ async function confirmReceipt() {
     items.value = []
     supplier.value = ''
     notes.value = ''
+    clearDraft()
     focusSearch()
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 4000 })
@@ -544,10 +613,24 @@ async function confirmReceipt() {
   background: var(--bg-hover);
 }
 
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .result-name {
   font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
+}
+
+.result-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  white-space: nowrap;
 }
 
 .result-meta {
@@ -576,6 +659,14 @@ async function confirmReceipt() {
 
 .stock-danger {
   color: var(--danger);
+}
+
+:deep(.search-highlight) {
+  background: rgba(255, 214, 0, 0.30);
+  color: #ffd600;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
 }
 
 .not-found-box {
@@ -742,6 +833,42 @@ async function confirmReceipt() {
 
 .text-muted {
   color: var(--text-secondary);
+}
+
+/* Draft banner */
+.draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(123, 104, 238, 0.10);
+  border: 1px solid rgba(123, 104, 238, 0.30);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.draft-icon {
+  font-size: 15px;
+  opacity: 0.8;
+}
+
+.discard-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid rgba(255, 92, 92, 0.35);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--danger);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.discard-btn:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger);
 }
 
 /* History dialog */
