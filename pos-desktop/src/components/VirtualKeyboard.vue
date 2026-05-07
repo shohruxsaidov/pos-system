@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div v-if="visible" class="vk-panel" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
-      <div class="vk-handle" @mousedown.prevent="startDrag">
+      <div class="vk-handle" @mousedown.prevent="startDrag" @touchstart.prevent="startDrag">
         <span class="vk-handle-icon">⌨</span>
         <span class="vk-handle-title">Клавиатура</span>
         <button class="vk-close" @mousedown.prevent="hide">✕</button>
@@ -91,19 +91,28 @@ let dragging = false
 let dragStart = { x: 0, y: 0 }
 let panelStart = { x: 0, y: 0 }
 
+function getPoint(e) {
+  return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                   : { x: e.clientX, y: e.clientY }
+}
+
 function startDrag(e) {
   dragging = true
-  dragStart = { x: e.clientX, y: e.clientY }
+  dragStart = getPoint(e)
   panelStart = { ...pos.value }
   document.addEventListener('mousemove', onDragMove)
   document.addEventListener('mouseup', onDragEnd)
+  document.addEventListener('touchmove', onDragMove, { passive: false })
+  document.addEventListener('touchend', onDragEnd)
 }
 
 function onDragMove(e) {
   if (!dragging) return
+  e.preventDefault()
+  const p = getPoint(e)
   pos.value = {
-    x: Math.max(0, Math.min(window.innerWidth - 100, panelStart.x + e.clientX - dragStart.x)),
-    y: Math.max(0, Math.min(window.innerHeight - 50, panelStart.y + e.clientY - dragStart.y))
+    x: Math.max(0, Math.min(window.innerWidth - 100, panelStart.x + p.x - dragStart.x)),
+    y: Math.max(0, Math.min(window.innerHeight - 50, panelStart.y + p.y - dragStart.y))
   }
 }
 
@@ -112,11 +121,15 @@ function onDragEnd() {
   savePos()
   document.removeEventListener('mousemove', onDragMove)
   document.removeEventListener('mouseup', onDragEnd)
+  document.removeEventListener('touchmove', onDragMove)
+  document.removeEventListener('touchend', onDragEnd)
 }
 
 onUnmounted(() => {
   document.removeEventListener('mousemove', onDragMove)
   document.removeEventListener('mouseup', onDragEnd)
+  document.removeEventListener('touchmove', onDragMove)
+  document.removeEventListener('touchend', onDragEnd)
 })
 </script>
 
