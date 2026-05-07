@@ -1,37 +1,37 @@
 <template>
   <Teleport to="body">
     <div v-if="visible" class="vk-panel" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
-      <div class="vk-handle" @mousedown.prevent="startDrag" @touchstart.prevent="startDrag">
+      <div class="vk-handle" @pointerdown.prevent="startDrag">
         <span class="vk-handle-icon">⌨</span>
         <span class="vk-handle-title">Клавиатура</span>
-        <button class="vk-close" @mousedown.prevent="hide">✕</button>
+        <button class="vk-close" @pointerdown.prevent="hide">✕</button>
       </div>
 
       <div class="vk-body">
         <!-- QWERTY section -->
         <div v-if="!numpadOnly" class="vk-qwerty">
           <div class="vk-row">
-            <button v-for="k in numberRow" :key="k" class="vk-key" @mousedown.prevent="pressKey(k)">{{ k }}</button>
-            <button class="vk-key vk-bksp vk-wide" @mousedown.prevent="pressBackspace">⌫</button>
+            <button v-for="k in numberRow" :key="k" class="vk-key" @pointerdown.prevent="pressKey(k)">{{ k }}</button>
+            <button class="vk-key vk-bksp vk-wide" @pointerdown.prevent="pressBackspace">⌫</button>
           </div>
           <div class="vk-row">
             <button v-for="k in row1" :key="k" class="vk-key"
-              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
+              @pointerdown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
           </div>
           <div class="vk-row vk-row-indent">
             <button v-for="k in row2" :key="k" class="vk-key"
-              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
+              @pointerdown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
           </div>
           <div class="vk-row">
             <button class="vk-key vk-shift vk-wide" :class="{ 'vk-active': shiftOn }"
-              @mousedown.prevent="toggleShift">⇧</button>
+              @pointerdown.prevent="toggleShift">⇧</button>
             <button v-for="k in row3" :key="k" class="vk-key"
-              @mousedown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
+              @pointerdown.prevent="pressKey(shiftOn ? k.toUpperCase() : k)">{{ shiftOn ? k.toUpperCase() : k }}</button>
             <button class="vk-key vk-shift vk-wide" :class="{ 'vk-active': shiftOn }"
-              @mousedown.prevent="toggleShift">⇧</button>
+              @pointerdown.prevent="toggleShift">⇧</button>
           </div>
           <div class="vk-row">
-            <button class="vk-key vk-space" @mousedown.prevent="pressKey(' ')">ПРОБЕЛ</button>
+            <button class="vk-key vk-space" @pointerdown.prevent="pressKey(' ')">ПРОБЕЛ</button>
           </div>
         </div>
 
@@ -40,10 +40,10 @@
         <!-- Numpad section -->
         <div class="vk-numpad">
           <button v-for="k in '789456123'.split('')" :key="'np-' + k" class="vk-key vk-np-key"
-            @mousedown.prevent="pressKey(k)">{{ k }}</button>
-          <button class="vk-key vk-np-key" @mousedown.prevent="pressKey('.')">.</button>
-          <button class="vk-key vk-np-key" @mousedown.prevent="pressKey('0')">0</button>
-          <button class="vk-key vk-np-key vk-bksp" @mousedown.prevent="pressBackspace">⌫</button>
+            @pointerdown.prevent="pressKey(k)">{{ k }}</button>
+          <button class="vk-key vk-np-key" @pointerdown.prevent="pressKey('.')">.</button>
+          <button class="vk-key vk-np-key" @pointerdown.prevent="pressKey('0')">0</button>
+          <button class="vk-key vk-np-key vk-bksp" @pointerdown.prevent="pressBackspace">⌫</button>
         </div>
       </div>
     </div>
@@ -91,45 +91,32 @@ let dragging = false
 let dragStart = { x: 0, y: 0 }
 let panelStart = { x: 0, y: 0 }
 
-function getPoint(e) {
-  return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
-                   : { x: e.clientX, y: e.clientY }
-}
-
 function startDrag(e) {
   dragging = true
-  dragStart = getPoint(e)
+  dragStart = { x: e.clientX, y: e.clientY }
   panelStart = { ...pos.value }
-  document.addEventListener('mousemove', onDragMove)
-  document.addEventListener('mouseup', onDragEnd)
-  document.addEventListener('touchmove', onDragMove, { passive: false })
-  document.addEventListener('touchend', onDragEnd)
+  document.addEventListener('pointermove', onDragMove)
+  document.addEventListener('pointerup', onDragEnd)
 }
 
 function onDragMove(e) {
   if (!dragging) return
-  e.preventDefault()
-  const p = getPoint(e)
   pos.value = {
-    x: Math.max(0, Math.min(window.innerWidth - 100, panelStart.x + p.x - dragStart.x)),
-    y: Math.max(0, Math.min(window.innerHeight - 50, panelStart.y + p.y - dragStart.y))
+    x: Math.max(0, Math.min(window.innerWidth - 100, panelStart.x + e.clientX - dragStart.x)),
+    y: Math.max(0, Math.min(window.innerHeight - 50, panelStart.y + e.clientY - dragStart.y))
   }
 }
 
 function onDragEnd() {
   dragging = false
   savePos()
-  document.removeEventListener('mousemove', onDragMove)
-  document.removeEventListener('mouseup', onDragEnd)
-  document.removeEventListener('touchmove', onDragMove)
-  document.removeEventListener('touchend', onDragEnd)
+  document.removeEventListener('pointermove', onDragMove)
+  document.removeEventListener('pointerup', onDragEnd)
 }
 
 onUnmounted(() => {
-  document.removeEventListener('mousemove', onDragMove)
-  document.removeEventListener('mouseup', onDragEnd)
-  document.removeEventListener('touchmove', onDragMove)
-  document.removeEventListener('touchend', onDragEnd)
+  document.removeEventListener('pointermove', onDragMove)
+  document.removeEventListener('pointerup', onDragEnd)
 })
 </script>
 
