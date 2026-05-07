@@ -47,6 +47,10 @@
         <div class="search-row">
           <input ref="searchInput" v-model="searchQuery" class="search-input" placeholder="Сканируйте или введите..."
             autocomplete="off" @keydown.enter="handleEnter" @input="onSearchInput" />
+          <button class="icon-btn" :class="{ 'icon-btn-active': keyboardVisible }" @click="toggleKeyboard"
+            v-tooltip="'Клавиатура'">
+            ⌨
+          </button>
           <button class="icon-btn" @click="focusSearch">
             <i class="pi pi-barcode" />
           </button>
@@ -178,6 +182,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
+import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -188,6 +193,19 @@ import Toast from 'primevue/toast'
 
 const api = useApi()
 const toast = useToast()
+const { visible: keyboardVisible, show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
+
+function toggleKeyboard() {
+  if (keyboardVisible.value) {
+    hideKeyboard()
+  } else {
+    const el = searchInput.value
+    if (el) {
+      showKeyboard(el)
+      el.focus()
+    }
+  }
+}
 
 const DRAFT_KEY = 'incoming_draft'
 const hasDraft = ref(false)
@@ -558,6 +576,13 @@ async function confirmReceipt() {
 .icon-btn:hover {
   border-color: var(--border-focus);
   color: var(--text-primary);
+}
+
+.icon-btn-active {
+  background: var(--accent-glow);
+  border-color: var(--accent-1);
+  color: var(--text-accent);
+  font-size: 20px;
 }
 
 .icon-btn-sm {
