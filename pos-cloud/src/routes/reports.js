@@ -55,7 +55,14 @@ export default async function reportsRoutes(fastify) {
       ),
     ]);
 
-    return { ...summary.rows[0], payment_methods: payments.rows };
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return {
+      from_date: fromDate,
+      to_date: toDate,
+      timezone: tz,
+      ...summary.rows[0],
+      payment_methods: payments.rows,
+    };
   });
 
   // GET /api/reports/products?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=20
