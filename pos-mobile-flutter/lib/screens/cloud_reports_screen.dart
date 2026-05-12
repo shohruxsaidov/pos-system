@@ -113,6 +113,14 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
   Widget _buildNotConnected() {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textMuted),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -157,6 +165,13 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
       ),
       child: Row(
         children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(Icons.arrow_back, color: AppColors.textMuted, size: 22),
+            ),
+          ),
           const Icon(Icons.cloud_outlined, color: AppColors.accent1, size: 20),
           const SizedBox(width: 8),
           const Text('Облако', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),

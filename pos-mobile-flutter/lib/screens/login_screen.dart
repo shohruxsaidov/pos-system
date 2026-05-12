@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
+import '../config/cloud_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_draft_provider.dart';
+import 'cloud_login_screen.dart';
+import 'cloud_reports_screen.dart';
 import 'qr_scanner_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -231,6 +234,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Offline draft selling button
                     const SizedBox(height: 24),
                     _OfflineDraftButton(),
+                    const SizedBox(height: 8),
+                    _CloudConnectButton(),
                   ] else ...[
                     // PIN entry
                     _buildPinEntry(),
@@ -451,6 +456,74 @@ class _OfflineDraftButton extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CloudConnectButton extends StatefulWidget {
+  @override
+  State<_CloudConnectButton> createState() => _CloudConnectButtonState();
+}
+
+class _CloudConnectButtonState extends State<_CloudConnectButton> {
+  bool _configured = CloudConfig.isConfigured;
+
+  Future<void> _handle() async {
+    if (_configured) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CloudReportsScreen()),
+      );
+      return;
+    }
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CloudLoginScreen()),
+    );
+    if (ok == true && mounted) {
+      setState(() => _configured = true);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CloudReportsScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: _handle,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textAccent,
+          side: const BorderSide(color: AppColors.borderDefault),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_configured) ...[
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: const BoxDecoration(
+                  color: AppColors.success,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const Icon(Icons.cloud_done_outlined, size: 18),
+            ] else
+              const Icon(Icons.cloud_off_outlined, size: 18),
+            const SizedBox(width: 8),
+            Text(_configured ? 'Облачные отчёты' : 'Подключиться к облаку'),
+          ],
+        ),
+      ),
     );
   }
 }
