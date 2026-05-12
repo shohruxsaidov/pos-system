@@ -3,5 +3,6 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 COPY src/ ./src/
-EXPOSE 3001
+ARG PORT=3001
+EXPOSE $PORT
 CMD ["node", "src/server.js"]
