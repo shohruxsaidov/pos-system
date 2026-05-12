@@ -11,13 +11,9 @@
           <InputText ref="searchRef" v-model="searchQuery" placeholder="Сканировать штрихкод или найти товар..."
             class="w-full" @keydown.enter="handleBarcodeEnter" @input="debouncedSearch" inputmode="none" />
         </IconField>
-        <Button
-          class="p-button-secondary kb-toggle-btn"
-          :class="{ 'kb-toggle-active': keyboardVisible }"
-          @click="toggleKeyboard"
-          style="height:56px;width:56px;font-size:22px;line-height:1"
-          v-tooltip="'Клавиатура'"
-        >⌨</Button>
+        <Button class="p-button-secondary kb-toggle-btn" :class="{ 'kb-toggle-active': keyboardVisible }"
+          @click="toggleKeyboard" style="height:56px;width:56px;font-size:22px;line-height:1"
+          v-tooltip="'Клавиатура'">⌨</Button>
         <Button icon="pi pi-refresh" class="p-button-secondary" @click="loadProducts" style="height:56px;width:56px" />
       </div>
 
@@ -31,7 +27,7 @@
       <div class="products-area">
         <div v-for="item in products" :key="item.id" class="product-card"
           :class="{ 'out-of-stock': item.stock_qty <= 0 }" @click="addToCart(item)">
-          <div class="product-name" v-html="highlight(item.name)" />
+          <div class="product-name" v-html="highlight(item.name)" v-tooltip.top="item.name" />
           <div class="product-price font-mono">{{ formatPrice(item.price) }}</div>
           <div class="product-stock" :class="stockClass(item.stock_qty)">
             {{ stockLabel(item.stock_qty) }}
@@ -45,26 +41,16 @@
     <div class="pos-cart">
       <!-- Session tabs -->
       <div class="session-tabs">
-        <div
-          v-for="s in cart.sessions"
-          :key="s.id"
-          :class="['session-tab', { 'session-tab--active': s.id === cart.activeId }]"
-          @click="cart.switchSession(s.id)"
-        >
+        <div v-for="s in cart.sessions" :key="s.id"
+          :class="['session-tab', { 'session-tab--active': s.id === cart.activeId }]" @click="cart.switchSession(s.id)">
           <span class="session-label">{{ s.label }}</span>
-          <span v-if="s.items.length" class="session-badge">{{ Math.floor(s.items.reduce((sum, i) => sum + i.qty, 0)) }}</span>
-          <button
-            class="session-close"
-            @click.stop="cart.closeSession(s.id)"
-            :title="s.items.length ? 'Закрыть (товары будут удалены)' : 'Закрыть'"
-          >✕</button>
+          <span v-if="s.items.length" class="session-badge">{{Math.floor(s.items.reduce((sum, i) => sum + i.qty, 0))
+            }}</span>
+          <button class="session-close" @click.stop="cart.closeSession(s.id)"
+            :title="s.items.length ? 'Закрыть (товары будут удалены)' : 'Закрыть'">✕</button>
         </div>
-        <button
-          v-if="cart.sessions.length < 8"
-          class="session-new"
-          @click="cart.newSession()"
-          title="Новый клиент"
-        >+ Новый</button>
+        <button v-if="cart.sessions.length < 8" class="session-new" @click="cart.newSession()" title="Новый клиент">+
+          Новый</button>
       </div>
 
       <div class="cart-header">
@@ -440,7 +426,6 @@ function stockClass(qty) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  height: 102px;
 }
 
 .product-card:hover {
@@ -458,7 +443,7 @@ function stockClass(qty) {
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;
-  min-height: 17px;
+  height: 34px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -651,7 +636,9 @@ function stockClass(qty) {
   flex-shrink: 0;
 }
 
-.session-tabs::-webkit-scrollbar { display: none; }
+.session-tabs::-webkit-scrollbar {
+  display: none;
+}
 
 .session-tab {
   display: flex;
