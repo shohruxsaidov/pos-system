@@ -211,6 +211,20 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
               Text(_error!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               TextButton(onPressed: _load, child: const Text('Повторить', style: TextStyle(color: AppColors.accent1))),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: _openLogin,
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  label: const Text('Подключиться', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent1,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
