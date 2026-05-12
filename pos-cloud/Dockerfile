@@ -1,7 +1,8 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev
+RUN npm install -g pnpm
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 COPY src/ ./src/
 ARG PORT=3001
 EXPOSE $PORT
