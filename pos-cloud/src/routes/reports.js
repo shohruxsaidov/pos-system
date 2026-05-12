@@ -109,4 +109,18 @@ export default async function reportsRoutes(fastify) {
 
     return rows;
   });
+
+  // GET /api/sync/status — last time data was received from local POS
+  fastify.get('/api/sync/status', async () => {
+    const { rows } = await pool.query(`
+      SELECT
+        COUNT(*)              AS total,
+        MAX(received_at)      AS last_sync
+      FROM transactions
+    `)
+    return {
+      total:     parseInt(rows[0].total, 10),
+      last_sync: rows[0].last_sync ?? null,
+    }
+  })
 }

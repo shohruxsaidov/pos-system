@@ -13,34 +13,88 @@ class CloudReportsScreen extends StatefulWidget {
   State<CloudReportsScreen> createState() => _CloudReportsScreenState();
 }
 
+enum _CloudPeriod { day, week, month, range }
+
 class _CloudReportsScreenState extends State<CloudReportsScreen> {
-  DateTime _from = DateTime.now();
-  DateTime _to   = DateTime.now();
+  DateTime _date = DateTime.now();
+  _CloudPeriod _period = _CloudPeriod.day;
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
 
   Map<String, dynamic>? _daily;
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _cashiers = [];
   bool _loading = false;
   String? _error;
+  String? _lastSync;
 
   final _dateFmt = DateFormat('yyyy-MM-dd');
-  final _displayFmt = DateFormat('d MMM yyyy');
+
+  ({String from, String to}) get _dateRange {
+    if (_period == _CloudPeriod.week) {
+      final dayOfWeek = (_date.weekday - 1) % 7;
+      final monday = _date.subtract(Duration(days: dayOfWeek));
+      final sunday = monday.add(const Duration(days: 6));
+      return (from: _dateFmt.format(monday), to: _dateFmt.format(sunday));
+    } else if (_period == _CloudPeriod.month) {
+      final firstDay = DateTime(_date.year, _date.month, 1);
+      final lastDay  = DateTime(_date.year, _date.month + 1, 0);
+      return (from: _dateFmt.format(firstDay), to: _dateFmt.format(lastDay));
+    } else if (_period == _CloudPeriod.range) {
+      final s = _rangeStart ?? _date;
+      final e = _rangeEnd   ?? _date;
+      return (from: _dateFmt.format(s), to: _dateFmt.format(e));
+    }
+    final d = _dateFmt.format(_date);
+    return (from: d, to: d);
+  }
+
+  String get _dateLabel {
+    final r = _dateRange;
+    if (r.from == r.to) return r.from;
+    return '${r.from} — ${r.to}';
+  }
 
   @override
   void initState() {
     super.initState();
-    if (CloudConfig.isConfigured) _load();
+    if (CloudConfig.isConfigured) {
+      _load();
+      _loadSyncStatus();
+    }
+  }
+
+  Future<void> _loadSyncStatus() async {
+    try {
+      final data = await cloudApiService.get('/api/sync/status');
+      final ts = data['last_sync'] as String?;
+      if (ts != null && mounted) {
+        setState(() => _lastSync = _formatLastSync(ts));
+      }
+    } catch (_) {}
+  }
+
+  String _formatLastSync(String ts) {
+    try {
+      final d = DateTime.parse(ts).toLocal();
+      final now = DateTime.now();
+      final time = DateFormat('HH:mm').format(d);
+      final isToday = d.year == now.year && d.month == now.month && d.day == now.day;
+      if (isToday) return 'сегодня в $time';
+      return '${DateFormat('dd.MM').format(d)} в $time';
+    } catch (_) {
+      return ts;
+    }
   }
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
-    final from = _dateFmt.format(_from);
-    final to   = _dateFmt.format(_to);
+    final range = _dateRange;
     try {
       final results = await Future.wait([
-        cloudApiService.get('/api/reports/daily',    queryParams: {'from': from, 'to': to}),
-        cloudApiService.get('/api/reports/products', queryParams: {'from': from, 'to': to, 'limit': '15'}),
-        cloudApiService.get('/api/reports/cashiers', queryParams: {'from': from, 'to': to}),
+        cloudApiService.get('/api/reports/daily',    queryParams: {'from': range.from, 'to': range.to}),
+        cloudApiService.get('/api/reports/products', queryParams: {'from': range.from, 'to': range.to, 'limit': '15'}),
+        cloudApiService.get('/api/reports/cashiers', queryParams: {'from': range.from, 'to': range.to}),
       ]);
       setState(() {
         _daily    = results[0] as Map<String, dynamic>?;
@@ -60,12 +114,12 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
     }
   }
 
-  Future<void> _pickDateRange() async {
-    final picked = await showDateRangePicker(
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
       context: context,
+      initialDate: _date,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _from, end: _to),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -79,7 +133,33 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
       ),
     );
     if (picked != null) {
-      setState(() { _from = picked.start; _to = picked.end; });
+      setState(() => _date = picked);
+      _load();
+    }
+  }
+
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: (_rangeStart != null && _rangeEnd != null)
+          ? DateTimeRange(start: _rangeStart!, end: _rangeEnd!)
+          : null,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.accent1,
+            onPrimary: Colors.white,
+            surface: AppColors.bgSurface,
+            onSurface: AppColors.textPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() { _rangeStart = picked.start; _rangeEnd = picked.end; });
       _load();
     }
   }
@@ -103,9 +183,57 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
         child: Column(
           children: [
             _buildHeader(),
+            _buildPeriodChips(),
+            if (_lastSync != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                child: Row(
+                  children: [
+                    const Icon(Icons.sync, size: 12, color: AppColors.textMuted),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Последняя синхронизация: $_lastSync',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(child: _buildBody()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodChips() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Row(
+        children: [
+          _PeriodTab(
+            label: 'День',
+            selected: _period == _CloudPeriod.day,
+            onTap: () { setState(() => _period = _CloudPeriod.day); _load(); },
+          ),
+          const SizedBox(width: 8),
+          _PeriodTab(
+            label: 'Неделя',
+            selected: _period == _CloudPeriod.week,
+            onTap: () { setState(() => _period = _CloudPeriod.week); _load(); },
+          ),
+          const SizedBox(width: 8),
+          _PeriodTab(
+            label: 'Месяц',
+            selected: _period == _CloudPeriod.month,
+            onTap: () { setState(() => _period = _CloudPeriod.month); _load(); },
+          ),
+          const SizedBox(width: 8),
+          _PeriodTab(
+            label: 'Диапазон',
+            selected: _period == _CloudPeriod.range,
+            onTap: () { setState(() => _period = _CloudPeriod.range); _pickDateRange(); },
+          ),
+        ],
       ),
     );
   }
@@ -177,7 +305,7 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
           const Text('Облако', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
           const Spacer(),
           GestureDetector(
-            onTap: _pickDateRange,
+            onTap: _period == _CloudPeriod.range ? _pickDateRange : _pickDate,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -188,12 +316,10 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.date_range, color: AppColors.textSecondary, size: 14),
+                  const Icon(Icons.calendar_today, color: AppColors.textSecondary, size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    _from == _to
-                        ? _displayFmt.format(_from)
-                        : '${_displayFmt.format(_from)} – ${_displayFmt.format(_to)}',
+                    _dateLabel,
                     style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
                   ),
                 ],
@@ -435,6 +561,39 @@ class _CashierRow extends StatelessWidget {
           const SizedBox(width: 12),
           Text(formatPrice(total), style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600, fontFamily: 'JetBrainsMono')),
         ],
+      ),
+    );
+  }
+}
+
+class _PeriodTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PeriodTab({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent1 : AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColors.accent1 : AppColors.borderDefault,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
