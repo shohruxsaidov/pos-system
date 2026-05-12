@@ -27,6 +27,9 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
   bool _loading = false;
   String? _error;
   String? _lastSync;
+  String? _serverFromDate;
+  String? _serverToDate;
+  String? _serverTimezone;
 
   final _dateFmt = DateFormat('yyyy-MM-dd');
 
@@ -96,8 +99,12 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
         cloudApiService.get('/api/reports/products', queryParams: {'from': range.from, 'to': range.to, 'limit': '15'}),
         cloudApiService.get('/api/reports/cashiers', queryParams: {'from': range.from, 'to': range.to}),
       ]);
+      final daily = results[0] as Map<String, dynamic>?;
       setState(() {
-        _daily    = results[0] as Map<String, dynamic>?;
+        _daily            = daily;
+        _serverFromDate   = daily?['from_date'] as String?;
+        _serverToDate     = daily?['to_date']   as String?;
+        _serverTimezone   = daily?['timezone']  as String?;
         _products = List<Map<String, dynamic>>.from(results[1] as List? ?? []);
         _cashiers = List<Map<String, dynamic>>.from(results[2] as List? ?? []);
         _loading  = false;
@@ -193,6 +200,22 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
                     const SizedBox(width: 5),
                     Text(
                       'Последняя синхронизация: $_lastSync',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            if (_serverFromDate != null && _serverTimezone != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                child: Row(
+                  children: [
+                    const Icon(Icons.schedule, size: 12, color: AppColors.textMuted),
+                    const SizedBox(width: 5),
+                    Text(
+                      _serverFromDate == _serverToDate
+                          ? '$_serverFromDate · $_serverTimezone'
+                          : '$_serverFromDate — $_serverToDate · $_serverTimezone',
                       style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                     ),
                   ],
