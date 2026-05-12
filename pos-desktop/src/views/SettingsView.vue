@@ -28,6 +28,32 @@
             </div>
             <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" style="width:180px" />
           </div>
+
+          <div class="settings-section">
+            <h3 class="section-title">Синхронизация</h3>
+            <div class="field-group">
+              <label class="field-label">Отправить данные в облако</label>
+              <p class="field-hint">Принудительно синхронизировать несинхронизированные транзакции с облачной БД</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <Button
+                label="Отправить в облако"
+                icon="pi pi-cloud-upload"
+                :loading="pushingCloud"
+                @click="pushToCloud"
+                style="width:200px"
+              />
+              <span v-if="pushCloudStatus" :class="pushCloudStatus.type" style="font-size:14px">
+                {{ pushCloudStatus.msg }}
+              </span>
+            </div>
+            <p class="field-hint" style="margin-top:8px">
+              <span v-if="lastCloudSync">
+                Последняя синхронизация: <strong style="color:var(--text-secondary)">{{ formatLastSync(lastCloudSync) }}</strong>
+              </span>
+              <span v-else>Синхронизация ещё не выполнялась</span>
+            </p>
+          </div>
         </TabPanel>
 
         <!-- Users -->
@@ -332,6 +358,9 @@ const toast = useToast()
 const activeTab = ref('general')
 const settings = ref({})
 const saving = ref(false)
+const pushingCloud = ref(false)
+const pushCloudStatus = ref(null)
+const lastCloudSync = ref(null)
 const testing = ref(false)
 const testingAI = ref(false)
 const telegramEnabled = ref(false)
@@ -376,6 +405,7 @@ onMounted(async () => {
   await loadSettings()
   await loadUsers()
   await loadWarehouses()
+  await loadSyncStatus()
 })
 
 watch(activeTab, async (tab) => {
@@ -404,6 +434,37 @@ async function saveSettings() {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: e.message, life: 3000 })
   } finally {
     saving.value = false
+  }
+}
+
+async function loadSyncStatus() {
+  try {
+    const res = await api.get('/api/sync/status')
+    lastCloudSync.value = res.last_sync || null
+  } catch (e) { }
+}
+
+function formatLastSync(ts) {
+  if (!ts) return null
+  const d = new Date(ts)
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  if (isToday) return `сегодня в ${time}`
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) + ` в ${time}`
+}
+
+async function pushToCloud() {
+  pushingCloud.value = true
+  pushCloudStatus.value = null
+  try {
+    const res = await api.post('/api/sync/push', {})
+    pushCloudStatus.value = { type: 'success-msg', msg: `Отправлено: ${res.pushed ?? 0} записей` }
+    await loadSyncStatus()
+  } catch (e) {
+    pushCloudStatus.value = { type: 'error-msg', msg: e.message }
+  } finally {
+    pushingCloud.value = false
   }
 }
 
@@ -599,6 +660,19 @@ function actionSeverity(action) {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.field-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
 }
 
 .w-field {
