@@ -150,6 +150,31 @@ export default async function reportsRoutes(fastify) {
     };
   });
 
+  // GET /api/transactions/:refNo — transaction detail with items
+  fastify.get('/api/transactions/:refNo', async (req, reply) => {
+    const { refNo } = req.params;
+
+    const { rows: txnRows } = await pool.query(
+      `SELECT id, ref_no, total, subtotal, discount, tax,
+              payment_method, cashier_name, status, created_at
+       FROM transactions WHERE ref_no = $1`,
+      [refNo]
+    );
+
+    if (!txnRows.length) return reply.code(404).send({ error: 'Not found' });
+
+    const txn = txnRows[0];
+
+    const { rows: items } = await pool.query(
+      `SELECT product_name, qty, unit_price, discount, subtotal
+       FROM transaction_items WHERE transaction_id = $1
+       ORDER BY id`,
+      [txn.id]
+    );
+
+    return { ...txn, items };
+  });
+
   // GET /api/sync/status — last time data was received from local POS
   fastify.get('/api/sync/status', async () => {
     const { rows } = await pool.query(`
