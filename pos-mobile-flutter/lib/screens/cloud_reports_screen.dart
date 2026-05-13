@@ -33,29 +33,49 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
 
   final _dateFmt = DateFormat('yyyy-MM-dd');
 
+  String _toIso(DateTime d, {bool endOfDay = false}) {
+    final utc = endOfDay
+        ? DateTime.utc(d.year, d.month, d.day, 23, 59, 59, 999)
+        : DateTime.utc(d.year, d.month, d.day);
+    return utc.toIso8601String().replaceFirst(RegExp(r'\.000Z$'), 'Z');
+  }
+
   ({String from, String to}) get _dateRange {
     if (_period == _CloudPeriod.week) {
       final dayOfWeek = (_date.weekday - 1) % 7;
       final monday = _date.subtract(Duration(days: dayOfWeek));
       final sunday = monday.add(const Duration(days: 6));
-      return (from: _dateFmt.format(monday), to: _dateFmt.format(sunday));
+      return (from: _toIso(monday), to: _toIso(sunday, endOfDay: true));
     } else if (_period == _CloudPeriod.month) {
       final firstDay = DateTime(_date.year, _date.month, 1);
       final lastDay  = DateTime(_date.year, _date.month + 1, 0);
-      return (from: _dateFmt.format(firstDay), to: _dateFmt.format(lastDay));
+      return (from: _toIso(firstDay), to: _toIso(lastDay, endOfDay: true));
     } else if (_period == _CloudPeriod.range) {
       final s = _rangeStart ?? _date;
       final e = _rangeEnd   ?? _date;
-      return (from: _dateFmt.format(s), to: _dateFmt.format(e));
+      return (from: _toIso(s), to: _toIso(e, endOfDay: true));
     }
-    final d = _dateFmt.format(_date);
-    return (from: d, to: d);
+    return (from: _toIso(_date), to: _toIso(_date, endOfDay: true));
   }
 
   String get _dateLabel {
-    final r = _dateRange;
-    if (r.from == r.to) return r.from;
-    return '${r.from} — ${r.to}';
+    if (_period == _CloudPeriod.day) return _dateFmt.format(_date);
+    if (_period == _CloudPeriod.week) {
+      final dayOfWeek = (_date.weekday - 1) % 7;
+      final monday = _date.subtract(Duration(days: dayOfWeek));
+      final sunday = monday.add(const Duration(days: 6));
+      return '${_dateFmt.format(monday)} — ${_dateFmt.format(sunday)}';
+    }
+    if (_period == _CloudPeriod.month) {
+      return DateFormat('MMMM yyyy').format(_date);
+    }
+    if (_period == _CloudPeriod.range && _rangeStart != null) {
+      final s = _rangeStart!;
+      final e = _rangeEnd ?? _rangeStart!;
+      if (_dateFmt.format(s) == _dateFmt.format(e)) return _dateFmt.format(s);
+      return '${_dateFmt.format(s)} — ${_dateFmt.format(e)}';
+    }
+    return _dateFmt.format(_date);
   }
 
   @override

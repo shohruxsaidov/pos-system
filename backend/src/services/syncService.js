@@ -53,7 +53,7 @@ export async function pushToCloud() {
       total:          txn.total,
       payment_method: txn.payment_method,
       status:         txn.status,
-      created_at:     txn.created_at,
+      created_at:     new Date(txn.created_at).toISOString(),
       items: items.map(i => ({
         product_id:   i.product_id,
         product_name: i.product_name,
