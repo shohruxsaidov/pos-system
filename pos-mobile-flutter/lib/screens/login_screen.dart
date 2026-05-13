@@ -8,7 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_draft_provider.dart';
 import 'cloud_login_screen.dart';
-import 'cloud_reports_screen.dart';
+import 'cloud_shell.dart';
 import 'qr_scanner_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -472,7 +472,7 @@ class _CloudConnectButtonState extends State<_CloudConnectButton> {
     if (_configured) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const CloudReportsScreen()),
+        MaterialPageRoute(builder: (_) => const CloudShell()),
       );
       return;
     }
@@ -484,7 +484,7 @@ class _CloudConnectButtonState extends State<_CloudConnectButton> {
       setState(() => _configured = true);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const CloudReportsScreen()),
+        MaterialPageRoute(builder: (_) => const CloudShell()),
       );
     }
   }
