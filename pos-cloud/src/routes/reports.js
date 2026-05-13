@@ -116,6 +116,40 @@ export default async function reportsRoutes(fastify) {
     return rows;
   });
 
+  // GET /api/transactions?from=ISO&to=ISO&page=1&limit=30
+  fastify.get('/api/transactions', async (req) => {
+    const { from, to, page = '1', limit = '30' } = req.query;
+    const fromDate = from || new Date().toISOString();
+    const toDate   = to   || fromDate;
+    const pageNum  = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset   = (pageNum - 1) * limitNum;
+
+    const [rows, countResult] = await Promise.all([
+      pool.query(
+        `SELECT ref_no, total, subtotal, discount, payment_method,
+                cashier_name, status, created_at
+         FROM transactions
+         WHERE created_at >= $1 AND created_at <= $2
+         ORDER BY created_at DESC
+         LIMIT $3 OFFSET $4`,
+        [fromDate, toDate, limitNum, offset]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM transactions
+         WHERE created_at >= $1 AND created_at <= $2`,
+        [fromDate, toDate]
+      ),
+    ]);
+
+    return {
+      transactions: rows.rows,
+      total: parseInt(countResult.rows[0].count, 10),
+      page: pageNum,
+      limit: limitNum,
+    };
+  });
+
   // GET /api/sync/status — last time data was received from local POS
   fastify.get('/api/sync/status', async () => {
     const { rows } = await pool.query(`
