@@ -34,10 +34,10 @@ class _CloudReportsScreenState extends State<CloudReportsScreen> {
   final _dateFmt = DateFormat('yyyy-MM-dd');
 
   String _toIso(DateTime d, {bool endOfDay = false}) {
-    final utc = endOfDay
-        ? DateTime.utc(d.year, d.month, d.day, 23, 59, 59, 999)
-        : DateTime.utc(d.year, d.month, d.day);
-    return utc.toIso8601String().replaceFirst(RegExp(r'\.000Z$'), 'Z');
+    final local = endOfDay
+        ? DateTime(d.year, d.month, d.day, 23, 59, 59, 999)
+        : DateTime(d.year, d.month, d.day);
+    return local.toUtc().toIso8601String().replaceFirst(RegExp(r'\.000Z$'), 'Z');
   }
 
   ({String from, String to}) get _dateRange {
