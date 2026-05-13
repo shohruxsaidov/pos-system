@@ -27,6 +27,10 @@ export default async function syncRoutes(fastify) {
       try {
         await client.query('BEGIN')
 
+        const createdAt = txn.created_at
+          ? new Date(txn.created_at).toISOString()
+          : new Date().toISOString()
+
         // Insert transaction — skip if ref_no already exists (idempotent)
         const { rowCount } = await client.query(
           `INSERT INTO transactions
@@ -37,7 +41,7 @@ export default async function syncRoutes(fastify) {
           [
             txn.ref_no, txn.cashier_id, txn.cashier_name, txn.warehouse_id,
             txn.customer_id ?? null, txn.subtotal, txn.discount ?? 0,
-            txn.tax ?? 0, txn.total, txn.payment_method, txn.status, txn.created_at
+            txn.tax ?? 0, txn.total, txn.payment_method, txn.status, createdAt
           ]
         )
 
