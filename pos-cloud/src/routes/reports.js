@@ -25,8 +25,9 @@ export default async function reportsRoutes(fastify) {
   // GET /api/reports/daily?from=YYYY-MM-DD&to=YYYY-MM-DD
   fastify.get("/api/reports/daily", async (req) => {
     const { from, to } = req.query;
-    const fromDate = from || new Date().toISOString().slice(0, 10);
+    const fromDate = from || new Date().toISOString();
     const toDate = to || fromDate;
+    console.log(`Generating daily report from ${fromDate} to ${toDate}`); // Debug log
 
     const [summary, payments] = await Promise.all([
       pool.query(
@@ -55,11 +56,9 @@ export default async function reportsRoutes(fastify) {
       ),
     ]);
 
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return {
       from_date: fromDate,
       to_date: toDate,
-      timezone: tz,
       ...summary.rows[0],
       payment_methods: payments.rows,
     };
