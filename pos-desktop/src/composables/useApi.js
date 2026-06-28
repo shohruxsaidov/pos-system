@@ -1,6 +1,5 @@
 import { useSessionStore } from '../stores/session.js'
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+import { getApiBaseUrl } from '../config/apiConfig.js'
 
 export function useApi() {
   const session = useSessionStore()
@@ -24,7 +23,7 @@ export function useApi() {
       config.body = JSON.stringify(body)
     }
 
-    const res = await fetch(`${BASE_URL}${path}`, config)
+    const res = await fetch(`${getApiBaseUrl()}${path}`, config)
 
     if (res.status === 401) {
       session.logout()

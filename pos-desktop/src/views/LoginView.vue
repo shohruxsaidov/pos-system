@@ -1,5 +1,9 @@
 <template>
   <div class="login-page">
+    <!-- Server settings -->
+    <Button icon="pi pi-cog" text rounded aria-label="Настройки сервера" class="server-config-btn"
+      @click="openServerDialog" />
+
     <div class="login-card">
       <!-- Logo -->
       <div class="login-logo">
@@ -40,6 +44,21 @@
       <Button label="Войти" :loading="logging" :disabled="!selectedUser || pin.length < 4" class="touch-lg w-full"
         @click="handleLogin" />
     </div>
+
+    <!-- Server URL config dialog -->
+    <Dialog v-model:visible="showServerDialog" modal header="Адрес сервера" :style="{ width: '420px' }">
+      <div class="field-group">
+        <label class="field-label">URL сервера</label>
+        <InputText v-model="serverUrl" class="w-full" placeholder="http://192.168.1.100:3000"
+          @keyup.enter="saveServerUrl" />
+        <small class="server-hint">По умолчанию: {{ getDefaultApiBaseUrl() }}</small>
+      </div>
+      <template #footer>
+        <Button label="Сбросить" text severity="secondary" @click="resetServerUrl" />
+        <Button label="Отмена" text @click="showServerDialog = false" />
+        <Button label="Сохранить" :disabled="!serverUrl.trim()" @click="saveServerUrl" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -47,9 +66,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session.js'
+import { getApiBaseUrl, setApiBaseUrl, resetApiBaseUrl, getDefaultApiBaseUrl } from '../config/apiConfig.js'
 import PinPad from '../components/PinPad.vue'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
 
 const router = useRouter()
 const session = useSessionStore()
@@ -61,10 +83,30 @@ const error = ref('')
 const logging = ref(false)
 const loadingUsers = ref(false)
 
+// Server URL config dialog
+const showServerDialog = ref(false)
+const serverUrl = ref('')
+
+function openServerDialog() {
+  serverUrl.value = getApiBaseUrl()
+  showServerDialog.value = true
+}
+
+function saveServerUrl() {
+  if (!serverUrl.value.trim()) return
+  setApiBaseUrl(serverUrl.value)
+  window.location.reload()
+}
+
+function resetServerUrl() {
+  resetApiBaseUrl()
+  window.location.reload()
+}
+
 onMounted(async () => {
   loadingUsers.value = true
   try {
-    const res = await fetch('http://localhost:3000/api/auth/users')
+    const res = await fetch(`${getApiBaseUrl()}/api/auth/users`)
     users.value = await res.json()
   } catch (e) {
     error.value = 'Нет соединения с сервером'
@@ -79,7 +121,7 @@ async function handleLogin() {
   error.value = ''
 
   try {
-    const res = await fetch('http://localhost:3000/api/auth/login', {
+    const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: selectedUser.value, pin: pin.value })
@@ -106,6 +148,7 @@ async function handleLogin() {
 
 <style scoped>
 .login-page {
+  position: relative;
   min-height: calc(100vh - 30px);
   display: flex;
   align-items: center;
@@ -212,5 +255,17 @@ async function handleLogin() {
 
 .w-full {
   width: 100%;
+}
+
+.server-config-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--text-muted);
+}
+
+.server-hint {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 </style>

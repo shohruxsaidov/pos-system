@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:3000/ws/status";
+import { getWsUrl } from "../config/apiConfig.js";
 
 export const useStatusStore = defineStore("status", () => {
   const server = ref("connecting");
@@ -24,7 +23,7 @@ export const useStatusStore = defineStore("status", () => {
     if (ws && ws.readyState <= 1) return;
 
     try {
-      ws = new WebSocket(WS_URL);
+      ws = new WebSocket(getWsUrl());
 
       ws.onopen = () => {
         console.log("[ws] Connected to status server");

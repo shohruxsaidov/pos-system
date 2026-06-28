@@ -1,2 +1,5 @@
+allowBuilds:
+  argon2: set this to true or false
+  better-sqlite3: set this to true or false
 onlyBuiltDependencies:
   - better-sqlite3
