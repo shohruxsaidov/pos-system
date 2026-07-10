@@ -1,24 +1,29 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../models/product.dart';
+import '../models/category.dart';
 import '../services/api_service.dart';
 import '../services/offline_queue_service.dart';
 
 class WarehouseState {
   final List<Product> products;
+  final List<Category> categories;
   final bool loading;
 
   const WarehouseState({
     this.products = const [],
+    this.categories = const [],
     this.loading = false,
   });
 
   WarehouseState copyWith({
     List<Product>? products,
+    List<Category>? categories,
     bool? loading,
   }) =>
       WarehouseState(
         products: products ?? this.products,
+        categories: categories ?? this.categories,
         loading: loading ?? this.loading,
       );
 }
@@ -74,10 +79,39 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
     }
   }
 
-  Future<void> renameProduct(int id, String name) async {
-    await apiService.put('/api/products/$id', data: {'name': name});
+  Future<void> fetchCategories() async {
+    try {
+      final res = await apiService.get('/api/categories');
+      final categories = (res.data as List)
+          .map((e) => Category.fromJson(e as Map<String, dynamic>))
+          .toList();
+      state = state.copyWith(categories: categories);
+    } catch (e) {
+      Sentry.logger.warn('Category fetch failed: $e');
+    }
+  }
+
+  Future<void> editProduct(
+    int id, {
+    required String name,
+    required String unit,
+    int? categoryId,
+    String? categoryName,
+  }) async {
+    await apiService.put('/api/products/$id', data: {
+      'name': name,
+      'unit': unit,
+      'category_id': ?categoryId,
+    });
     final updated = state.products.map((p) {
-      if (p.id == id) return p.copyWith(name: name);
+      if (p.id == id) {
+        return p.copyWith(
+          name: name,
+          unit: unit,
+          categoryId: categoryId,
+          categoryName: categoryName,
+        );
+      }
       return p;
     }).toList();
     state = state.copyWith(products: updated);
@@ -104,6 +138,13 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       return p;
     }).toList();
     state = state.copyWith(products: updated);
+  }
+
+  Future<void> deleteProduct(int id) async {
+    await apiService.delete('/api/products/$id');
+    final updated = state.products.where((p) => p.id != id).toList();
+    state = state.copyWith(products: updated);
+    Sentry.logger.fmt.info('Product deleted: id=%s', [id]);
   }
 
   Future<String> generateBarcode(int id) async {

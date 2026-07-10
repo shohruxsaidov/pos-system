@@ -12,7 +12,9 @@
         <div v-if="!numpadOnly" class="vk-qwerty">
           <div class="vk-row">
             <button v-for="k in numberRow" :key="k" class="vk-key" @pointerdown.prevent="pressKey(k)">{{ k }}</button>
-            <button class="vk-key vk-bksp vk-wide" @pointerdown.prevent="pressBackspace">⌫</button>
+            <button class="vk-key vk-bksp vk-wide"
+              @pointerdown.prevent="startBackspace"
+              @pointerup="stopBackspace" @pointerleave="stopBackspace" @pointercancel="stopBackspace">⌫</button>
           </div>
           <div class="vk-row">
             <button v-for="k in row1" :key="k" class="vk-key"
@@ -43,7 +45,9 @@
             @pointerdown.prevent="pressKey(k)">{{ k }}</button>
           <button class="vk-key vk-np-key" @pointerdown.prevent="pressKey('.')">.</button>
           <button class="vk-key vk-np-key" @pointerdown.prevent="pressKey('0')">0</button>
-          <button class="vk-key vk-np-key vk-bksp" @pointerdown.prevent="pressBackspace">⌫</button>
+          <button class="vk-key vk-np-key vk-bksp"
+            @pointerdown.prevent="startBackspace"
+            @pointerup="stopBackspace" @pointerleave="stopBackspace" @pointercancel="stopBackspace">⌫</button>
         </div>
       </div>
     </div>
@@ -66,6 +70,39 @@ const shiftOn = ref(false)
 
 function toggleShift() {
   shiftOn.value = !shiftOn.value
+}
+
+// Backspace press-and-hold: repeat, accelerating the longer it's held
+const BKSP_INITIAL_DELAY = 350  // wait before auto-repeat kicks in
+const BKSP_START_INTERVAL = 120 // first repeat speed
+const BKSP_MIN_INTERVAL = 30    // fastest speed once fully held
+const BKSP_ACCEL = 0.85         // interval multiplier each repeat
+let bkspTimer = null
+let bkspInterval = BKSP_START_INTERVAL
+
+function scheduleBackspace() {
+  bkspTimer = setTimeout(() => {
+    pressBackspace()
+    bkspInterval = Math.max(BKSP_MIN_INTERVAL, bkspInterval * BKSP_ACCEL)
+    scheduleBackspace()
+  }, bkspInterval)
+}
+
+function startBackspace() {
+  stopBackspace()
+  pressBackspace()
+  bkspInterval = BKSP_START_INTERVAL
+  bkspTimer = setTimeout(() => {
+    pressBackspace()
+    scheduleBackspace()
+  }, BKSP_INITIAL_DELAY)
+}
+
+function stopBackspace() {
+  if (bkspTimer) {
+    clearTimeout(bkspTimer)
+    bkspTimer = null
+  }
 }
 
 // Position management
@@ -115,6 +152,7 @@ function onDragEnd() {
 }
 
 onUnmounted(() => {
+  stopBackspace()
   document.removeEventListener('pointermove', onDragMove)
   document.removeEventListener('pointerup', onDragEnd)
 })

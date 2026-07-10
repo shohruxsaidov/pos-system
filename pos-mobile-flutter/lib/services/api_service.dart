@@ -105,6 +105,23 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse> delete(String path, {dynamic data}) async {
+    final uri = Uri.parse(ApiConfig.endpoint(path));
+    try {
+      final res = await _client
+          .delete(uri,
+              headers: _headers,
+              body: data != null ? jsonEncode(data) : null)
+          .timeout(const Duration(seconds: 10));
+      return _parse(res);
+    } catch (e, st) {
+      if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;
+      Sentry.logger.fmt.error('DELETE %s failed: %s', [path, e]);
+      await Sentry.captureException(e, stackTrace: st);
+      rethrow;
+    }
+  }
+
   Future<bool> checkHealth() async {
     try {
       final uri = Uri.parse(ApiConfig.endpoint('/health'));

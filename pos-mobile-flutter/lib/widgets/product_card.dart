@@ -16,6 +16,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onChangePrice;
   final VoidCallback? onAddBarcode;
   final VoidCallback? onDetail;
+  final VoidCallback? onDelete;
   final VoidCallback? onTap;
 
   const ProductCard({
@@ -29,6 +30,7 @@ class ProductCard extends StatelessWidget {
     this.onChangePrice,
     this.onAddBarcode,
     this.onDetail,
+    this.onDelete,
     this.onTap,
   });
 
@@ -161,7 +163,8 @@ class ProductCard extends StatelessWidget {
                 onRename != null ||
                 onChangePrice != null ||
                 onAddBarcode != null ||
-                onDetail != null) ...[
+                onDetail != null ||
+                onDelete != null) ...[
               const SizedBox(height: 8),
               // Row 1: labeled actions
               if (onAdjust != null || onRename != null || onChangePrice != null)
@@ -182,7 +185,7 @@ class ProductCard extends StatelessWidget {
                       Expanded(
                         child: _ActionBtn(
                           icon: Icons.edit_outlined,
-                          label: 'Переим.',
+                          label: 'Изменить',
                           color: AppColors.accent1,
                           onTap: onRename!,
                         ),
@@ -238,6 +241,22 @@ class ProductCard extends StatelessWidget {
                           onTap: onDetail!,
                         ),
                       ),
+                  ],
+                ),
+              ],
+              // Row 3: delete
+              if (onDelete != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionBtn(
+                        icon: Icons.delete_outline,
+                        label: 'Удалить',
+                        color: AppColors.danger,
+                        onTap: onDelete!,
+                      ),
+                    ),
                   ],
                 ),
               ],

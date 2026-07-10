@@ -24,15 +24,11 @@
         <label class="field-label">Скидка</label>
         <div class="tendered-input" @click="toggleField('discount')" style="cursor:pointer">
           <span class="tendered-prefix">−</span>
-          <input
-            class="tendered-field"
-            :value="discountInput || '0'"
-            readonly
-            inputmode="none"
-            style="cursor:pointer"
-          />
+          <input class="tendered-field" :value="discountInput || '0'" readonly inputmode="none"
+            style="cursor:pointer" />
         </div>
-        <NumPad v-if="activeField === 'discount'" v-model="discountInput" :show-display="false" @update:modelValue="applyDiscount" />
+        <NumPad v-if="activeField === 'discount'" v-model="discountInput" :show-display="false"
+          @update:modelValue="applyDiscount" />
       </div>
 
       <!-- Single payment mode -->
@@ -41,12 +37,8 @@
         <SelectButton v-model="splits[0].method" :options="methods" option-label="label" option-value="value"
           class="method-selector" @change="splits[0].cardType = null" />
         <div v-if="splits[0].method === 'card'" class="card-type-row">
-          <button
-            v-for="ct in cardTypes" :key="ct.value"
-            class="card-type-btn"
-            :class="{ active: splits[0].cardType === ct.value }"
-            @click="splits[0].cardType = ct.value"
-          >
+          <button v-for="ct in cardTypes" :key="ct.value" class="card-type-btn"
+            :class="{ active: splits[0].cardType === ct.value }" @click="splits[0].cardType = ct.value">
             {{ ct.label }}
           </button>
         </div>
@@ -62,32 +54,17 @@
 
         <div v-for="(split, idx) in splits" :key="idx" class="split-row">
           <div class="split-row-main">
-            <SelectButton
-              v-model="split.method"
-              :options="methods"
-              option-label="label"
-              option-value="value"
-              class="split-method"
-              @change="split.cardType = null"
-            />
-            <div
-              class="split-amount-box"
-              :class="{
-                active: vkSplitIdx === idx,
-                readonly: idx === splits.length - 1
-              }"
-              @click="idx < splits.length - 1 ? openSplitVK(idx) : null"
-            >
+            <SelectButton v-model="split.method" :options="methods" option-label="label" option-value="value"
+              class="split-method" @change="split.cardType = null" />
+            <div class="split-amount-box" :class="{
+              active: vkSplitIdx === idx,
+              readonly: idx === splits.length - 1
+            }" @click="idx < splits.length - 1 ? openSplitVK(idx) : null">
               <!-- hidden input targeted by virtual keyboard -->
-              <input
-                v-if="idx < splits.length - 1"
-                :ref="el => { if (el) splitInputEls[idx] = el; else delete splitInputEls[idx] }"
-                type="text"
-                inputmode="none"
-                :value="split.amount"
-                @input="e => splits[idx].amount = e.target.value"
-                style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
-              />
+              <input v-if="idx < splits.length - 1"
+                :ref="el => { if (el) splitInputEls[idx] = el; else delete splitInputEls[idx] }" type="text"
+                inputmode="none" :value="split.amount" @input="e => splits[idx].amount = e.target.value"
+                style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
               <span class="font-mono">
                 {{ idx === splits.length - 1 ? formatAmount(lastSplitAmount) : (split.amount || '0') }}
               </span>
@@ -99,12 +76,8 @@
             </button>
           </div>
           <div v-if="split.method === 'card'" class="card-type-row">
-            <button
-              v-for="ct in cardTypes" :key="ct.value"
-              class="card-type-btn"
-              :class="{ active: split.cardType === ct.value }"
-              @click="split.cardType = ct.value"
-            >
+            <button v-for="ct in cardTypes" :key="ct.value" class="card-type-btn"
+              :class="{ active: split.cardType === ct.value }" @click="split.cardType = ct.value">
               {{ ct.label }}
             </button>
           </div>
@@ -117,7 +90,7 @@
 
         <div class="remaining-row" :class="{ danger: lastSplitAmount < -0.01, ok: Math.abs(lastSplitAmount) < 0.01 }">
           <span>{{ lastSplitAmount < -0.01 ? 'Переплата' : 'Остаток' }}</span>
-          <span class="font-mono">{{ formatAmount(Math.abs(lastSplitAmount)) }}</span>
+              <span class="font-mono">{{ formatAmount(Math.abs(lastSplitAmount)) }}</span>
         </div>
       </div>
 
@@ -280,8 +253,8 @@ async function confirm() {
   }
 
   emit('paid', { payments, printReceipt: printReceipt.value })
-  processing.value = false
   visible.value = false
+  setTimeout(() => { processing.value = false }, 100)
 }
 </script>
 

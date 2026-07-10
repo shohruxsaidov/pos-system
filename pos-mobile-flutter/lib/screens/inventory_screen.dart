@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_theme.dart';
 import '../models/product.dart';
+import '../models/category.dart';
 import '../utils/format.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/warehouse_provider.dart';
@@ -28,6 +29,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(warehouseProvider.notifier).fetchProducts();
+      ref.read(warehouseProvider.notifier).fetchCategories();
     });
   }
 
@@ -82,21 +84,40 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     );
   }
 
-  void _openRename(Product product) {
+  void _openEditProduct(Product product) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _RenameSheet(
+      builder: (_) => _EditProductSheet(
         product: product,
-        onSaved: (newName) {
+        categories: ref.read(warehouseProvider).categories,
+        onSaved: (name, unit, categoryId, categoryName) async {
           Navigator.pop(context);
-          ref
-              .read(warehouseProvider.notifier)
-              .renameProduct(product.id, newName);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Название изменено')),
-          );
+          try {
+            await ref.read(warehouseProvider.notifier).editProduct(
+                  product.id,
+                  name: name,
+                  unit: unit,
+                  categoryId: categoryId,
+                  categoryName: categoryName,
+                );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Товар обновлён')),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content:
+                      Text(e.toString().replaceFirst('Exception: ', '')),
+                  backgroundColor: AppColors.dangerBg,
+                ),
+              );
+            }
+          }
         },
       ),
     );
@@ -145,6 +166,61 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _confirmDelete(Product product) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgElevated,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          'Удалить товар?',
+          style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          '«${product.name}» будет удалён из склада. Это действие нельзя отменить.',
+          style: const TextStyle(
+              color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Удалить',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(warehouseProvider.notifier).deleteProduct(product.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('«${product.name}» удалён')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppColors.dangerBg,
+          ),
+        );
+      }
+    }
   }
 
   String _formatCompact(double n) {
@@ -402,13 +478,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                       : null,
                                   onPrint: () => _openPrint(filtered[i]),
                                   onRename: isOnline
-                                      ? () => _openRename(filtered[i])
+                                      ? () => _openEditProduct(filtered[i])
                                       : null,
                                   onChangePrice: isOnline
                                       ? () => _openChangePrice(filtered[i])
                                       : null,
                                   onAddBarcode: isOnline
                                       ? () => _openAddBarcode(filtered[i])
+                                      : null,
+                                  onDelete: isOnline
+                                      ? () => _confirmDelete(filtered[i])
                                       : null,
                                   onDetail: () => Navigator.push(
                                     context,
@@ -1163,25 +1242,37 @@ class _CopiesBtn extends StatelessWidget {
   }
 }
 
-// ─── Rename Sheet ─────────────────────────────────────────────────────────────
+// ─── Edit Product Sheet ───────────────────────────────────────────────────────
 
-class _RenameSheet extends StatefulWidget {
+const _kUnits = ['шт', 'кг', 'г', 'л', 'упак', 'коробка'];
+
+class _EditProductSheet extends StatefulWidget {
   final Product product;
-  final void Function(String) onSaved;
-  const _RenameSheet({required this.product, required this.onSaved});
+  final List<Category> categories;
+  final void Function(String name, String unit, int? categoryId,
+      String? categoryName) onSaved;
+  const _EditProductSheet({
+    required this.product,
+    required this.categories,
+    required this.onSaved,
+  });
 
   @override
-  State<_RenameSheet> createState() => _RenameSheetState();
+  State<_EditProductSheet> createState() => _EditProductSheetState();
 }
 
-class _RenameSheetState extends State<_RenameSheet> {
+class _EditProductSheetState extends State<_EditProductSheet> {
   late final TextEditingController _ctrl;
+  late String _unit;
+  int? _categoryId;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     _ctrl = TextEditingController(text: widget.product.name);
+    _unit = widget.product.unit.isNotEmpty ? widget.product.unit : 'шт';
+    _categoryId = widget.product.categoryId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _ctrl.selection =
         TextSelection(baseOffset: 0, extentOffset: _ctrl.text.length));
   }
@@ -1196,11 +1287,20 @@ class _RenameSheetState extends State<_RenameSheet> {
     final name = _ctrl.text.trim();
     if (name.isEmpty || _saving) return;
     setState(() => _saving = true);
-    widget.onSaved(name);
+    String? catName;
+    for (final c in widget.categories) {
+      if (c.id == _categoryId) {
+        catName = c.name;
+        break;
+      }
+    }
+    widget.onSaved(name, _unit, _categoryId, catName);
   }
 
   @override
   Widget build(BuildContext context) {
+    final units = _kUnits.contains(_unit) ? _kUnits : [..._kUnits, _unit];
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.bgElevated,
@@ -1208,108 +1308,232 @@ class _RenameSheetState extends State<_RenameSheet> {
       ),
       padding: EdgeInsets.fromLTRB(
           20, 0, 20, 24 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.borderDefault,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
-          const Text(
-            'Изменить название',
-            style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-
-          Text(
-            widget.product.name,
-            style: const TextStyle(
-                color: AppColors.textMuted, fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: _ctrl,
-            autofocus: true,
-            style:
-                const TextStyle(color: AppColors.textPrimary, fontSize: 16),
-            onSubmitted: (_) => _save(),
-            decoration: const InputDecoration(hintText: 'Новое название'),
-          ),
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      side:
-                          const BorderSide(color: AppColors.borderDefault),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Text('Отмена'),
-                  ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.borderDefault,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: DecoratedBox(
+            ),
+
+            const Center(
+              child: Text(
+                'Редактировать товар',
+                style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Name
+            const Text(
+              'НАЗВАНИЕ',
+              style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _ctrl,
+              autofocus: true,
+              style: const TextStyle(
+                  color: AppColors.textPrimary, fontSize: 16),
+              onSubmitted: (_) => _save(),
+              decoration:
+                  const InputDecoration(hintText: 'Название товара'),
+            ),
+            const SizedBox(height: 16),
+
+            // Unit
+            const Text(
+              'ЕДИНИЦА',
+              style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: units.map((u) {
+                final active = _unit == u;
+                return GestureDetector(
+                  onTap: () => setState(() => _unit = u),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      gradient: AppColors.gradientHero,
-                      borderRadius: BorderRadius.circular(14),
+                      color: active
+                          ? AppColors.accentGlow
+                          : AppColors.bgInput,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: active
+                              ? AppColors.accent1
+                              : AppColors.borderDefault),
                     ),
-                    child: TextButton(
-                      onPressed: _saving ? null : _save,
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
+                    child: Text(
+                      u,
+                      style: TextStyle(
+                          color: active
+                              ? AppColors.accent1
+                              : AppColors.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Category
+            const Text(
+              'КАТЕГОРИЯ',
+              style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            if (widget.categories.isEmpty)
+              const Text(
+                'Категории не загружены',
+                style:
+                    TextStyle(color: AppColors.textMuted, fontSize: 13),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _CategoryChip(
+                    label: 'Без категории',
+                    active: _categoryId == null,
+                    onTap: () => setState(() => _categoryId = null),
+                  ),
+                  ...widget.categories.map((c) => _CategoryChip(
+                        label: c.name,
+                        active: _categoryId == c.id,
+                        onTap: () => setState(() => _categoryId = c.id),
+                      )),
+                ],
+              ),
+            const SizedBox(height: 20),
+
+            // Save / Cancel
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        side: const BorderSide(
+                            color: AppColors.borderDefault),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: _saving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check, size: 18),
-                                SizedBox(width: 6),
-                                Text('Сохранить',
-                                    style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700)),
-                              ],
-                            ),
+                      child: const Text('Отмена'),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 56,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.gradientHero,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: TextButton(
+                        onPressed: _saving ? null : _save,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: _saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check, size: 18),
+                                  SizedBox(width: 6),
+                                  Text('Сохранить',
+                                      style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _CategoryChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? AppColors.accentGlow : AppColors.bgInput,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: active ? AppColors.accent1 : AppColors.borderDefault),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+              color: active ? AppColors.accent1 : AppColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

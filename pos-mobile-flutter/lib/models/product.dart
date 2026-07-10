@@ -59,15 +59,25 @@ class Product {
         'barcodes': barcodes,
       };
 
-  Product copyWith({double? stockQty, String? name, double? price, String? barcode, List<Map<String, dynamic>>? barcodes}) => Product(
+  Product copyWith({
+    double? stockQty,
+    String? name,
+    double? price,
+    String? barcode,
+    List<Map<String, dynamic>>? barcodes,
+    String? unit,
+    int? categoryId,
+    String? categoryName,
+  }) =>
+      Product(
         id: id,
         barcode: barcode ?? this.barcode,
         name: name ?? this.name,
-        categoryName: categoryName,
-        categoryId: categoryId,
+        categoryName: categoryName ?? this.categoryName,
+        categoryId: categoryId ?? this.categoryId,
         price: price ?? this.price,
         cost: cost,
-        unit: unit,
+        unit: unit ?? this.unit,
         stockQty: stockQty ?? this.stockQty,
         isActive: isActive,
         barcodes: barcodes ?? this.barcodes,
