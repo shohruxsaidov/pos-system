@@ -5,11 +5,14 @@ import '../models/product.dart';
 
 const _productsCacheKey = 'pos_products_cache';
 const _cacheTimestampKey = 'pos_products_cache_ts';
-const _cacheTtlHours = 8;
 
 const _draftsKey = 'pos_offline_drafts';
 
 // ─── Product cache ────────────────────────────────────────────────────────────
+//
+// The full product catalog is persisted so it stays fully searchable offline.
+// The cache never expires: an old catalog is far more useful than an empty one
+// when there is no connection. The timestamp is kept only for freshness display.
 
 Future<void> saveProductsCache(List<Map<String, dynamic>> products) async {
   final prefs = await SharedPreferences.getInstance();
@@ -20,22 +23,36 @@ Future<void> saveProductsCache(List<Map<String, dynamic>> products) async {
 Future<List<Map<String, dynamic>>?> loadProductsCache() async {
   final prefs = await SharedPreferences.getInstance();
   final raw = prefs.getString(_productsCacheKey);
-  final ts = prefs.getInt(_cacheTimestampKey) ?? 0;
   if (raw == null) return null;
-  final age = DateTime.now().millisecondsSinceEpoch - ts;
-  if (age > _cacheTtlHours * 3600 * 1000) return null;
   return List<Map<String, dynamic>>.from(jsonDecode(raw));
+}
+
+/// Millis-epoch of the last successful catalog cache write, or null if never.
+Future<int?> productsCacheTimestamp() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getInt(_cacheTimestampKey);
 }
 
 Future<Product?> resolveProductByBarcode(String barcode) async {
   final cached = await loadProductsCache();
   if (cached == null) return null;
   final match = cached.cast<Map<String, dynamic>?>().firstWhere(
-        (p) => p!['barcode'] == barcode,
+        (p) => _matchesBarcode(p!, barcode),
         orElse: () => null,
       );
   if (match == null) return null;
   return Product.fromJson(match);
+}
+
+/// True if [product] carries [barcode] as its primary code or in its
+/// alternate `barcodes[]` list (mirrors the server's multi-barcode lookup).
+bool _matchesBarcode(Map<String, dynamic> product, String barcode) {
+  if (product['barcode'] == barcode) return true;
+  final alts = product['barcodes'];
+  if (alts is List) {
+    return alts.any((b) => b is Map && b['barcode'] == barcode);
+  }
+  return false;
 }
 
 // ─── Reports cache ────────────────────────────────────────────────────────────

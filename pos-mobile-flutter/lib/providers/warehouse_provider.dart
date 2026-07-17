@@ -33,6 +33,17 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
   WarehouseState build() => const WarehouseState();
 
   Future<void> fetchProducts() async {
+    // Hydrate instantly from the offline cache on a cold start so the catalog
+    // is searchable immediately — even offline, without waiting for the network
+    // request to time out. A successful fetch below overwrites it with fresh data.
+    if (state.products.isEmpty) {
+      final cached = await loadProductsCache();
+      if (cached != null && cached.isNotEmpty) {
+        state = state.copyWith(
+          products: cached.map((e) => Product.fromJson(e)).toList(),
+        );
+      }
+    }
     state = state.copyWith(loading: true);
     try {
       final res = await apiService.get('/api/inventory/mobile');
@@ -59,10 +70,16 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
     }
   }
 
+  /// Re-persist the current in-memory catalog to the offline cache so local
+  /// edits (price, barcodes, stock, deletes) survive for offline search.
+  Future<void> _persistCache() async {
+    await saveProductsCache(state.products.map((p) => p.toJson()).toList());
+  }
+
   Future<Map<String, dynamic>> submitSale(Map<String, dynamic> payload) async {
     try {
       final res = await apiService.post('/api/transactions', data: payload);
-      _deductStockLocally(payload);
+      await _deductStockLocally(payload);
       final txn = res.data as Map<String, dynamic>;
       final total = (payload['total'] as num).toDouble();
       final itemCount = (payload['items'] as List).length;
@@ -115,6 +132,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       return p;
     }).toList();
     state = state.copyWith(products: updated);
+    await _persistCache();
   }
 
   Future<void> updatePrice(int id, double price) async {
@@ -124,6 +142,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       return p;
     }).toList();
     state = state.copyWith(products: updated);
+    await _persistCache();
   }
 
   Future<void> updateBarcodes(int id, List<Map<String, dynamic>> barcodes) async {
@@ -138,12 +157,14 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       return p;
     }).toList();
     state = state.copyWith(products: updated);
+    await _persistCache();
   }
 
   Future<void> deleteProduct(int id) async {
     await apiService.delete('/api/products/$id');
     final updated = state.products.where((p) => p.id != id).toList();
     state = state.copyWith(products: updated);
+    await _persistCache();
     Sentry.logger.fmt.info('Product deleted: id=%s', [id]);
   }
 
@@ -156,15 +177,16 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
     return data['barcode'] as String;
   }
 
-  void updateStockLocally(int id, double delta) {
+  Future<void> updateStockLocally(int id, double delta) async {
     final updated = state.products.map((p) {
       if (p.id == id) return p.copyWith(stockQty: p.stockQty + delta);
       return p;
     }).toList();
     state = state.copyWith(products: updated);
+    await _persistCache();
   }
 
-  void _deductStockLocally(Map<String, dynamic> payload) {
+  Future<void> _deductStockLocally(Map<String, dynamic> payload) async {
     final items = payload['items'] as List?;
     if (items == null) return;
     final updated = state.products.map((p) {
@@ -177,6 +199,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
       return p.copyWith(stockQty: p.stockQty - qty);
     }).toList();
     state = state.copyWith(products: updated);
+    await _persistCache();
   }
 }
 
