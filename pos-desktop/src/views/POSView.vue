@@ -48,19 +48,12 @@
           :class="['session-tab', { 'session-tab--active': s.id === cart.activeId }]" @click="cart.switchSession(s.id)">
           <span class="session-label">{{ s.label }}</span>
           <span v-if="s.items.length" class="session-badge">{{Math.floor(s.items.reduce((sum, i) => sum + i.qty, 0))
-            }}</span>
+          }}</span>
           <button class="session-close" @click.stop="cart.closeSession(s.id)"
             :title="s.items.length ? 'Закрыть (товары будут удалены)' : 'Закрыть'">✕</button>
         </div>
         <button v-if="cart.sessions.length < 8" class="session-new" @click="cart.newSession()" title="Новый клиент">+
           Новый</button>
-      </div>
-
-      <div class="cart-header">
-        <h2 class="cart-title">Корзина</h2>
-        <Tag v-if="cart.itemCount > 0" :value="`${cart.itemCount} поз.`" class="cart-count" />
-        <Button v-if="cart.itemCount > 0" icon="pi pi-trash" class="p-button-danger" style="height:40px;width:40px"
-          @click="cart.clear()" v-tooltip="'Очистить корзину'" />
       </div>
 
       <!-- Cart Items -->
@@ -86,9 +79,16 @@
               </div>
             </template>
           </Column>
-          <Column header="Итого" style="width:90px">
+          <Column style="width:90px">
+            <template #header>
+              Итого
+              <Button v-if="cart.itemCount > 0" class="p-button-danger" style="height: auto !important; "
+                @click="cart.clear()" v-tooltip="'Очистить корзину'">
+                {{ cart.itemCount }}
+              </Button>
+            </template>
             <template #body="{ data }">
-              <span class="font-mono">{{ formatPrice(data.unit_price * data.qty) }}</span>
+              <span class="font-mono cart-line-total">{{ formatPrice(data.unit_price * data.qty) }}</span>
             </template>
           </Column>
           <Column style="width:44px">
@@ -550,13 +550,7 @@ function stockClass(qty) {
   background: var(--bg-sidebar);
 }
 
-.cart-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+
 
 .cart-title {
   font-size: 18px;
@@ -604,10 +598,15 @@ function stockClass(qty) {
   background: var(--bg-hover);
 }
 
+.cart-line-total {
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .qty-value {
   max-width: 120px;
   text-align: center;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   overflow-x: auto;
   scrollbar-width: none;
@@ -624,7 +623,7 @@ function stockClass(qty) {
   border-radius: 6px;
   color: var(--text-primary);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 6px 8px;
   transition: all 0.12s;
 }
 
@@ -709,7 +708,8 @@ function stockClass(qty) {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 10px;
+  height: 40px;
+  padding: 0 10px;
   border-radius: 8px 8px 0 0;
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
@@ -763,14 +763,19 @@ function stockClass(qty) {
 }
 
 .session-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
   background: none;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 13px;
-  padding: 2px 5px;
+  font-size: 17px;
+  padding: 0;
   line-height: 1;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.1s;
 }
 
