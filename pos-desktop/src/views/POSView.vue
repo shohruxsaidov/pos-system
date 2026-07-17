@@ -44,7 +44,7 @@
           :class="['session-tab', { 'session-tab--active': s.id === cart.activeId }]" @click="cart.switchSession(s.id)">
           <span class="session-label">{{ s.label }}</span>
           <span v-if="s.items.length" class="session-badge">{{Math.floor(s.items.reduce((sum, i) => sum + i.qty, 0))
-            }}</span>
+          }}</span>
           <button class="session-close" @click.stop="cart.closeSession(s.id)"
             :title="s.items.length ? 'Закрыть (товары будут удалены)' : 'Закрыть'">✕</button>
         </div>
@@ -293,6 +293,7 @@ function addToCart(product) {
   if (!product.is_active) return
   hideKeyboard()
   cart.addItem(product)
+  searchQuery.value = ''
 }
 
 async function handlePayment(paymentData) {
@@ -492,7 +493,7 @@ function stockClass(qty) {
 
 /* Cart */
 .pos-cart {
-  width: 750px;
+  width: 700px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
