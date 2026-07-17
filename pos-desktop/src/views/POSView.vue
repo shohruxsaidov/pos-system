@@ -9,11 +9,10 @@
         <IconField style="flex:1">
           <InputIcon class="pi pi-barcode" />
           <InputText ref="searchRef" v-model="searchQuery" placeholder="Сканировать штрихкод или найти товар..."
-            class="w-full" @keydown.enter="handleBarcodeEnter" @input="debouncedSearch" inputmode="none" />
+            class="w-full" @keydown.enter="handleBarcodeEnter" @input="debouncedSearch" @dblclick="openKeyboard"
+            inputmode="none" />
+          <InputIcon v-if="searchQuery" class="pi pi-times search-clear" @click="clearSearch" v-tooltip="'Очистить'" />
         </IconField>
-        <Button class="p-button-secondary kb-toggle-btn" :class="{ 'kb-toggle-active': keyboardVisible }"
-          @click="toggleKeyboard" style="height:56px;width:56px;font-size:22px;line-height:1"
-          v-tooltip="'Клавиатура'">⌨</Button>
         <Button icon="pi pi-refresh" class="p-button-secondary" @click="loadProducts" style="height:56px;width:56px" />
       </div>
 
@@ -178,17 +177,13 @@ const router = useRouter()
 const cart = useCartStore()
 const api = useApi()
 const toast = useToast()
-const { visible: keyboardVisible, show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
+const { show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
 
-function toggleKeyboard() {
-  if (keyboardVisible.value) {
-    hideKeyboard()
-  } else {
-    const el = searchRef.value?.$el
-    if (el) {
-      showKeyboard(el)
-      el.focus()
-    }
+function openKeyboard() {
+  const el = searchRef.value?.$el
+  if (el) {
+    showKeyboard(el)
+    el.focus()
   }
 }
 
@@ -272,6 +267,12 @@ function debouncedSearch() {
   searchTimeout = setTimeout(loadProducts, 300)
 }
 
+function clearSearch() {
+  searchQuery.value = ''
+  loadProducts()
+  searchRef.value?.$el?.focus()
+}
+
 async function handleBarcodeEnter() {
   if (!searchQuery.value.trim()) return
   try {
@@ -286,6 +287,7 @@ async function handleBarcodeEnter() {
 
 function addToCart(product) {
   if (!product.is_active) return
+  hideKeyboard()
   cart.addItem(product)
 }
 
@@ -356,14 +358,15 @@ function stockClass(qty) {
   gap: 8px;
 }
 
-:deep(.kb-toggle-btn) {
-  transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+:deep(.search-clear) {
+  pointer-events: auto;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s;
 }
 
-:deep(.kb-toggle-active) {
-  background: var(--accent-glow) !important;
-  border-color: var(--accent-1) !important;
-  color: var(--text-accent) !important;
+:deep(.search-clear:hover) {
+  color: var(--text-primary);
 }
 
 .category-tabs {

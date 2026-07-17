@@ -4,6 +4,7 @@ class OfflineDraft {
   final String id;
   final String barcode;
   final double qty;
+  final int? productId;
   final String? resolvedName;
   final double? resolvedPrice;
   final DateTime createdAt;
@@ -15,6 +16,7 @@ class OfflineDraft {
     required this.id,
     required this.barcode,
     required this.qty,
+    this.productId,
     this.resolvedName,
     this.resolvedPrice,
     required this.createdAt,
@@ -27,6 +29,7 @@ class OfflineDraft {
     String? id,
     String? barcode,
     double? qty,
+    int? productId,
     String? resolvedName,
     double? resolvedPrice,
     DateTime? createdAt,
@@ -38,6 +41,7 @@ class OfflineDraft {
         id: id ?? this.id,
         barcode: barcode ?? this.barcode,
         qty: qty ?? this.qty,
+        productId: productId ?? this.productId,
         resolvedName: resolvedName ?? this.resolvedName,
         resolvedPrice: resolvedPrice ?? this.resolvedPrice,
         createdAt: createdAt ?? this.createdAt,
@@ -50,6 +54,7 @@ class OfflineDraft {
         'id': id,
         'barcode': barcode,
         'qty': qty,
+        'productId': productId,
         'resolvedName': resolvedName,
         'resolvedPrice': resolvedPrice,
         'createdAt': createdAt.toIso8601String(),
@@ -62,6 +67,7 @@ class OfflineDraft {
         id: json['id'] as String,
         barcode: json['barcode'] as String,
         qty: (json['qty'] as num).toDouble(),
+        productId: (json['productId'] as num?)?.toInt(),
         resolvedName: json['resolvedName'] as String?,
         resolvedPrice: json['resolvedPrice'] != null
             ? (json['resolvedPrice'] as num).toDouble()

@@ -8,6 +8,7 @@ import '../providers/connectivity_provider.dart';
 import '../providers/offline_draft_provider.dart';
 import '../services/offline_queue_service.dart';
 import '../widgets/bottom_numpad.dart';
+import '../widgets/product_search_picker.dart';
 import 'qr_scanner_screen.dart';
 
 class OfflineDraftScreen extends ConsumerStatefulWidget {
@@ -43,6 +44,32 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
     if (mounted) setState(() => _resolvedProduct = product);
   }
 
+  /// Fallback when a barcode isn't in the cache: search the catalog by name
+  /// and let the user pick a product. The pick fills the barcode field and
+  /// is remembered so the draft carries the resolved product on submit.
+  Future<void> _searchByName() async {
+    final query = _barcodeCtrl.text.trim();
+    if (query.isEmpty) return;
+    final matches = await searchCachedProducts(query);
+    if (!mounted) return;
+    if (matches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Товар не найден'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final selected =
+        await ProductSearchPicker.show(context, query: query, matches: matches);
+    if (selected == null || !mounted) return;
+    setState(() {
+      _resolvedProduct = selected;
+      _barcodeCtrl.text = selected.barcode ?? '';
+    });
+  }
+
   Future<void> _openScanner() async {
     final result = await Navigator.push<String>(
       context,
@@ -68,7 +95,8 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
 
   Future<void> _submit() async {
     final barcode = _barcodeCtrl.text.trim();
-    if (barcode.isEmpty) {
+    final product = _resolvedProduct;
+    if (barcode.isEmpty && product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Введите штрихкод'), behavior: SnackBarBehavior.floating),
       );
@@ -82,7 +110,12 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
       return;
     }
 
-    await ref.read(offlineDraftProvider.notifier).addDraft(barcode, qty, notes: _notesCtrl.text);
+    await ref.read(offlineDraftProvider.notifier).addDraft(
+          barcode.isEmpty ? (product?.barcode ?? '') : barcode,
+          qty,
+          notes: _notesCtrl.text,
+          product: product,
+        );
     _barcodeCtrl.clear();
     _notesCtrl.clear();
     setState(() {
@@ -151,28 +184,43 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                   const SizedBox(height: 10),
 
                   // Product preview
-                  if (_barcodeCtrl.text.isNotEmpty)
+                  if (_barcodeCtrl.text.isNotEmpty || _resolvedProduct != null)
                     _resolvedProduct != null
                         ? _ProductPreviewBadge(product: _resolvedProduct!, fmt: fmt)
                         : Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: AppColors.warningBg,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.warning_amber_outlined,
+                                const Icon(Icons.warning_amber_outlined,
                                     color: AppColors.warning, size: 14),
-                                SizedBox(width: 6),
-                                Text('Товар не в кэше',
-                                    style: TextStyle(color: AppColors.warning, fontSize: 12)),
+                                const SizedBox(width: 6),
+                                const Expanded(
+                                  child: Text('Товар не в кэше',
+                                      style: TextStyle(color: AppColors.warning, fontSize: 12)),
+                                ),
+                                TextButton.icon(
+                                  onPressed: _searchByName,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.accent1,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.search, size: 16),
+                                  label: const Text('По названию',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                ),
                               ],
                             ),
                           ),
 
-                  if (_barcodeCtrl.text.isNotEmpty) const SizedBox(height: 10),
+                  if (_barcodeCtrl.text.isNotEmpty || _resolvedProduct != null)
+                    const SizedBox(height: 10),
 
                   // Qty row
                   GestureDetector(

@@ -44,6 +44,34 @@ Future<Product?> resolveProductByBarcode(String barcode) async {
   return Product.fromJson(match);
 }
 
+Future<Product?> resolveProductById(int id) async {
+  final cached = await loadProductsCache();
+  if (cached == null) return null;
+  final match = cached.cast<Map<String, dynamic>?>().firstWhere(
+        (p) => (p!['id'] as num?)?.toInt() == id,
+        orElse: () => null,
+      );
+  if (match == null) return null;
+  return Product.fromJson(match);
+}
+
+/// Products in the offline cache whose name or barcode contains [query].
+/// Used as a fallback when a barcode scan/lookup finds nothing, so staff can
+/// still locate an item by name while offline.
+Future<List<Product>> searchCachedProducts(String query) async {
+  final cached = await loadProductsCache();
+  if (cached == null) return [];
+  final q = query.toLowerCase();
+  return cached
+      .map((e) => Product.fromJson(e))
+      .where((p) =>
+          p.name.toLowerCase().contains(q) ||
+          (p.barcode?.contains(query) ?? false) ||
+          p.barcodes
+              .any((b) => (b['barcode']?.toString() ?? '').contains(query)))
+      .toList();
+}
+
 /// True if [product] carries [barcode] as its primary code or in its
 /// alternate `barcodes[]` list (mirrors the server's multi-barcode lookup).
 bool _matchesBarcode(Map<String, dynamic> product, String barcode) {

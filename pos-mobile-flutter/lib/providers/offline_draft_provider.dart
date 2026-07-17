@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../models/offline_draft.dart';
+import '../models/product.dart';
 import '../services/api_service.dart';
 import '../services/offline_queue_service.dart';
 
@@ -48,14 +49,19 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     state = state.copyWith(drafts: drafts);
   }
 
-  Future<void> addDraft(String barcode, double qty, {String? notes}) async {
-    final product = await resolveProductByBarcode(barcode);
+  /// Queue a draft sale. Pass [product] when it was already resolved (e.g.
+  /// picked from a name search) so the draft carries its id — otherwise it is
+  /// resolved from the cache by [barcode].
+  Future<void> addDraft(String barcode, double qty,
+      {String? notes, Product? product}) async {
+    final resolved = product ?? await resolveProductByBarcode(barcode);
     final draft = OfflineDraft(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       barcode: barcode,
       qty: qty,
-      resolvedName: product?.name,
-      resolvedPrice: product?.price,
+      productId: resolved?.id,
+      resolvedName: resolved?.name,
+      resolvedPrice: resolved?.price,
       createdAt: DateTime.now(),
       status: OfflineDraftStatus.pending,
       notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
@@ -102,8 +108,12 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
       updatedDrafts[syncingIdx] = draft.copyWith(status: OfflineDraftStatus.syncing);
       state = state.copyWith(drafts: List.from(updatedDrafts));
 
-      // Resolve product
-      final product = await resolveProductByBarcode(draft.barcode);
+      // Resolve product — prefer the stored id (set for name-picked drafts),
+      // falling back to the barcode for older/scan-only drafts.
+      final product = (draft.productId != null
+              ? await resolveProductById(draft.productId!)
+              : null) ??
+          await resolveProductByBarcode(draft.barcode);
       if (_disposed) break;
       if (product == null) {
         Sentry.logger.warn('Offline sync: product not found for barcode ${draft.barcode} (draft ${draft.id})');

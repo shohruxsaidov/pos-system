@@ -7,11 +7,11 @@ import '../models/product.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/warehouse_provider.dart';
 import '../utils/format.dart';
-import '../utils/stock_status.dart';
 import '../services/api_service.dart';
 import '../services/offline_queue_service.dart';
 import '../widgets/cart_sheet.dart';
 import '../widgets/payment_sheet.dart';
+import '../widgets/product_search_picker.dart';
 import '../widgets/sale_product_card.dart';
 
 class SalesScreen extends ConsumerStatefulWidget {
@@ -109,18 +109,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
           .any((b) => (b['barcode']?.toString() ?? '').contains(query));
     }).toList();
     if (matches.isEmpty) return;
-    if (matches.length == 1) {
-      _addToCart(matches.first);
-      _searchCtrl.clear();
-      setState(() => _query = '');
-      return;
-    }
-    final selected = await showModalBottomSheet<Product>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _NameSearchPicker(query: query, matches: matches),
-    );
+    final selected =
+        await ProductSearchPicker.show(context, query: query, matches: matches);
     if (selected != null) {
       _addToCart(selected);
       _searchCtrl.clear();
@@ -403,127 +393,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                   onClose: () => setState(() => _paymentOpen = false),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom-sheet list of catalog products matching a name/barcode query,
-/// shown when a scan/search submit finds no exact barcode. Tapping a row
-/// returns that product to the caller so it can be added to the cart.
-class _NameSearchPicker extends StatelessWidget {
-  final String query;
-  final List<Product> matches;
-
-  const _NameSearchPicker({required this.query, required this.matches});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.7,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textMuted,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Найдено: ${matches.length}',
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '"$query"',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                shrinkWrap: true,
-                itemCount: matches.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (_, i) {
-                  final p = matches[i];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => Navigator.of(context).pop(p),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgElevated,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.borderSubtle),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  p.name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                StockBadge(qty: p.stockQty),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            formatPrice(p.price),
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
           ],
         ),
       ),
