@@ -36,15 +36,19 @@
 
     </div>
 
+    <!-- Resize handle -->
+    <div class="cart-resizer" :class="{ dragging: isResizing }" @mousedown="startResize" @dblclick="resetCartWidth"
+      title="Перетащите, чтобы изменить ширину (двойной клик — сброс)" />
+
     <!-- Right: Cart -->
-    <div class="pos-cart">
+    <div class="pos-cart" :style="{ width: cartWidth + 'px' }">
       <!-- Session tabs -->
       <div class="session-tabs">
         <div v-for="s in cart.sessions" :key="s.id"
           :class="['session-tab', { 'session-tab--active': s.id === cart.activeId }]" @click="cart.switchSession(s.id)">
           <span class="session-label">{{ s.label }}</span>
           <span v-if="s.items.length" class="session-badge">{{Math.floor(s.items.reduce((sum, i) => sum + i.qty, 0))
-          }}</span>
+            }}</span>
           <button class="session-close" @click.stop="cart.closeSession(s.id)"
             :title="s.items.length ? 'Закрыть (товары будут удалены)' : 'Закрыть'">✕</button>
         </div>
@@ -189,6 +193,39 @@ function openKeyboard() {
     showKeyboard(el)
     el.focus()
   }
+}
+
+// Resizable cart width (persisted)
+const DEFAULT_CART_WIDTH = 700
+const MIN_CART_WIDTH = 360
+const MAX_CART_WIDTH = 1100
+const cartWidth = ref(parseInt(localStorage.getItem('pos-cart-width')) || DEFAULT_CART_WIDTH)
+const isResizing = ref(false)
+
+function startResize(e) {
+  e.preventDefault()
+  isResizing.value = true
+  const startX = e.clientX
+  const startWidth = cartWidth.value
+
+  const onMove = (ev) => {
+    // Cart is on the right, so dragging left widens it
+    const delta = startX - ev.clientX
+    cartWidth.value = Math.min(MAX_CART_WIDTH, Math.max(MIN_CART_WIDTH, startWidth + delta))
+  }
+  const onUp = () => {
+    isResizing.value = false
+    localStorage.setItem('pos-cart-width', String(cartWidth.value))
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+function resetCartWidth() {
+  cartWidth.value = DEFAULT_CART_WIDTH
+  localStorage.setItem('pos-cart-width', String(cartWidth.value))
 }
 
 const products = ref([])
@@ -491,9 +528,22 @@ function stockClass(qty) {
   animation: pulse-danger 2s infinite;
 }
 
+/* Resize handle between products and cart */
+.cart-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border-subtle);
+  transition: background 0.15s;
+}
+
+.cart-resizer:hover,
+.cart-resizer.dragging {
+  background: var(--accent-1);
+}
+
 /* Cart */
 .pos-cart {
-  width: 700px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -527,6 +577,7 @@ function stockClass(qty) {
 .cart-product-name {
   font-weight: 700;
   color: var(--text-primary);
+  font-size: 20px;
 }
 
 .qty-control {
