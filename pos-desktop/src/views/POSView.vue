@@ -62,7 +62,11 @@
       <!-- Cart Items -->
       <div class="cart-items">
         <DataTable :value="cart.items" scrollable scroll-height="flex" class="cart-table">
-          <Column field="name" header="Товар" />
+          <Column field="name" header="Товар">
+            <template #body="{ data }">
+              <span class="cart-product-name">{{ data.name }}</span>
+            </template>
+          </Column>
           <Column field="unit_price" header="Цена" style="width:90px">
             <template #body="{ data }">
               <button class="qty-value font-mono qty-value-btn" @click="openPriceEdit(data)">{{
@@ -488,7 +492,7 @@ function stockClass(qty) {
 
 /* Cart */
 .pos-cart {
-  width: 500px;
+  width: 750px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -519,6 +523,11 @@ function stockClass(qty) {
   height: 100%;
 }
 
+.cart-product-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .qty-control {
   display: flex;
   align-items: center;
@@ -544,9 +553,10 @@ function stockClass(qty) {
 }
 
 .qty-value {
-  max-width: 50px;
+  max-width: 120px;
   text-align: center;
   font-size: 14px;
+  font-weight: 700;
   overflow-x: auto;
   scrollbar-width: none;
   /* Firefox */
