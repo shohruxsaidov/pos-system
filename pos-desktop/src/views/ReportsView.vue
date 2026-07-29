@@ -44,14 +44,22 @@
     </div>
 
     <div class="reports-grid">
-      <!-- Hourly Chart — only for daily period -->
+      <!-- Hourly Chart — daily period -->
       <div v-if="reportPeriod === 'day'" class="card report-card">
         <h3 class="card-title">Продажи по часам</h3>
         <Chart type="bar" :data="hourlyChartData" :options="chartOptions" style="height:200px" />
       </div>
 
+      <!-- Daily Chart — week / month / range -->
+      <div v-else class="card report-card">
+        <h3 class="card-title">Продажи по дням</h3>
+        <Chart v-if="daily?.by_day?.length" type="line" :data="dailyChartData" :options="lineOptions"
+          style="height:200px" />
+        <div v-else class="empty-chart">Нет данных</div>
+      </div>
+
       <!-- Payment Methods -->
-      <div class="card report-card" :style="reportPeriod !== 'day' ? 'grid-column: 1 / -1' : ''">
+      <div class="card report-card">
         <h3 class="card-title">Способы оплаты</h3>
         <template v-if="daily?.by_method?.length">
           <Chart type="doughnut" :data="methodChartData" :options="pieOptions" style="height:200px" />
@@ -343,6 +351,30 @@ const hourlyChartData = computed(() => {
   }
 })
 
+const dailyChartData = computed(() => {
+  const days = daily.value?.by_day || []
+  return {
+    labels: days.map(d => formatDayLabel(d.day)),
+    datasets: [{
+      label: 'Продажи',
+      data: days.map(d => parseFloat(d.sales)),
+      borderColor: '#7b68ee',
+      backgroundColor: 'rgba(123,104,238,0.15)',
+      borderWidth: 2,
+      pointRadius: days.length > 31 ? 0 : 3,
+      pointBackgroundColor: '#7b68ee',
+      tension: 0.35,
+      fill: true
+    }]
+  }
+})
+
+// '2026-07-29' → '29.07'
+function formatDayLabel(day) {
+  const [, m, d] = day.split('-')
+  return `${d}.${m}`
+}
+
 const methodLabel = (m) => {
   const map = { cash: 'Наличные', card: 'Карта', uzcard: 'Uzcard', humo: 'Humo', mixed: 'Смешанный' }
   return map[m] || m
@@ -370,6 +402,19 @@ const chartOptions = {
   scales: {
     x: { ticks: { color: '#9898bb' }, grid: { color: 'rgba(255,255,255,0.05)' } },
     y: { ticks: { color: '#9898bb' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+  }
+}
+
+const lineOptions = {
+  ...chartOptions,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (ctx) => formatAmount(ctx.parsed.y)
+      }
+    }
   }
 }
 

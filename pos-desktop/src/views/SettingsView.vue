@@ -160,7 +160,7 @@
               <label class="field-label">Claude API Key</label>
               <InputText v-model="settings.claude_api_key" class="w-field" type="password" placeholder="sk-ant-..." />
               <span style="font-size:12px;color:var(--text-muted)">
-                ℹ️ Использует claude-haiku. Добавляет AI-анализ к ежедневному отчёту.
+                ℹ️ Используется для AI-анализа дня и для Ассистента.
               </span>
               <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
                 <Button label="Тест AI анализа" class="p-button-secondary" icon="pi pi-microchip-ai"
@@ -170,6 +170,27 @@
                   {{ aiSummaryStatus.msg }}
                 </div>
               </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Модель</label>
+              <Select v-model="settings.ai_model" :options="aiModels" option-label="display_name" option-value="id"
+                class="w-field" :loading="loadingModels" :disabled="!aiModels.length"
+                :placeholder="loadingModels ? 'Загрузка...' : 'Сначала сохраните API ключ'" />
+              <span style="font-size:12px;color:var(--text-muted)">
+                Список загружается из Anthropic API.
+                <a href="#" @click.prevent="loadAiModels">Обновить</a>
+              </span>
+              <div v-if="modelsError" class="status-msg error-msg">{{ modelsError }}</div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Глубина рассуждений</label>
+              <Select v-model="settings.ai_effort" :options="effortLevels" class="w-field" placeholder="low"
+                :disabled="!effortSupported" />
+              <span style="font-size:12px;color:var(--text-muted)">
+                {{ effortSupported
+                  ? 'Выше — точнее и дороже. Для запросов к данным достаточно low.'
+                  : 'Эта модель не поддерживает настройку глубины — параметр не отправляется.' }}
+              </span>
             </div>
             <div class="actions-row">
               <Button label="Сохранить настройки" :loading="saving" @click="saveSettings" />
@@ -330,7 +351,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { renderBarcode } from '../composables/useBarcode.js'
 import { useToast } from 'primevue/usetoast'
@@ -411,9 +432,43 @@ onMounted(async () => {
 watch(activeTab, async (tab) => {
   if (tab === 'audit' && !auditLogs.value.length) await loadAudit()
   if (tab === 'barcode') renderPreview()
+  // Model list needs a live API call — only fetch when the tab is opened.
+  if (tab === 'telegram' && !aiModels.value.length && !loadingModels.value) {
+    await loadAiModels()
+  }
 })
 
 watch(() => settings.value.label_barcode_height, renderPreview)
+
+const ALL_EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max']
+const aiModels = ref([])
+const loadingModels = ref(false)
+const modelsError = ref(null)
+
+// Older models (Haiku 4.5, Sonnet 4.5, Opus 4.1) reject the effort parameter.
+const selectedModel = computed(() =>
+  aiModels.value.find(m => m.id === settings.value.ai_model)
+)
+const effortSupported = computed(() => selectedModel.value?.effort_supported !== false)
+const effortLevels = computed(() => {
+  const levels = selectedModel.value?.effort_levels
+  return levels?.length ? levels : ALL_EFFORT_LEVELS
+})
+
+async function loadAiModels() {
+  loadingModels.value = true
+  modelsError.value = null
+  try {
+    const res = await api.get('/api/ai/models')
+    aiModels.value = res.models || []
+    if (!res.enabled) modelsError.value = 'Укажите Claude API ключ и сохраните настройки.'
+  } catch (e) {
+    aiModels.value = []
+    modelsError.value = e.message
+  } finally {
+    loadingModels.value = false
+  }
+}
 
 async function loadSettings() {
   try {

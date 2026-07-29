@@ -48,7 +48,10 @@
       "Bash(grep -iE \"\\\\.\\(dart|java|swift|kt\\)$\")",
       "Bash(python3 *)",
       "Bash(pip3 install *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(pnpm build *)",
+      "Bash(node --check src/routes/reports.js)",
+      "Skill(claude-api)"
     ]
   }
 }

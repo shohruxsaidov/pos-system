@@ -114,11 +114,13 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
     required String unit,
     int? categoryId,
     String? categoryName,
+    int sortOrder = 0,
   }) async {
     await apiService.put('/api/products/$id', data: {
       'name': name,
       'unit': unit,
       'category_id': ?categoryId,
+      'sort_order': sortOrder,
     });
     final updated = state.products.map((p) {
       if (p.id == id) {
@@ -127,6 +129,7 @@ class WarehouseNotifier extends Notifier<WarehouseState> {
           unit: unit,
           categoryId: categoryId,
           categoryName: categoryName,
+          sortOrder: sortOrder,
         );
       }
       return p;

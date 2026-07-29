@@ -54,14 +54,17 @@ class ApiService {
     }
   }
 
-  Future<ApiResponse> post(String path, {dynamic data}) async {
+  /// [timeout] defaults to 10s; pass a longer one for slow endpoints such as
+  /// /api/ai/chat, where Claude runs a multi-step tool loop server-side.
+  Future<ApiResponse> post(String path,
+      {dynamic data, Duration timeout = const Duration(seconds: 10)}) async {
     final uri = Uri.parse(ApiConfig.endpoint(path));
     try {
       final res = await _client
           .post(uri,
               headers: _headers,
               body: data != null ? jsonEncode(data) : null)
-          .timeout(const Duration(seconds: 10));
+          .timeout(timeout);
       return _parse(res);
     } catch (e, st) {
       if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;

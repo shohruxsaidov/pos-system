@@ -60,7 +60,8 @@ export default async function inventoryRoutes(fastify) {
     else if (status === 'out') where += ` AND COALESCE(ws.stock_qty, 0) = 0`
 
     const { rows } = await pool.query(`
-      SELECT p.id, p.name, COALESCE(ws.stock_qty, 0) as stock_qty, p.price, p.unit, p.cost, c.name as category_name,
+      SELECT p.id, p.name, COALESCE(ws.stock_qty, 0) as stock_qty, p.price, p.unit, p.cost,
+        p.category_id, c.name as category_name, p.sort_order,
         COALESCE(
           (SELECT json_group_array(json_object('id', pb2.id, 'barcode', pb2.barcode, 'is_primary', pb2.is_primary))
            FROM product_barcodes pb2 WHERE pb2.product_id = p.id),

@@ -25,6 +25,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode();
   String _query = '';
+  int? _categoryId;
   final List<CartItem> _cart = [];
   bool _cartOpen = false;
   bool _paymentOpen = false;
@@ -34,6 +35,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(warehouseProvider.notifier).fetchProducts();
+      ref.read(warehouseProvider.notifier).fetchCategories();
     });
   }
 
@@ -45,9 +47,24 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   }
 
   List<Product> _filtered(List<Product> products) {
-    if (_query.isEmpty) return products;
+    var list = products;
+    // Inside a single category, honour the manual order number: numbered items
+    // first in ascending order, then the unnumbered ones alphabetically.
+    if (_categoryId != null) {
+      list = list.where((p) => p.categoryId == _categoryId).toList()
+        ..sort((a, b) {
+          final aUnset = a.sortOrder > 0 ? 0 : 1;
+          final bUnset = b.sortOrder > 0 ? 0 : 1;
+          if (aUnset != bUnset) return aUnset - bUnset;
+          if (a.sortOrder != b.sortOrder) {
+            return a.sortOrder.compareTo(b.sortOrder);
+          }
+          return a.name.compareTo(b.name);
+        });
+    }
+    if (_query.isEmpty) return list;
     final q = _query.toLowerCase();
-    return products.where((p) {
+    return list.where((p) {
       if (p.name.toLowerCase().contains(q)) return true;
       if (p.barcode?.contains(q) ?? false) return true;
       return p.barcodes.any(
@@ -241,6 +258,30 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                   ),
                 ),
 
+                // Category tabs
+                if (state.categories.isNotEmpty)
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(left: 12, right: 12),
+                      children: [
+                        _CatTab(
+                          label: 'Все',
+                          active: _categoryId == null,
+                          onTap: () => setState(() => _categoryId = null),
+                        ),
+                        ...state.categories.map((c) => _CatTab(
+                              label: c.name,
+                              active: _categoryId == c.id,
+                              onTap: () =>
+                                  setState(() => _categoryId = c.id),
+                            )),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 10),
+
                 // Products grid
                 Expanded(
                   child: state.loading
@@ -417,6 +458,49 @@ class _BottomSheetOverlay extends StatelessWidget {
           child: GestureDetector(
             onTap: () {}, // prevent close on child tap
             child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Category Tab ─────────────────────────────────────────────────────────────
+
+class _CatTab extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _CatTab({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: active ? AppColors.accentGlow : AppColors.bgInput,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: active
+                    ? AppColors.accent1
+                    : AppColors.borderDefault),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? AppColors.accent1 : AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

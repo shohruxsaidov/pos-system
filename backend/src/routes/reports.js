@@ -177,6 +177,37 @@ export default async function reportRoutes(fastify) {
         [rangeStart, rangeEnd],
       );
 
+      // Multi-day periods (week / month / range) get a per-day series instead of per-hour
+      let byDay = [];
+      if (isRange) {
+        const { rows } = await pool.query(
+          `
+        SELECT
+          strftime('%Y-%m-%d', created_at, 'localtime') as day,
+          COUNT(*) as count,
+          COALESCE(SUM(total), 0) as sales
+        FROM transactions
+        WHERE created_at >= $1 AND created_at < $2 AND status != 'voided' ${whFilter}
+        GROUP BY day ORDER BY day
+      `,
+          [rangeStart, rangeEnd],
+        );
+        const found = new Map(
+          rows.map((r) => [
+            r.day,
+            { count: parseInt(r.count), sales: parseFloat(r.sales) },
+          ]),
+        );
+        // Fill gaps so the line chart has a continuous X axis
+        const cursor = new Date(fromDate + "T00:00:00");
+        const last = new Date(toDate + "T00:00:00");
+        while (cursor <= last) {
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+          byDay.push({ day: key, count: 0, sales: 0, ...found.get(key) });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      }
+
       let byHour = [];
       if (!isRange) {
         const { rows } = await pool.query(
@@ -236,6 +267,7 @@ export default async function reportRoutes(fastify) {
           avg_transaction: parseFloat(s.avg_transaction),
         },
         by_hour: byHour,
+        by_day: byDay,
         by_method: byMethod.map((m) => ({
           ...m,
           count: parseInt(m.count),

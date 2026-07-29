@@ -90,6 +90,7 @@ const navItems = computed(() => {
     items.push({ to: '/categories', icon: 'pi pi-folder', label: 'Категории' })
     items.push({ to: '/inventory', icon: 'pi pi-box', label: 'Склад' })
     items.push({ to: '/reports', icon: 'pi pi-chart-bar', label: 'Отчёты' })
+    items.push({ to: '/assistant', icon: 'pi pi-sparkles', label: 'Ассистент' })
     items.push({ to: '/incoming', icon: 'pi pi-truck', label: 'Приём' })
     items.push({ to: '/warehouse', icon: 'pi pi-warehouse', label: 'Склады' })
     items.push({ to: '/printer-settings', icon: 'pi pi-print', label: 'Принтеры' })

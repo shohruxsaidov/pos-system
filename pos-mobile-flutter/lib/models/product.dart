@@ -11,6 +11,10 @@ class Product {
   final bool isActive;
   final List<Map<String, dynamic>> barcodes;
 
+  /// Manual position inside the product's category. 0 = unset → falls back to
+  /// alphabetical, after the numbered ones.
+  final int sortOrder;
+
   const Product({
     required this.id,
     this.barcode,
@@ -23,6 +27,7 @@ class Product {
     required this.stockQty,
     this.isActive = true,
     this.barcodes = const [],
+    this.sortOrder = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -43,6 +48,7 @@ class Product {
         barcodes: (json['barcodes'] as List?)
                 ?.cast<Map<String, dynamic>>() ??
             [],
+        sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +63,7 @@ class Product {
         'stock_qty': stockQty,
         'is_active': isActive,
         'barcodes': barcodes,
+        'sort_order': sortOrder,
       };
 
   Product copyWith({
@@ -68,6 +75,7 @@ class Product {
     String? unit,
     int? categoryId,
     String? categoryName,
+    int? sortOrder,
   }) =>
       Product(
         id: id,
@@ -81,5 +89,6 @@ class Product {
         stockQty: stockQty ?? this.stockQty,
         isActive: isActive,
         barcodes: barcodes ?? this.barcodes,
+        sortOrder: sortOrder ?? this.sortOrder,
       );
 }

@@ -6,6 +6,7 @@ import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_draft_provider.dart';
+import 'ai_settings_screen.dart';
 import 'offline_draft_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'reports_screen.dart';
@@ -227,6 +228,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               leading: const Icon(Icons.bar_chart, color: AppColors.accent1),
               title: const Text('Отчёты',
                   style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
+              ),
+              tileColor: AppColors.bgSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: const BorderSide(color: AppColors.borderSubtle),
+              ),
+              leading: const Icon(Icons.auto_awesome, color: AppColors.accent1),
+              title: const Text('AI ассистент',
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              subtitle: const Text('Модель и глубина рассуждений',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
             ),
             const SizedBox(height: 12),

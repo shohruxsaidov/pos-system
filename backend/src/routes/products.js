@@ -80,6 +80,11 @@ export default async function productRoutes(fastify) {
         params.push(category_id);
         pIdx++;
       }
+      // Within a single category, respect the manual order number (0 = unset → alphabetical, last)
+      const orderClause = category_id
+        ? "ORDER BY CASE WHEN p.sort_order > 0 THEN 0 ELSE 1 END, p.sort_order, p.name"
+        : "ORDER BY p.name";
+
       if (stock_status === "low") {
         whereClause += ` AND COALESCE(ws.stock_qty, 0) > 0 AND COALESCE(ws.stock_qty, 0) <= 5`;
       } else if (stock_status === "out") {
@@ -95,7 +100,7 @@ export default async function productRoutes(fastify) {
       LEFT JOIN categories c ON c.id=p.category_id
       LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
       ${whereClause}
-      ORDER BY p.name
+      ${orderClause}
       LIMIT $${pIdx} OFFSET $${pIdx + 1}
     `,
         [...params, limit, offset],
@@ -158,6 +163,7 @@ export default async function productRoutes(fastify) {
         unit,
         image_url,
         low_stock_threshold,
+        sort_order,
       } = req.body;
       if (!name || price === undefined) {
         return reply.code(400).send({ error: "name and price are required" });
@@ -165,8 +171,8 @@ export default async function productRoutes(fastify) {
 
       const { rows } = await pool.query(
         `
-      INSERT INTO products (name, category_id, price, cost, unit, image_url, low_stock_threshold, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7, NOW()) RETURNING *
+      INSERT INTO products (name, category_id, price, cost, unit, image_url, low_stock_threshold, sort_order, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW()) RETURNING *
     `,
         [
           name,
@@ -176,6 +182,7 @@ export default async function productRoutes(fastify) {
           unit || "pcs",
           image_url || null,
           low_stock_threshold ?? 5,
+          parseInt(sort_order, 10) || 0,
         ],
       );
 
@@ -244,6 +251,7 @@ export default async function productRoutes(fastify) {
         image_url,
         is_active,
         low_stock_threshold,
+        sort_order,
       } = req.body;
 
       const { rows: before } = await pool.query(
@@ -257,8 +265,8 @@ export default async function productRoutes(fastify) {
         `
       UPDATE products SET
         name=$1, category_id=$2, price=$3, cost=$4,
-        unit=$5, image_url=$6, is_active=$7, low_stock_threshold=$8, updated_at=NOW()
-      WHERE id=$9 RETURNING *
+        unit=$5, image_url=$6, is_active=$7, low_stock_threshold=$8, sort_order=$9, updated_at=NOW()
+      WHERE id=$10 RETURNING *
     `,
         [
           name ?? before[0].name,
@@ -269,6 +277,9 @@ export default async function productRoutes(fastify) {
           image_url ?? before[0].image_url,
           is_active ?? before[0].is_active,
           low_stock_threshold ?? before[0].low_stock_threshold ?? 5,
+          sort_order === undefined || sort_order === null || sort_order === ""
+            ? (before[0].sort_order ?? 0)
+            : parseInt(sort_order, 10) || 0,
           id,
         ],
       );

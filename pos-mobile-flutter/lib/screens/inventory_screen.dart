@@ -92,7 +92,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       builder: (_) => _EditProductSheet(
         product: product,
         categories: ref.read(warehouseProvider).categories,
-        onSaved: (name, unit, categoryId, categoryName) async {
+        onSaved: (name, unit, categoryId, categoryName, sortOrder) async {
           Navigator.pop(context);
           try {
             await ref.read(warehouseProvider.notifier).editProduct(
@@ -101,6 +101,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   unit: unit,
                   categoryId: categoryId,
                   categoryName: categoryName,
+                  sortOrder: sortOrder,
                 );
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -1250,7 +1251,7 @@ class _EditProductSheet extends StatefulWidget {
   final Product product;
   final List<Category> categories;
   final void Function(String name, String unit, int? categoryId,
-      String? categoryName) onSaved;
+      String? categoryName, int sortOrder) onSaved;
   const _EditProductSheet({
     required this.product,
     required this.categories,
@@ -1263,6 +1264,7 @@ class _EditProductSheet extends StatefulWidget {
 
 class _EditProductSheetState extends State<_EditProductSheet> {
   late final TextEditingController _ctrl;
+  late final TextEditingController _sortCtrl;
   late String _unit;
   int? _categoryId;
   bool _saving = false;
@@ -1271,6 +1273,8 @@ class _EditProductSheetState extends State<_EditProductSheet> {
   void initState() {
     super.initState();
     _ctrl = TextEditingController(text: widget.product.name);
+    _sortCtrl =
+        TextEditingController(text: widget.product.sortOrder.toString());
     _unit = widget.product.unit.isNotEmpty ? widget.product.unit : 'шт';
     _categoryId = widget.product.categoryId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _ctrl.selection =
@@ -1280,6 +1284,7 @@ class _EditProductSheetState extends State<_EditProductSheet> {
   @override
   void dispose() {
     _ctrl.dispose();
+    _sortCtrl.dispose();
     super.dispose();
   }
 
@@ -1294,7 +1299,9 @@ class _EditProductSheetState extends State<_EditProductSheet> {
         break;
       }
     }
-    widget.onSaved(name, _unit, _categoryId, catName);
+    final sortOrder = int.tryParse(_sortCtrl.text.trim()) ?? 0;
+    widget.onSaved(name, _unit, _categoryId, catName,
+        sortOrder < 0 ? 0 : sortOrder);
   }
 
   @override
@@ -1436,6 +1443,34 @@ class _EditProductSheetState extends State<_EditProductSheet> {
                       )),
                 ],
               ),
+            const SizedBox(height: 16),
+
+            // Order inside the category
+            const Text(
+              'ПОРЯДОК В КАТЕГОРИИ',
+              style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 140,
+              child: TextField(
+                controller: _sortCtrl,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(
+                    color: AppColors.textPrimary, fontSize: 16),
+                onSubmitted: (_) => _save(),
+                decoration: const InputDecoration(hintText: '0'),
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              '0 — без порядка (по алфавиту в конце)',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
             const SizedBox(height: 20),
 
             // Save / Cancel

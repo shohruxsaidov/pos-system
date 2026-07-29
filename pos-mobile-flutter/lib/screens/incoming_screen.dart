@@ -15,6 +15,15 @@ import '../widgets/highlight_text.dart';
 
 const _units = ['шт', 'кг', 'г', 'л', 'упак', 'коробка'];
 
+/// Qty as text without trailing zeros — 1 → "1", 1.2 → "1.2", 1.25 → "1.25"
+String _qtyText(double qty) {
+  if (qty % 1 == 0) return qty.toInt().toString();
+  return qty
+      .toStringAsFixed(3)
+      .replaceAll(RegExp(r'0+$'), '')
+      .replaceAll(RegExp(r'\.$'), '');
+}
+
 class IncomingScreen extends ConsumerStatefulWidget {
   const IncomingScreen({super.key});
 
@@ -113,7 +122,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
             ? 'Цена за единицу'
             : 'Общая сумма';
     final initial = field == 'qty'
-        ? item.qty.toStringAsFixed(0)
+        ? _qtyText(item.qty)
         : field == 'cost'
             ? item.costPerUnit.toString()
             : item.subtotal.toString();
@@ -122,7 +131,6 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       context,
       title: title,
       initialValue: initial,
-      allowDecimal: field != 'qty',
     );
     if (result == null || result.isEmpty) return;
     final v = double.tryParse(result) ?? 0;
@@ -536,9 +544,7 @@ class _IncomingItemCard extends StatelessWidget {
               Expanded(
                 child: _FieldButton(
                   label: 'КОЛ-ВО',
-                  value: item.qty % 1 == 0
-                      ? item.qty.toInt().toString()
-                      : item.qty.toStringAsFixed(3),
+                  value: _qtyText(item.qty),
                   icon: Icons.edit_outlined,
                   onTap: () => onEditField('qty'),
                 ),

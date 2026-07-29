@@ -37,6 +37,7 @@ import syncRoutes from "./routes/sync.js";
 import notificationRoutes from "./routes/notifications.js";
 import statusRoutes from "./routes/status.js";
 import warehouseRoutes from "./routes/warehouses.js";
+import aiRoutes from "./routes/ai.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || "3000");
@@ -106,6 +107,7 @@ await fastify.register(syncRoutes);
 await fastify.register(notificationRoutes);
 await fastify.register(statusRoutes);
 await fastify.register(warehouseRoutes);
+await fastify.register(aiRoutes);
 
 // Health check
 fastify.get("/health", async () => ({

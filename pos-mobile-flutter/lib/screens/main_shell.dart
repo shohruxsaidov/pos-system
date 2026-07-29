@@ -5,6 +5,7 @@ import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_draft_provider.dart';
+import 'ai_chat_screen.dart';
 import 'sales_screen.dart';
 import 'incoming_screen.dart';
 import 'inventory_screen.dart';
@@ -251,6 +252,17 @@ class _MainShellState extends ConsumerState<MainShell> {
       'offlineDisabled': false,
     });
 
+    // Sales/stock analytics — manager+ only, needs the network.
+    if (role == 'manager' || role == 'admin') {
+      tabs.add({
+        'id': 'assistant',
+        'label': 'Ассистент',
+        'icon': Icons.auto_awesome_outlined,
+        'activeIcon': Icons.auto_awesome,
+        'offlineDisabled': true,
+      });
+    }
+
     return tabs;
   }
 
@@ -263,6 +275,11 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     screens.add(const IncomingScreen());
     screens.add(const InventoryScreen());
+
+    // Keep index-aligned with _buildTabs.
+    if (role == 'manager' || role == 'admin') {
+      screens.add(const AiChatScreen());
+    }
 
     return screens;
   }

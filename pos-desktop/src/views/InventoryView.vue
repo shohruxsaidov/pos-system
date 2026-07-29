@@ -203,9 +203,16 @@
           <Select v-model="form.category_id" :options="categories" option-label="name" option-value="id"
             placeholder="Выбрать категорию" class="w-full" />
         </div>
-        <div class="field-group">
-          <label class="field-label">Порог низкого запаса</label>
-          <InputText v-model="form.low_stock_threshold" type="number" style="width:120px" placeholder="5" />
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Порог низкого запаса</label>
+            <InputText v-model="form.low_stock_threshold" type="number" class="w-full" placeholder="5" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Порядок в категории</label>
+            <InputText v-model="form.sort_order" type="number" min="0" class="w-full" placeholder="0" />
+            <span class="field-hint">0 — без порядка (по алфавиту в конце)</span>
+          </div>
         </div>
       </div>
 
@@ -324,7 +331,7 @@ const UNITS = ['шт', 'кг', 'г', 'л', 'упак', 'коробка']
 
 const defaultForm = () => ({
   name: '', barcodes: [], price: '', cost: '', stock_qty: 0,
-  unit: 'шт', category_id: null, image_url: '', low_stock_threshold: 5
+  unit: 'шт', category_id: null, image_url: '', low_stock_threshold: 5, sort_order: 0
 })
 
 const form = ref(defaultForm())
@@ -893,6 +900,11 @@ function stockBadgeClass(qty, threshold = 5) {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .drawer-footer {
