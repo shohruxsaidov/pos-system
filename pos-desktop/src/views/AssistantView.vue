@@ -51,7 +51,8 @@
     <!-- Composer -->
     <div class="composer">
       <Textarea v-model="draft" class="composer-input" rows="1" auto-resize
-        placeholder="Спросите что-нибудь..." :disabled="!canSend" @keydown.enter.exact.prevent="send()" />
+        placeholder="Спросите что-нибудь..." :disabled="!canSend" @keydown.enter.exact.prevent="send()"
+        @focus="showKeyboard($event.target)" @blur="hideKeyboard" />
       <Button icon="pi pi-arrow-up" class="composer-send" :disabled="!canSend || !draft.trim()" @click="send()" />
     </div>
   </div>
@@ -60,12 +61,14 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
+import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const api = useApi()
+const { show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
 
 const messages = ref([])
 const draft = ref('')
@@ -110,6 +113,7 @@ async function send(preset) {
   if (!text || !canSend.value) return
 
   draft.value = ''
+  hideKeyboard()
   messages.value.push({ role: 'user', content: text })
   sending.value = true
   scrollToEnd()

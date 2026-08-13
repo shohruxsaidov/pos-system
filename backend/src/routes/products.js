@@ -19,17 +19,82 @@ function withPrimaryBarcode(product) {
   return { ...product, barcode: primary?.barcode || null };
 }
 
+// Trim, drop blanks, de-duplicate, and guarantee exactly one primary.
+function normalizeBarcodes(barcodes) {
+  const seen = new Set();
+  const clean = [];
+  for (const bc of barcodes || []) {
+    const code = bc?.barcode?.trim();
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    clean.push({ barcode: code, is_primary: bc.is_primary ? 1 : 0 });
+  }
+  if (clean.length > 0 && !clean.some((b) => b.is_primary)) {
+    clean[0].is_primary = 1;
+  }
+  return clean;
+}
+
+// `product_barcodes.barcode` is globally UNIQUE, so a code held by another
+// product cannot simply be inserted. Free the ones held by deleted (inactive)
+// products, and reject the ones still in use so the cashier gets told why.
+async function claimBarcodes(productId, barcodes, { actor, ip } = {}) {
+  for (const bc of barcodes) {
+    const { rows } = await pool.query(
+      `SELECT pb.id, p.id AS product_id, p.name, p.is_active
+       FROM product_barcodes pb
+       LEFT JOIN products p ON p.id = pb.product_id
+       WHERE pb.barcode=$1`,
+      [bc.barcode],
+    );
+    const owner = rows[0];
+    if (!owner) continue;
+    if (productId && String(owner.product_id) === String(productId)) continue;
+
+    if (owner.product_id && owner.is_active) {
+      const err = new Error(
+        `Штрихкод ${bc.barcode} уже используется товаром «${owner.name}»`,
+      );
+      err.statusCode = 409;
+      throw err;
+    }
+
+    // Owner is deleted (or missing) — release the code for reuse.
+    await pool.query("DELETE FROM product_barcodes WHERE id=$1", [owner.id]);
+    if (owner.product_id) {
+      await logAudit({
+        action: "product_edit",
+        actor,
+        target: { type: "product", id: owner.product_id, name: owner.name },
+        details: { field: "barcode", before: bc.barcode, after: null,
+                   reason: "reassigned_from_deleted_product" },
+        ip,
+      });
+    }
+  }
+}
+
 async function saveBarcodes(productId, barcodes) {
   await pool.query("DELETE FROM product_barcodes WHERE product_id=$1", [
     productId,
   ]);
   for (const bc of barcodes) {
-    if (!bc.barcode?.trim()) continue;
     await pool.query(
-      "INSERT INTO product_barcodes (product_id, barcode, is_primary) VALUES ($1,$2,$3) ON CONFLICT (barcode) DO NOTHING",
-      [productId, bc.barcode.trim(), bc.is_primary ? 1 : 0],
+      "INSERT INTO product_barcodes (product_id, barcode, is_primary) VALUES ($1,$2,$3)",
+      [productId, bc.barcode, bc.is_primary],
     );
   }
+}
+
+async function readProduct(productId, warehouseId) {
+  const { rows } = await pool.query(
+    `SELECT p.*, COALESCE(ws.stock_qty, 0) as stock_qty, ${BARCODES_SUBQUERY}
+     FROM products p
+     LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
+     WHERE p.id=$2`,
+    [warehouseId, productId],
+  );
+  return withPrimaryBarcode(rows[0]);
 }
 
 async function checkStockAlerts(product, warehouseId) {
@@ -169,6 +234,26 @@ export default async function productRoutes(fastify) {
         return reply.code(400).send({ error: "name and price are required" });
       }
 
+      // Resolve barcode ownership first — a conflict must not leave a
+      // half-created product behind.
+      const barcodesToSave = normalizeBarcodes(
+        Array.isArray(barcodes) && barcodes.length > 0
+          ? barcodes
+          : barcode
+            ? [{ barcode, is_primary: 1 }]
+            : [],
+      );
+      try {
+        await claimBarcodes(null, barcodesToSave, {
+          actor: req.user,
+          ip: req.ip,
+        });
+      } catch (e) {
+        if (e.statusCode === 409)
+          return reply.code(409).send({ error: e.message });
+        throw e;
+      }
+
       const { rows } = await pool.query(
         `
       INSERT INTO products (name, category_id, price, cost, unit, image_url, low_stock_threshold, sort_order, updated_at)
@@ -199,19 +284,6 @@ export default async function productRoutes(fastify) {
         [warehouseId, productId, initialStock],
       );
 
-      // Save barcodes
-      const barcodesToSave =
-        Array.isArray(barcodes) && barcodes.length > 0
-          ? barcodes.filter((b) => b.barcode?.trim())
-          : barcode
-            ? [{ barcode, is_primary: 1 }]
-            : [];
-      if (
-        barcodesToSave.length > 0 &&
-        !barcodesToSave.some((b) => b.is_primary)
-      ) {
-        barcodesToSave[0].is_primary = 1;
-      }
       await saveBarcodes(productId, barcodesToSave);
 
       await logAudit({
@@ -221,17 +293,8 @@ export default async function productRoutes(fastify) {
         ip: req.ip,
       });
 
-      return reply
-        .code(201)
-        .send({
-          ...rows[0],
-          stock_qty: initialStock,
-          barcodes: barcodesToSave,
-          barcode:
-            barcodesToSave.find((b) => b.is_primary)?.barcode ||
-            barcodesToSave[0]?.barcode ||
-            null,
-        });
+      // Read back from the DB so the client sees what was actually persisted.
+      return reply.code(201).send(await readProduct(productId, warehouseId));
     },
   );
 
@@ -261,6 +324,22 @@ export default async function productRoutes(fastify) {
       if (!before[0])
         return reply.code(404).send({ error: "Product not found" });
 
+      // Resolve barcode ownership before touching the product row.
+      let barcodesToSave = null;
+      if (Array.isArray(barcodes)) {
+        barcodesToSave = normalizeBarcodes(barcodes);
+        try {
+          await claimBarcodes(id, barcodesToSave, {
+            actor: req.user,
+            ip: req.ip,
+          });
+        } catch (e) {
+          if (e.statusCode === 409)
+            return reply.code(409).send({ error: e.message });
+          throw e;
+        }
+      }
+
       const { rows } = await pool.query(
         `
       UPDATE products SET
@@ -284,17 +363,7 @@ export default async function productRoutes(fastify) {
         ],
       );
 
-      // Update barcodes if provided
-      if (Array.isArray(barcodes)) {
-        const barcodesToSave = barcodes.filter((b) => b.barcode?.trim());
-        if (
-          barcodesToSave.length > 0 &&
-          !barcodesToSave.some((b) => b.is_primary)
-        ) {
-          barcodesToSave[0].is_primary = 1;
-        }
-        await saveBarcodes(id, barcodesToSave);
-      }
+      if (barcodesToSave) await saveBarcodes(id, barcodesToSave);
 
       await logAudit({
         action: "product_edit",
@@ -304,17 +373,7 @@ export default async function productRoutes(fastify) {
         ip: req.ip,
       });
 
-      const warehouseId = req.user.warehouse_id || 1;
-      const { rows: result } = await pool.query(
-        `
-      SELECT p.*, COALESCE(ws.stock_qty, 0) as stock_qty, ${BARCODES_SUBQUERY}
-      FROM products p
-      LEFT JOIN warehouse_stock ws ON ws.product_id=p.id AND ws.warehouse_id=$1
-      WHERE p.id=$2
-    `,
-        [warehouseId, id],
-      );
-      return withPrimaryBarcode(result[0]);
+      return await readProduct(id, req.user.warehouse_id || 1);
     },
   );
 

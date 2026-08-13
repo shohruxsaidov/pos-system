@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="vk-panel" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
+    <div v-if="visible" ref="panelEl" class="vk-panel" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
       <div class="vk-handle" @pointerdown.prevent="startDrag">
         <span class="vk-handle-icon">⌨</span>
         <span class="vk-handle-title">Клавиатура</span>
@@ -33,6 +33,7 @@
               @pointerdown.prevent="toggleShift">⇧</button>
           </div>
           <div class="vk-row">
+            <button class="vk-key vk-lang vk-wide" @pointerdown.prevent="toggleLang">{{ lang === 'ru' ? 'РУС' : 'ENG' }}</button>
             <button class="vk-key vk-space" @pointerdown.prevent="pressKey(' ')">ПРОБЕЛ</button>
           </div>
         </div>
@@ -55,16 +56,40 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
 
-const { visible, numpadOnly, hide, pressKey, pressBackspace } = useVirtualKeyboard()
+const { visible, targetEl, numpadOnly, hide, pressKey, pressBackspace } = useVirtualKeyboard()
+
+const panelEl = ref(null)
 
 const STORAGE_KEY = 'vk_pos'
+const LANG_KEY = 'vk_lang'
 const numberRow = '1234567890'.split('')
-const row1 = 'qwertyuiop'.split('')
-const row2 = 'asdfghjkl'.split('')
-const row3 = 'zxcvbnm'.split('')
+
+const LAYOUTS = {
+  en: {
+    row1: 'qwertyuiop'.split(''),
+    row2: 'asdfghjkl'.split(''),
+    row3: 'zxcvbnm'.split('')
+  },
+  ru: {
+    row1: 'йцукенгшщзхъ'.split(''),
+    row2: 'фывапролджэ'.split(''),
+    row3: 'ячсмитьбюё'.split('')
+  }
+}
+
+// The UI is Russian throughout, so default to ЙЦУКЕН unless the cashier switched.
+const lang = ref(localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'ru')
+const row1 = computed(() => LAYOUTS[lang.value].row1)
+const row2 = computed(() => LAYOUTS[lang.value].row2)
+const row3 = computed(() => LAYOUTS[lang.value].row3)
+
+function toggleLang() {
+  lang.value = lang.value === 'ru' ? 'en' : 'ru'
+  localStorage.setItem(LANG_KEY, lang.value)
+}
 
 const shiftOn = ref(false)
 
@@ -122,6 +147,28 @@ function loadPos() {
 function savePos() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pos.value))
 }
+
+// A field at the bottom of the screen (e.g. the assistant composer) sits right
+// under the saved panel position. Nudge the panel clear of it on open — without
+// persisting, so the cashier's own placement survives.
+watch(visible, async (isOpen) => {
+  if (!isOpen) return
+  await nextTick()
+  const field = targetEl.value
+  const panel = panelEl.value
+  if (!field || !panel) return
+
+  const f = field.getBoundingClientRect()
+  const height = panel.getBoundingClientRect().height
+  const overlaps = pos.value.y < f.bottom && pos.value.y + height > f.top
+  if (!overlaps) return
+
+  const below = f.bottom + 12
+  pos.value = {
+    ...pos.value,
+    y: below + height <= window.innerHeight ? below : Math.max(0, f.top - height - 12)
+  }
+})
 
 // Drag logic
 let dragging = false
@@ -293,6 +340,14 @@ onUnmounted(() => {
   background: var(--accent-glow) !important;
   border-color: var(--accent-1) !important;
   color: var(--text-accent) !important;
+}
+
+.vk-lang {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-accent);
+  flex: 0 0 86px;
 }
 
 .vk-space {
