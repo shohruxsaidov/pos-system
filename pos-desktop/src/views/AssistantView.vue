@@ -52,7 +52,7 @@
     <div class="composer">
       <Textarea v-model="draft" class="composer-input" rows="1" auto-resize
         placeholder="Спросите что-нибудь..." :disabled="!canSend" @keydown.enter.exact.prevent="send()"
-        @focus="showKeyboard($event.target)" @blur="hideKeyboard" />
+        @dblclick="openKeyboard" @blur="hideKeyboard" />
       <Button icon="pi pi-arrow-up" class="composer-send" :disabled="!canSend || !draft.trim()" @click="send()" />
     </div>
   </div>
@@ -69,6 +69,17 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 const api = useApi()
 const { show: showKeyboard, hide: hideKeyboard } = useVirtualKeyboard()
+
+// Double-tap the composer to summon the on-screen keyboard.
+function openKeyboard(e) {
+  const el = e.target
+  if (!el) return
+  // The double-click selected a word — drop the selection so the first
+  // key typed doesn't overwrite it.
+  el.selectionStart = el.selectionEnd
+  showKeyboard(el)
+  el.focus()
+}
 
 const messages = ref([])
 const draft = ref('')
