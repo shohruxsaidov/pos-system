@@ -228,6 +228,7 @@ onMounted(() => load(1))
 async function load(page = 1) {
   loading.value = true
   currentPage.value = page
+  firstRow.value = (page - 1) * pageSize.value
   try {
     const params = new URLSearchParams({
       page,

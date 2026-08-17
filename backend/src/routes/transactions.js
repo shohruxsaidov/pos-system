@@ -252,9 +252,11 @@ export default async function transactionRoutes(fastify) {
         cashier_id,
         status,
         search,
-        page = 1,
-        limit = 50,
+        page: pageRaw = 1,
+        limit: limitRaw = 50,
       } = req.query;
+      const page = Math.max(1, parseInt(pageRaw) || 1);
+      const limit = Math.min(Math.max(1, parseInt(limitRaw) || 50), 200);
       const offset = (page - 1) * limit;
 
       let where = "WHERE 1=1";
@@ -289,7 +291,7 @@ export default async function transactionRoutes(fastify) {
       LEFT JOIN users u ON u.id=t.cashier_id
       LEFT JOIN customers c ON c.id=t.customer_id
       ${where}
-      ORDER BY t.created_at DESC
+      ORDER BY t.created_at DESC, t.id DESC
       LIMIT $${pIdx} OFFSET $${pIdx + 1}
     `,
         [...params, limit, offset],
@@ -303,8 +305,8 @@ export default async function transactionRoutes(fastify) {
       return {
         data: rows,
         total: parseInt(countRows[0].count),
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
       };
     },
   );
