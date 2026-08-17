@@ -31,7 +31,7 @@ export default async function categoryRoutes(fastify) {
   fastify.delete('/api/categories/:id', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     // Check if any products use this category
     const { rows: products } = await pool.query(
-      'SELECT COUNT(*) FROM products WHERE category_id=$1 AND is_active=true',
+      'SELECT COUNT(*) AS count FROM products WHERE category_id=$1 AND is_active=true',
       [req.params.id]
     )
     if (parseInt(products[0].count) > 0) {

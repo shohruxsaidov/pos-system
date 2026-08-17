@@ -182,8 +182,8 @@ export default async function incomingRoutes(fastify) {
         ),
         pool.query(
           isManager
-            ? `SELECT COUNT(*) FROM incoming_receipts`
-            : `SELECT COUNT(*) FROM incoming_receipts WHERE warehouse_id=$1`,
+            ? `SELECT COUNT(*) AS count FROM incoming_receipts`
+            : `SELECT COUNT(*) AS count FROM incoming_receipts WHERE warehouse_id=$1`,
           isManager ? [] : [warehouseId],
         ),
       ]);

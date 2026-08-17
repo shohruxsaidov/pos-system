@@ -28,7 +28,7 @@ export default async function auditRoutes(fastify) {
     `, [...params, limit, offset])
 
     const { rows: countRows } = await pool.query(
-      `SELECT COUNT(*) FROM audit_log al ${where}`,
+      `SELECT COUNT(*) AS count FROM audit_log al ${where}`,
       params
     )
 
