@@ -7,6 +7,7 @@ import '../models/product.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/warehouse_provider.dart';
 import '../utils/format.dart';
+import '../utils/money.dart';
 import '../services/api_service.dart';
 import '../services/offline_queue_service.dart';
 import '../widgets/cart_sheet.dart';
@@ -158,15 +159,14 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
     });
   }
 
-  double get _cartTotal =>
-      _cart.fold(0, (sum, item) => sum + item.subtotal);
+  double get _cartTotal => sumMoney(_cart.map((item) => item.subtotal));
 
   Future<void> _processPayment({
     required String method,
     required double tendered,
     required double discount,
   }) async {
-    final net = (_cartTotal - discount).clamp(0, double.infinity);
+    final net = roundMoney((_cartTotal - discount).clamp(0, double.infinity));
     final payload = {
       'items': _cart
           .map((c) => {
@@ -306,12 +306,15 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                               itemCount: filtered.length,
                               itemBuilder: (_, i) {
                                 final p = filtered[i];
-                                final cqty = _cart
+                                // Truncating with toInt() showed a badge of 0
+                                // for any sub-1 weight line. Round instead, and
+                                // never drop a line that is in the cart to 0.
+                                final rawQty = _cart
                                     .where((c) => c.product.id == p.id)
-                                    .fold<int>(
-                                        0,
-                                        (s, c) =>
-                                            s + c.qty.toInt());
+                                    .fold<double>(0, (s, c) => s + c.qty);
+                                final cqty = rawQty <= 0
+                                    ? 0
+                                    : (rawQty.round() < 1 ? 1 : rawQty.round());
                                 return SaleProductCard(
                                   product: p,
                                   cartQty: cqty,

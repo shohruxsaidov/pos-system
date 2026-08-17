@@ -1,3 +1,4 @@
+import '../utils/money.dart';
 import 'product.dart';
 
 class CartItem {
@@ -11,7 +12,7 @@ class CartItem {
     required this.unitPrice,
   });
 
-  double get subtotal => qty * unitPrice;
+  double get subtotal => roundMoney(qty * unitPrice);
 
   CartItem copyWith({double? qty}) => CartItem(
         product: product,

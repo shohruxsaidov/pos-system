@@ -2,6 +2,7 @@ import argon from "argon2";
 import { pool } from "../db/connection.js";
 import { logAudit } from "../services/auditService.js";
 import { broadcastStatus } from "../services/statusService.js";
+import { lineTotal, roundMoney } from "../utils/money.js";
 
 function generateReceiptNo() {
   const d = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -78,8 +79,14 @@ export default async function incomingRoutes(fastify) {
         const receipt = receiptRows[0];
 
         for (const item of items) {
-          const subtotal = item.qty_received * item.cost_per_unit;
-          totalCost += subtotal;
+          // Honours item.subtotal — the sum entered instead of a qty — so a
+          // "4 000 worth" line records 4 000, not cost × 0.0533…
+          const subtotal = lineTotal({
+            unit_price: item.cost_per_unit,
+            qty: item.qty_received,
+            amount: item.subtotal,
+          });
+          totalCost = roundMoney(totalCost + subtotal);
 
           await client.query(
             `INSERT INTO incoming_items (receipt_id, product_id, product_name, qty_received, cost_per_unit, expiry_date, subtotal, unit)

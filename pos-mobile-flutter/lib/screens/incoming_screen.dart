@@ -10,6 +10,7 @@ import '../models/product.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../services/api_service.dart';
+import '../utils/money.dart';
 import '../widgets/bottom_numpad.dart';
 import '../widgets/highlight_text.dart';
 
@@ -38,12 +39,15 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
 
   final _fmt = NumberFormat('#,##0.00');
 
-  double get _total => _items.fold(0.0, (s, i) => s + i.subtotal);
+  double get _total => sumMoney(_items.map((i) => i.subtotal));
 
   void _addProduct(Product product) {
     final idx = _items.indexWhere((i) => i.productId == product.id);
     if (idx >= 0) {
-      setState(() => _items[idx].qty += 1);
+      setState(() {
+        _items[idx].qty += 1;
+        _items[idx].amount = null; // qty changed, any entered sum is stale
+      });
     } else {
       setState(() {
         _items.insert(
@@ -137,12 +141,13 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     setState(() {
       if (field == 'qty') {
         _items[idx].qty = v;
+        _items[idx].amount = null; // qty is now what was asked for, not a sum
       } else if (field == 'cost') {
         _items[idx].costPerUnit = v;
+        _items[idx].amount = null; // the sum no longer matches this unit cost
       } else {
-        // edit total → recalculate qty
-        final cost = _items[idx].costPerUnit;
-        _items[idx].qty = cost > 0 ? double.parse((v / cost).toStringAsFixed(3)) : 0;
+        // edit total → the entered sum is what gets paid, qty follows from it
+        _items[idx].setAmount(v);
       }
     });
   }

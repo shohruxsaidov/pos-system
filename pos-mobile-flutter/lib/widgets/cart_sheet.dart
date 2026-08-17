@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/cart_item.dart';
 import '../utils/format.dart';
+import '../utils/money.dart';
 import 'bottom_numpad.dart';
 
 /// CartSheet — equivalent to CartSheet.vue
@@ -26,8 +27,7 @@ class CartSheet extends StatefulWidget {
 }
 
 class _CartSheetState extends State<CartSheet> {
-  double get _total =>
-      widget.items.fold(0, (sum, item) => sum + item.subtotal);
+  double get _total => sumMoney(widget.items.map((item) => item.subtotal));
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +149,7 @@ class _CartSheetState extends State<CartSheet> {
     final result = await BottomNumPad.show(
       context,
       title: 'Количество: ${item.product.name}',
-      initialValue: item.qty.toString(),
+      initialValue: formatQty(item.qty),
       allowDecimal: true,
     );
     if (result != null && result.isNotEmpty) {
@@ -193,7 +193,7 @@ class _CartItemRow extends StatelessWidget {
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(
-                  '${formatPrice(item.unitPrice)} × ${item.qty}',
+                  '${formatPrice(item.unitPrice)} × ${formatQty(item.qty)}',
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12),
                 ),
@@ -212,9 +212,7 @@ class _CartItemRow extends StatelessWidget {
                 border: Border.all(color: AppColors.borderDefault),
               ),
               child: Text(
-                item.qty % 1 == 0
-                    ? item.qty.toInt().toString()
-                    : item.qty.toStringAsFixed(2),
+                formatQty(item.qty),
                 style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600),
