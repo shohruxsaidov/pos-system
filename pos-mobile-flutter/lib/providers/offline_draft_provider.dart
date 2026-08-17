@@ -28,6 +28,16 @@ class OfflineDraftState {
 
   int get pendingCount => pending.length;
 
+  /// Everything still owed to the server — queued *and* previously failed.
+  /// This is what sync acts on, so a failure is retried rather than stranded.
+  List<OfflineDraft> get retryable =>
+      drafts.where((d) => d.isRetryable).toList();
+
+  int get retryableCount => retryable.length;
+
+  int get errorCount =>
+      drafts.where((d) => d.status == OfflineDraftStatus.error).length;
+
   int get syncedCount =>
       drafts.where((d) => d.status == OfflineDraftStatus.synced).length;
 }
@@ -46,7 +56,18 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
   Future<void> _load() async {
     final drafts = await loadDrafts();
     if (_disposed) return;
-    state = state.copyWith(drafts: drafts);
+    // A draft persisted as `syncing` means the app died mid-request. Its
+    // outcome is unknown, so put it back in the queue — the `client_ref`
+    // idempotency key makes a re-send safe even if the sale did commit.
+    final recovered = drafts
+        .map((d) => d.status == OfflineDraftStatus.syncing
+            ? d.copyWith(status: OfflineDraftStatus.pending)
+            : d)
+        .toList();
+    state = state.copyWith(drafts: recovered);
+    if (recovered.any((d) => d.status == OfflineDraftStatus.pending)) {
+      await saveDrafts(recovered);
+    }
   }
 
   /// Queue a draft sale. Pass [product] when it was already resolved (e.g.
@@ -87,26 +108,46 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     await saveDrafts(updated);
   }
 
-  Future<void> syncAll() async {
-    final pending = state.pending;
-    if (pending.isEmpty) return;
+  /// Push every unsynced draft — queued and previously failed alike.
+  Future<void> syncAll() => _sync(state.retryable);
 
-    Sentry.logger.fmt.info('Offline sync started: %s drafts pending', [pending.length]);
+  /// Re-attempt a single draft, typically an errored one from its row button.
+  /// A draft deleted between build and tap is simply a no-op.
+  Future<void> retryDraft(String id) {
+    final idx = state.drafts.indexWhere((d) => d.id == id);
+    if (idx < 0 || !state.drafts[idx].isRetryable) return Future.value();
+    return _sync([state.drafts[idx]]);
+  }
+
+  Future<void> _sync(List<OfflineDraft> targets) async {
+    if (targets.isEmpty || state.syncing) return;
+
+    Sentry.logger.fmt.info('Offline sync started: %s drafts', [targets.length]);
     if (_disposed) return;
     state = state.copyWith(syncing: true);
+
+    final device = await deviceId();
+    if (_disposed) return;
 
     final updatedDrafts = List<OfflineDraft>.from(state.drafts);
     int synced = 0;
     int failed = 0;
 
-    for (final draft in pending) {
+    void put(int idx, OfflineDraft d) {
+      updatedDrafts[idx] = d;
+      state = state.copyWith(drafts: List.from(updatedDrafts));
+    }
+
+    for (final target in targets) {
       if (_disposed) break;
 
-      // Mark as syncing
-      final syncingIdx = updatedDrafts.indexWhere((d) => d.id == draft.id);
-      if (syncingIdx < 0) continue;
-      updatedDrafts[syncingIdx] = draft.copyWith(status: OfflineDraftStatus.syncing);
-      state = state.copyWith(drafts: List.from(updatedDrafts));
+      final idx = updatedDrafts.indexWhere((d) => d.id == target.id);
+      if (idx < 0) continue;
+      final draft = updatedDrafts[idx].copyWith(
+        attempts: updatedDrafts[idx].attempts + 1,
+        clearError: true,
+      );
+      put(idx, draft.copyWith(status: OfflineDraftStatus.syncing));
 
       // Resolve product — prefer the stored id (set for name-picked drafts),
       // falling back to the barcode for older/scan-only drafts.
@@ -117,11 +158,13 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
       if (_disposed) break;
       if (product == null) {
         Sentry.logger.warn('Offline sync: product not found for barcode ${draft.barcode} (draft ${draft.id})');
-        updatedDrafts[syncingIdx] = draft.copyWith(
-          status: OfflineDraftStatus.error,
-          errorMessage: 'Product not found in cache',
+        put(
+          idx,
+          draft.copyWith(
+            status: OfflineDraftStatus.error,
+            errorMessage: 'Товар не найден в кэше',
+          ),
         );
-        state = state.copyWith(drafts: List.from(updatedDrafts));
         failed++;
         continue;
       }
@@ -143,26 +186,30 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
         'total': subtotal,
         'payment_method': 'cash',
         'tendered': subtotal,
+        // Stable across retries — the server returns the already-committed
+        // transaction instead of ringing up the sale a second time.
+        'client_ref': draft.clientRef(device),
         if (draft.notes != null && draft.notes!.isNotEmpty) 'notes': draft.notes,
       };
 
       try {
         await apiService.post('/api/transactions', data: payload);
         if (_disposed) break;
-        updatedDrafts[syncingIdx] = draft.copyWith(status: OfflineDraftStatus.synced);
+        put(idx, draft.copyWith(status: OfflineDraftStatus.synced));
         synced++;
       } catch (e, st) {
         Sentry.logger.fmt.error('Offline sync failed for draft %s: %s', [draft.id, e]);
         await Sentry.captureException(e, stackTrace: st);
         if (_disposed) break;
-        updatedDrafts[syncingIdx] = draft.copyWith(
-          status: OfflineDraftStatus.error,
-          errorMessage: e.toString(),
+        put(
+          idx,
+          draft.copyWith(
+            status: OfflineDraftStatus.error,
+            errorMessage: e.toString(),
+          ),
         );
         failed++;
       }
-      if (_disposed) break;
-      state = state.copyWith(drafts: List.from(updatedDrafts));
     }
 
     await saveDrafts(updatedDrafts);
@@ -171,7 +218,7 @@ class OfflineDraftNotifier extends Notifier<OfflineDraftState> {
     Sentry.logger.fmt.info('Offline sync complete: %s synced, %s failed', [synced, failed]);
     if (synced > 0) Sentry.metrics.count('offline_drafts.synced', synced);
     if (failed > 0) Sentry.metrics.count('offline_drafts.sync_failed', failed);
-    Sentry.metrics.gauge('offline_drafts.pending', updatedDrafts.where((d) => d.status == OfflineDraftStatus.pending).length.toDouble());
+    Sentry.metrics.gauge('offline_drafts.pending', updatedDrafts.where((d) => d.isRetryable).length.toDouble());
   }
 }
 

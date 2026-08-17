@@ -298,23 +298,44 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (draftState.pendingCount > 0)
+                  if (draftState.retryableCount > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.warningBg,
+                        color: draftState.errorCount > 0
+                            ? AppColors.dangerBg
+                            : AppColors.warningBg,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '${draftState.pendingCount}',
-                        style: const TextStyle(
-                          color: AppColors.warning,
+                        '${draftState.retryableCount}',
+                        style: TextStyle(
+                          color: draftState.errorCount > 0
+                              ? AppColors.danger
+                              : AppColors.warning,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   const Spacer(),
+                  if (draftState.errorCount > 0)
+                    TextButton.icon(
+                      onPressed: draftState.syncing
+                          ? null
+                          : () => ref.read(offlineDraftProvider.notifier).syncAll(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.refresh, size: 14),
+                      label: Text(
+                        'Повторить (${draftState.errorCount})',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                    ),
                   if (draftState.syncedCount > 0)
                     TextButton.icon(
                       onPressed: () =>
@@ -352,8 +373,11 @@ class _OfflineDraftScreenState extends ConsumerState<OfflineDraftScreen> {
                           draft: draft,
                           fmt: fmt,
                           timeFmt: timeFmt,
+                          syncing: draftState.syncing,
                           onDelete: () =>
                               ref.read(offlineDraftProvider.notifier).deleteDraft(draft.id),
+                          onRetry: () =>
+                              ref.read(offlineDraftProvider.notifier).retryDraft(draft.id),
                         );
                       },
                     ),
@@ -376,7 +400,9 @@ class _SyncButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(connectivityProvider);
     final draftState = ref.watch(offlineDraftProvider);
-    final canSync = isOnline && draftState.pendingCount > 0 && !draftState.syncing;
+    // Errored drafts are retryable, so they must keep the button live —
+    // otherwise a batch that failed once can never be pushed again.
+    final canSync = isOnline && draftState.retryableCount > 0 && !draftState.syncing;
 
     return TextButton.icon(
       onPressed: canSync ? onSync : null,
@@ -395,7 +421,7 @@ class _SyncButton extends ConsumerWidget {
       label: Text(
         draftState.syncing
             ? 'Синхронизация...'
-            : 'Синхр. (${draftState.pendingCount})',
+            : 'Синхр. (${draftState.retryableCount})',
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
     );
@@ -454,13 +480,17 @@ class _DraftRow extends StatelessWidget {
   final OfflineDraft draft;
   final NumberFormat fmt;
   final DateFormat timeFmt;
+  final bool syncing;
   final VoidCallback onDelete;
+  final VoidCallback onRetry;
 
   const _DraftRow({
     required this.draft,
     required this.fmt,
     required this.timeFmt,
+    required this.syncing,
     required this.onDelete,
+    required this.onRetry,
   });
 
   @override
@@ -518,15 +548,50 @@ class _DraftRow extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 2),
-                Text(
-                  timeFmt.format(draft.createdAt),
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                Row(
+                  children: [
+                    Text(
+                      timeFmt.format(draft.createdAt),
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                    ),
+                    if (draft.attempts > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        'Попыток: ${draft.attempts}',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                      ),
+                    ],
+                  ],
                 ),
+                // Surfaced inline, not as a tooltip — a tooltip needs a
+                // long-press to reveal, so on a phone the reason a sale failed
+                // was effectively invisible.
+                if (draft.status == OfflineDraftStatus.error &&
+                    draft.errorMessage != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    draft.errorMessage!,
+                    style: const TextStyle(color: AppColors.danger, fontSize: 10),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(width: 8),
           _StatusBadge(draft: draft),
+          if (draft.status == OfflineDraftStatus.error) ...[
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18),
+              color: AppColors.accent1,
+              tooltip: 'Повторить',
+              onPressed: syncing ? null : onRetry,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+          ],
           if (draft.status != OfflineDraftStatus.synced) ...[
             const SizedBox(width: 4),
             IconButton(

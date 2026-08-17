@@ -11,6 +11,7 @@ class OfflineDraft {
   final OfflineDraftStatus status;
   final String? errorMessage;
   final String? notes;
+  final int attempts;
 
   const OfflineDraft({
     required this.id,
@@ -23,7 +24,20 @@ class OfflineDraft {
     this.status = OfflineDraftStatus.pending,
     this.errorMessage,
     this.notes,
+    this.attempts = 0,
   });
+
+  /// A draft that still has to reach the server. Errored drafts count: a
+  /// failure is never terminal, it just means the next attempt hasn't run yet.
+  /// `syncing` counts too — a draft left in that state means the app was
+  /// killed mid-sync, so it must be picked up again rather than stranded.
+  bool get isRetryable => status != OfflineDraftStatus.synced;
+
+  /// Stable idempotency key sent to the server as `client_ref`, so a retry of
+  /// a sale that already committed returns the existing transaction instead of
+  /// creating a duplicate. [deviceId] scopes it per install — draft ids are
+  /// microsecond timestamps and could otherwise collide across phones.
+  String clientRef(String deviceId) => '$deviceId-$id';
 
   OfflineDraft copyWith({
     String? id,
@@ -36,6 +50,8 @@ class OfflineDraft {
     OfflineDraftStatus? status,
     String? errorMessage,
     String? notes,
+    int? attempts,
+    bool clearError = false,
   }) =>
       OfflineDraft(
         id: id ?? this.id,
@@ -46,8 +62,9 @@ class OfflineDraft {
         resolvedPrice: resolvedPrice ?? this.resolvedPrice,
         createdAt: createdAt ?? this.createdAt,
         status: status ?? this.status,
-        errorMessage: errorMessage ?? this.errorMessage,
+        errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
         notes: notes ?? this.notes,
+        attempts: attempts ?? this.attempts,
       );
 
   Map<String, dynamic> toJson() => {
@@ -61,6 +78,7 @@ class OfflineDraft {
         'status': status.name,
         'errorMessage': errorMessage,
         'notes': notes,
+        'attempts': attempts,
       };
 
   factory OfflineDraft.fromJson(Map<String, dynamic> json) => OfflineDraft(
@@ -79,5 +97,6 @@ class OfflineDraft {
         ),
         errorMessage: json['errorMessage'] as String?,
         notes: json['notes'] as String?,
+        attempts: (json['attempts'] as num?)?.toInt() ?? 0,
       );
 }

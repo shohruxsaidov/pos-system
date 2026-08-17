@@ -240,6 +240,17 @@
               </div>
 
               <div class="field-group">
+                <label class="field-label">Размер цены (px)</label>
+                <div class="copies-control">
+                  <Button icon="pi pi-minus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="decrementPriceSize" />
+                  <div class="copies-display font-mono">{{ settings.label_price_size || '28' }}</div>
+                  <Button icon="pi pi-plus" class="p-button-secondary" style="height:56px;width:56px"
+                    @click="incrementPriceSize" />
+                </div>
+              </div>
+
+              <div class="field-group">
                 <label class="field-label">Высота штрихкода (px)</label>
                 <div class="copies-control">
                   <Button icon="pi pi-minus" class="p-button-secondary" style="height:56px;width:56px"
@@ -272,7 +283,8 @@
                 <div v-if="labelShowStore" class="bc-store">{{ settings.store_name || 'Main Market Store' }}</div>
                 <div class="bc-name" :style="{ fontSize: (settings.label_font_size || 14) + 'px' }">Рис 5кг</div>
                 <svg ref="svgPreviewRef" class="bc-barcode" />
-                <div v-if="labelShowPrice" class="bc-price font-mono">45.00</div>
+                <div v-if="labelShowPrice" class="bc-price font-mono"
+                  :style="{ fontSize: (settings.label_price_size || 28) + 'px' }">45.00</div>
               </div>
             </div>
           </div>
@@ -567,6 +579,16 @@ function decrementFontSize() {
 function incrementFontSize() {
   const cur = parseInt(settings.value.label_font_size || 14)
   settings.value.label_font_size = String(Math.min(40, cur + 1))
+}
+
+function decrementPriceSize() {
+  const cur = parseInt(settings.value.label_price_size || 28)
+  settings.value.label_price_size = String(Math.max(10, cur - 2))
+}
+
+function incrementPriceSize() {
+  const cur = parseInt(settings.value.label_price_size || 28)
+  settings.value.label_price_size = String(Math.min(72, cur + 2))
 }
 
 function decrementBarcodeHeight() {

@@ -6,7 +6,9 @@
         <div v-if="showStoreName" class="label-store">{{ storeName }}</div>
         <div class="label-name" :style="{ fontSize: fontSize + 'px' }">{{ product?.name }}</div>
         <svg ref="svgRef" class="label-barcode" />
-        <div v-if="showLabelPrice" class="label-price font-mono">{{ formatPrice(product?.price) }}</div>
+        <div v-if="showLabelPrice" class="label-price font-mono" :style="{ fontSize: priceSize + 'px' }">
+          {{ formatPrice(product?.price) }}
+        </div>
       </div>
 
       <div class="print-fields">
@@ -56,6 +58,17 @@
               <div class="counter-display font-mono">{{ fontSize }}</div>
               <Button icon="pi pi-plus" class="p-button-secondary" style="height:44px;width:44px"
                 @click="fontSize = Math.min(40, fontSize + 1)" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Цена (px)</label>
+            <div class="copies-control">
+              <Button icon="pi pi-minus" class="p-button-secondary" style="height:44px;width:44px"
+                @click="priceSize = Math.max(10, priceSize - 2)" />
+              <div class="counter-display font-mono">{{ priceSize }}</div>
+              <Button icon="pi pi-plus" class="p-button-secondary" style="height:44px;width:44px"
+                @click="priceSize = Math.min(72, priceSize + 2)" />
             </div>
           </div>
 
@@ -120,6 +133,7 @@ const selectedBarcode = ref(null)
 const showStoreName = ref(true)
 const showLabelPrice = ref(true)
 const fontSize = ref(14)
+const priceSize = ref(28)
 const barcodeHeight = ref(48)
 const defaultsLoaded = ref(false)
 
@@ -132,6 +146,7 @@ async function loadDefaults() {
     showStoreName.value = s.label_show_store !== 'false'
     showLabelPrice.value = s.label_show_price !== 'false'
     fontSize.value = parseInt(s.label_font_size) || 14
+    priceSize.value = parseInt(s.label_price_size) || 28
     barcodeHeight.value = parseInt(s.label_barcode_height) || 48
     storeName.value = s.store_name || 'Main Market Store'
     defaultsLoaded.value = true
@@ -211,7 +226,7 @@ function print() {
     .label-store { font-size: 9px; color: #555; height: 11px; }
     .label-name  { font-size: ${fontSize.value}px; font-weight: 700; color: #111; text-align: center; }
     .label-barcode svg { width: 100%; height: auto; }
-    .label-price { font-size: 30px; font-weight: 700; color: #111; font-family: monospace; }
+    .label-price { font-size: ${priceSize.value}px; font-weight: 700; color: #111; font-family: monospace; }
     @page { margin: 0; size: ${labelWidth} auto; }
   </style>
 </head>

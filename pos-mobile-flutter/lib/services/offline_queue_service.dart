@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/offline_draft.dart';
 import '../models/product.dart';
@@ -7,6 +8,22 @@ const _productsCacheKey = 'pos_products_cache';
 const _cacheTimestampKey = 'pos_products_cache_ts';
 
 const _draftsKey = 'pos_offline_drafts';
+const _deviceIdKey = 'pos_device_id';
+
+// ─── Device id ────────────────────────────────────────────────────────────────
+
+/// Random id generated once per install and persisted. Used to namespace the
+/// `client_ref` idempotency keys sent with offline sales so that two phones
+/// queueing a draft in the same microsecond can't produce the same key.
+Future<String> deviceId() async {
+  final prefs = await SharedPreferences.getInstance();
+  final existing = prefs.getString(_deviceIdKey);
+  if (existing != null) return existing;
+  final rnd = Random.secure();
+  final id = List.generate(8, (_) => rnd.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+  await prefs.setString(_deviceIdKey, id);
+  return id;
+}
 
 // ─── Product cache ────────────────────────────────────────────────────────────
 //

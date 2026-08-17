@@ -8,6 +8,7 @@ import '../utils/format.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/warehouse_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/delete_confirm_sheet.dart';
 import '../widgets/product_card.dart';
 import '../widgets/stock_adjust_sheet.dart';
 import 'product_detail_screen.dart';
@@ -170,41 +171,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   Future<void> _confirmDelete(Product product) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgElevated,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18)),
-        title: const Text(
-          'Удалить товар?',
-          style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w600),
-        ),
-        content: Text(
+    final confirmed = await DeleteConfirmSheet.show(
+      context,
+      title: 'Удалить товар?',
+      message:
           '«${product.name}» будет удалён из склада. Это действие нельзя отменить.',
-          style: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(
-                foregroundColor: AppColors.textSecondary),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Удалить',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await ref.read(warehouseProvider.notifier).deleteProduct(product.id);
       if (mounted) {
