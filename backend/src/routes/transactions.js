@@ -6,6 +6,7 @@ import {
 } from "../services/notificationService.js";
 import { broadcastStatus } from "../services/statusService.js";
 import { printReceipt } from "../services/printService.js";
+import { lineTotal, roundMoney, sumMoney } from "../utils/money.js";
 
 function generateRefNo() {
   const now = new Date();
@@ -53,7 +54,6 @@ export default async function transactionRoutes(fastify) {
         await client.query("BEGIN");
 
         // Validate items and calculate totals
-        let subtotal = 0;
         const processedItems = [];
         for (const item of items) {
           const { rows } = await client.query(
@@ -62,13 +62,14 @@ export default async function transactionRoutes(fastify) {
           );
           if (!rows[0]) throw new Error(`Product ${item.product_id} not found`);
           const product = rows[0];
-          const itemSubtotal =
-            item.unit_price * item.qty - (item.discount || 0);
-          subtotal += itemSubtotal;
+          // Honours item.amount — the sum the cashier entered instead of a qty
+          // — so a "4 000 worth" line charges 4 000, not unit_price × 0.0533…
+          const itemSubtotal = lineTotal(item);
           processedItems.push({ ...item, product, itemSubtotal });
         }
 
-        const total = subtotal - discount + tax;
+        const subtotal = sumMoney(processedItems.map((i) => i.itemSubtotal));
+        const total = roundMoney(subtotal - discount + tax);
 
         // Build normalised payments array
         const isNewFormat =

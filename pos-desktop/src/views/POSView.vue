@@ -74,7 +74,8 @@
             <template #body="{ data }">
               <div class="qty-control">
                 <button class="qty-btn" @click="cart.updateQty(data.product_id, data.qty - 1)">−</button>
-                <button class="qty-value font-mono qty-value-btn" @click="openQtyEdit(data)">{{ data.qty }}</button>
+                <button class="qty-value font-mono qty-value-btn" @click="openQtyEdit(data)">{{ formatQty(data.qty)
+                }}</button>
                 <button class="qty-btn" @click="cart.updateQty(data.product_id, data.qty + 1)">+</button>
               </div>
             </template>
@@ -88,7 +89,7 @@
               </Button>
             </template>
             <template #body="{ data }">
-              <span class="font-mono cart-line-total">{{ formatPrice(data.unit_price * data.qty) }}</span>
+              <span class="font-mono cart-line-total">{{ formatPrice(lineTotal(data)) }}</span>
             </template>
           </Column>
           <Column style="width:44px">
@@ -132,6 +133,7 @@
         <NumPad v-model="editPrice" :show-display="true" />
         <div style="text-align:center;font-size:13px;color:var(--text-muted)">
           Кол-во: <span class="font-mono" style="color:var(--text-accent)">{{ computedQtyFromAmount }}</span>
+          · К оплате: <span class="font-mono" style="color:var(--text-accent)">{{ formatPrice(enteredAmount) }}</span>
         </div>
       </div>
       <template #footer>
@@ -170,6 +172,7 @@ import { useCartStore } from '../stores/cart.js'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from 'primevue/usetoast'
 import { useVirtualKeyboard } from '../composables/useVirtualKeyboard.js'
+import { lineTotal, roundMoney } from '../utils/money.js'
 import PaymentModal from '../components/PaymentModal.vue'
 import NumPad from '../components/NumPad.vue'
 import DataTable from 'primevue/datatable'
@@ -255,12 +258,15 @@ function confirmQtyEdit() {
   showQtyDialog.value = false
 }
 
+// The entered sum is what gets charged; qty is whatever weight that buys.
+// It is shown trimmed to 4 decimals but applied at full precision — rounding
+// 4 000 / 75 000 to 0.05 would charge 3 750 instead.
+const enteredAmount = computed(() => roundMoney(parseFloat(editPrice.value) || 0))
+
 const computedQtyFromAmount = computed(() => {
-  const amount = parseFloat(editPrice.value) || 0
-  const price = editingCartItem.value?.unit_price || 1
-  if (price <= 0 || amount <= 0) return '0.00'
-  const qty = Math.round((amount / price) * 100) / 100
-  return qty.toFixed(2)
+  const price = editingCartItem.value?.unit_price || 0
+  if (price <= 0 || enteredAmount.value <= 0) return '0'
+  return formatQty(enteredAmount.value / price)
 })
 
 function openPriceEdit(item) {
@@ -270,12 +276,7 @@ function openPriceEdit(item) {
 }
 
 function confirmPriceEdit() {
-  const qty = parseFloat(computedQtyFromAmount.value) || 0
-  if (qty <= 0) {
-    cart.removeItem(editingCartItem.value.product_id)
-  } else {
-    cart.updateQty(editingCartItem.value.product_id, qty)
-  }
+  cart.setLineAmount(editingCartItem.value.product_id, enteredAmount.value)
   showPriceDialog.value = false
 }
 
@@ -361,6 +362,13 @@ function highlight(text) {
 function formatPrice(n) {
   const [int, dec] = parseFloat(n || 0).toFixed(2).split('.')
   return int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '.' + dec
+}
+
+// Quantities derived from an entered sum are long fractions (4 000 / 75 000 =
+// 0.0533…) — show at most 4 decimals, without trailing zeros.
+function formatQty(n) {
+  const q = Number(n) || 0
+  return String(parseFloat(q.toFixed(4)))
 }
 
 function stockLabel(qty) {

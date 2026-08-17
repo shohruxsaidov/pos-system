@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { lineTotal, roundMoney, sumMoney } from '../utils/money.js'
 
 let _counter = 1
 
@@ -29,17 +30,19 @@ export const useCartStore = defineStore('cart', () => {
   const customerId = computed(() => activeSession.value.customerId)
   const customerName = computed(() => activeSession.value.customerName)
 
-  const subtotal = computed(() =>
-    items.value.reduce((sum, item) => sum + item.unit_price * item.qty - (item.discount || 0), 0)
+  const subtotal = computed(() => sumMoney(items.value.map(lineTotal)))
+  const total = computed(() => roundMoney(subtotal.value - discount.value))
+  // Weight-priced lines carry fractional quantities — keep the badge readable.
+  const itemCount = computed(() =>
+    Math.round(items.value.reduce((sum, i) => sum + i.qty, 0) * 1000) / 1000
   )
-  const total = computed(() => subtotal.value - discount.value)
-  const itemCount = computed(() => items.value.reduce((sum, i) => sum + i.qty, 0))
 
   function addItem(product, qty = 1, customPrice = null) {
     const price = customPrice !== null ? parseFloat(customPrice) : parseFloat(product.price)
     const existing = activeSession.value.items.find(i => i.product_id === product.id)
     if (existing) {
       existing.qty = parseFloat((existing.qty + qty).toFixed(4))
+      existing.amount = null // qty changed — the entered sum no longer applies
       if (customPrice !== null) existing.unit_price = price
     } else {
       activeSession.value.items.push({
@@ -48,7 +51,8 @@ export const useCartStore = defineStore('cart', () => {
         barcode: product.barcode,
         unit_price: price,
         qty,
-        discount: 0
+        discount: 0,
+        amount: null
       })
     }
   }
@@ -61,8 +65,30 @@ export const useCartStore = defineStore('cart', () => {
     const item = activeSession.value.items.find(i => i.product_id === productId)
     if (item) {
       if (qty <= 0) removeItem(productId)
-      else item.qty = Math.round(qty * 10000) / 10000
+      else {
+        item.qty = Math.round(qty * 10000) / 10000
+        item.amount = null // qty is now what was asked for, not a sum
+      }
     }
+  }
+
+  /**
+   * Sell a given sum's worth of a line ("4 000 of rice at 75 000/kg").
+   *
+   * The sum is what the customer pays, so it is stored verbatim and qty is the
+   * exact ratio — deliberately left unrounded, because rounding it to 0.05 kg
+   * would silently turn a 4 000 sale into 3 750.
+   */
+  function setLineAmount(productId, amount) {
+    const item = activeSession.value.items.find(i => i.product_id === productId)
+    if (!item) return
+    const sum = roundMoney(amount)
+    if (sum <= 0 || !(item.unit_price > 0)) {
+      removeItem(productId)
+      return
+    }
+    item.amount = sum
+    item.qty = sum / item.unit_price
   }
 
   function updateDiscount(productId, disc) {
@@ -115,7 +141,7 @@ export const useCartStore = defineStore('cart', () => {
     sessions, activeId, activeSession,
     items, discount, customerId, customerName,
     subtotal, total, itemCount,
-    addItem, removeItem, updateQty, updateDiscount,
+    addItem, removeItem, updateQty, setLineAmount, updateDiscount,
     setDiscount, setCustomer, clear,
     newSession, switchSession, closeSession
   }
