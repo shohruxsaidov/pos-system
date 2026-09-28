@@ -11,6 +11,18 @@ class ApiResponse {
   ApiResponse(this.statusCode, this.data);
 }
 
+/// HTTP error returned by the backend. [toString] keeps the plain
+/// `Exception: <message>` format callers strip for display.
+class ApiException implements Exception {
+  final int statusCode;
+  final String message;
+
+  ApiException(this.statusCode, this.message);
+
+  @override
+  String toString() => 'Exception: $message';
+}
+
 class ApiService {
   String? _token;
   final _client = http.Client();
@@ -31,7 +43,7 @@ class ApiService {
       } else {
         Sentry.logger.warn('API client error ${res.statusCode}: $message');
       }
-      throw Exception(message);
+      throw ApiException(res.statusCode, message.toString());
     }
     return ApiResponse(res.statusCode, body);
   }
@@ -47,7 +59,9 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
       return _parse(res);
     } catch (e, st) {
-      if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;
+      // 4xx (e.g. 404 "Product not found" on barcode lookup) are expected
+      // and handled by callers — don't report them as Sentry issues.
+      if (e is! Exception || (e is ApiException && e.statusCode < 500)) rethrow;
       Sentry.logger.fmt.error('GET %s failed: %s', [path, e]);
       await Sentry.captureException(e, stackTrace: st);
       rethrow;
@@ -67,7 +81,9 @@ class ApiService {
           .timeout(timeout);
       return _parse(res);
     } catch (e, st) {
-      if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;
+      // 4xx (e.g. 404 "Product not found" on barcode lookup) are expected
+      // and handled by callers — don't report them as Sentry issues.
+      if (e is! Exception || (e is ApiException && e.statusCode < 500)) rethrow;
       Sentry.logger.fmt.error('POST %s failed: %s', [path, e]);
       await Sentry.captureException(e, stackTrace: st);
       rethrow;
@@ -84,7 +100,9 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
       return _parse(res);
     } catch (e, st) {
-      if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;
+      // 4xx (e.g. 404 "Product not found" on barcode lookup) are expected
+      // and handled by callers — don't report them as Sentry issues.
+      if (e is! Exception || (e is ApiException && e.statusCode < 500)) rethrow;
       Sentry.logger.fmt.error('PUT %s failed: %s', [path, e]);
       await Sentry.captureException(e, stackTrace: st);
       rethrow;
@@ -101,7 +119,9 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
       return _parse(res);
     } catch (e, st) {
-      if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;
+      // 4xx (e.g. 404 "Product not found" on barcode lookup) are expected
+      // and handled by callers — don't report them as Sentry issues.
+      if (e is! Exception || (e is ApiException && e.statusCode < 500)) rethrow;
       Sentry.logger.fmt.error('PATCH %s failed: %s', [path, e]);
       await Sentry.captureException(e, stackTrace: st);
       rethrow;
@@ -118,7 +138,9 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
       return _parse(res);
     } catch (e, st) {
-      if (e is! Exception || e.toString().startsWith('Exception: Request failed')) rethrow;
+      // 4xx (e.g. 404 "Product not found" on barcode lookup) are expected
+      // and handled by callers — don't report them as Sentry issues.
+      if (e is! Exception || (e is ApiException && e.statusCode < 500)) rethrow;
       Sentry.logger.fmt.error('DELETE %s failed: %s', [path, e]);
       await Sentry.captureException(e, stackTrace: st);
       rethrow;
